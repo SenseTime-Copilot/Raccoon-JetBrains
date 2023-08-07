@@ -1,8 +1,8 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-    <id>dev.jamiecraane.gptmentorplugin</id>
-    <name>GPT Mentor</name>
-    <vendor>jcraane</vendor>
+    <id>com.sensetime.sensecore.sensecodeplugin</id>
+    <name>SenseCode</name>
+    <vendor>SenseTime</vendor>
 
     <depends>com.intellij.modules.platform</depends>
 
@@ -10,7 +10,7 @@
         <applicationService serviceImplementation="dev.jamiecraane.gptmentorplugin.services.MyApplicationService"/>
         <projectService serviceImplementation="dev.jamiecraane.gptmentorplugin.services.MyProjectService"/>
 
-        <toolWindow id="GPT-Mentor"
+        <toolWindow id="SenseCode"
                     factoryClass="dev.jamiecraane.gptmentorplugin.ui.GptMentorToolWindowFactory"
                     icon="dev.jamiecraane.gptmentorplugin.ui.Icons.ToolWindow"
                     anchor="right">
@@ -21,7 +21,7 @@
     </extensions>
 
     <actions>
-        <group id="org.intellij.sdk.action.GroupedActions" text="GPT Mentor"
+        <group id="org.intellij.sdk.action.GroupedActions" text="SenseCode"
                popup="true">
             <!--            Add actions to the tools menu-->
             <add-to-group
@@ -80,7 +80,7 @@
             </action>
         </group>
 
-        <group id="gptMentorFileActions" text="GPT Mentor"
+        <group id="gptMentorFileActions" text="SenseCode"
                popup="true">
             <!--            Right-click on a file in the file tree -->
             <add-to-group
@@ -106,7 +106,7 @@
         <applicationConfigurable
                 instance="dev.jamiecraane.gptmentorplugin.configuration.GptMentorConfigurable"
                 id="dev.jamiecraane.fasttravel.configuration.FastTravelConfigurable"
-                displayName="GptMentor"/>
+                displayName="SenseCode"/>
 
         <applicationService serviceImplementation="dev.jamiecraane.gptmentorplugin.configuration.GptMentorSettingsState"/>
 
