@@ -59,7 +59,7 @@ sealed class BasicPrompt(
                 this.model = model
                 this.temperature = temperature
                 this.maxTokens= maxTokens
-                this.systemPrompt(this@Chat.systemPrompt)
+                this.systemPrompt("")
                 this@Chat.messages.forEach { message ->
                     message {
                         role = message.role
