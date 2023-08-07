@@ -12,10 +12,12 @@ import kotlinx.serialization.encoding.Encoder
 data class ChatGptRequest(
     val model: Model = Model.PENROSE_411,
     val messages: List<Message>,
-    val temperature: Float = 0.8f,
+    val temperature: Float = 0.5f,
     @SerialName("max_tokens")
-    val maxTokens: Int = 1024,
+    val maxTokens: Int = 256,
     val stream: Boolean = false,
+    val n:Int = 1,
+    val stop:String = "<|end|>"
 ) {
     @Serializable
     data class Message(

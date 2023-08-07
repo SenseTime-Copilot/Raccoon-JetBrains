@@ -83,16 +83,9 @@ class GptMentorSettingsState : PersistentStateComponent<GptMentorSettingsState> 
         - DO NOT EXPLAIN THE CODE
     """.trimIndent()
 
-        val DEFAULT_PROMPT_CHAT = """
-            You are an expert AI programmer.
-                - Follow the user's requirements carefully & to the letter. 
-                - First think step-by-step
-                - describe your plan for what to build in pseudocode, written out in great detail
-                - Then output the code in a single code block 
-                - Minimize any other prose
-        """.trimIndent()
+        val DEFAULT_PROMPT_CHAT = ""
 
-        const val DEFAULT_TEMPERATURE = 0.8f
-        const val DEFAULT_MAX_TOKENS = 1024
+        const val DEFAULT_TEMPERATURE = 0.5f
+        const val DEFAULT_MAX_TOKENS = 256
     }
 }
