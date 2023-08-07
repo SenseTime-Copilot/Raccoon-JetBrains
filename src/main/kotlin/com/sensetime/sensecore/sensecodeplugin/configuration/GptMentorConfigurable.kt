@@ -21,7 +21,8 @@ import javax.swing.*
 
 class GptMentorConfigurable : Configurable {
     private lateinit var settingsPanel: JPanel
-    private val openAiApiKey = JBPasswordField()
+    private val apiAccessKey = JBPasswordField()
+    private val apiSecretKey = JBPasswordField()
 
     private val explainCodePrompt = createTextArea()
     private val createUnitTestPrompt = createTextArea()
@@ -52,7 +53,8 @@ class GptMentorConfigurable : Configurable {
     }
 
     private fun createFromConfig(): JComponent {
-        openAiApiKey.text = getPassword()
+        apiAccessKey.text = getAccessKey()
+        apiSecretKey.text = getSecretKey()
         explainCodePrompt.text = config.systemPromptExplainCode
         createUnitTestPrompt.text = config.systemPromptCreateUnitTest
         improveCodePrompt.text = config.systemPromptImproveCode
@@ -93,9 +95,15 @@ class GptMentorConfigurable : Configurable {
         var gridY = 0
         c.gridy = gridY
         c.gridx = 0
-        settingsPanel.add(JLabel("OpenAI API Key:", JLabel.TRAILING).apply { preferredSize = Dimension(100, 0) }, c)
+        settingsPanel.add(JLabel("SenseCore AccessKey ID:", JLabel.TRAILING).apply { preferredSize = Dimension(100, 0) }, c)
         c.gridx = 1
-        settingsPanel.add(openAiApiKey, c)
+        settingsPanel.add(apiAccessKey, c)
+
+        c.gridy = ++gridY
+        c.gridx = 0
+        settingsPanel.add(JLabel("SenseCore AccessKey Secret:", JLabel.TRAILING).apply { preferredSize = Dimension(100, 0) }, c)
+        c.gridx = 1
+        settingsPanel.add(apiSecretKey, c)
 
         gridY = addAdvancedParameters(c, gridY)
 
@@ -204,16 +212,13 @@ class GptMentorConfigurable : Configurable {
         }
     }
 
-
-    private fun getPassword() = GptMentorCredentialsManager.getPassword() ?: "YOUR_API_KEY"
+    private fun getAccessKey() = GptMentorCredentialsManager.getAccessKey() ?: "YOUR_ACCESS_KEY"
+    private fun getSecretKey() = GptMentorCredentialsManager.getSecretKey() ?: "YOUR_SECRET_KEY"
 
     override fun isModified(): Boolean {
         var modified = false
-        val text = openAiApiKey.text
-        if (text.isNotBlank()) {
-            modified = modified || text != getPassword()
-        }
-
+        modified = modified || apiAccessKey.text != getAccessKey()
+        modified = modified || apiSecretKey.text != getSecretKey()
         modified = modified || explainCodePrompt.text != config.systemPromptExplainCode
         modified = modified || createUnitTestPrompt.text != config.systemPromptCreateUnitTest
         modified = modified || improveCodePrompt.text != config.systemPromptImproveCode
@@ -242,7 +247,8 @@ class GptMentorConfigurable : Configurable {
         config.temperature = (temperature.text.toFloatOrNull() ?: config.temperature).coerceIn(0f, 2f)
         config.maxTokens = (maxTokens.text.toIntOrNull() ?: config.maxTokens).coerceIn(1, 4096)
 
-        GptMentorCredentialsManager.setPassword(openAiApiKey.text)
+        GptMentorCredentialsManager.setAccessKey(apiAccessKey.text)
+        GptMentorCredentialsManager.setSecretKey(apiSecretKey.text)
     }
 
     override fun getDisplayName(): String {
