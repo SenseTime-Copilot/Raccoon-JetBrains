@@ -24,7 +24,7 @@ class GptMentorSettingsState : PersistentStateComponent<GptMentorSettingsState> 
     var systemPromptReviewCode: String = DEFAULT_PROMPT_REVIEW
     var systemPromptAddDocs: String = DEFAULT_PROMPT_ADD_COMMENTS
     var systemPromptChat: String = DEFAULT_PROMPT_CHAT
-    var selectedModel: String = Model.GPT_3_5_TURBO.code
+    var selectedModel: String = Model.PENROSE_411.code
     var temperature: Float = DEFAULT_TEMPERATURE
     var maxTokens: Int = DEFAULT_MAX_TOKENS
 

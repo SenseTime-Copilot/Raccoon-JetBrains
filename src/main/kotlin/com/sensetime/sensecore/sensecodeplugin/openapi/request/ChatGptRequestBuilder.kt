@@ -13,7 +13,7 @@ fun chatGptRequest(block: ChatGptRequestBuilder.() -> Unit): ChatGptRequest {
 
 @GptRequest
 class ChatGptRequestBuilder(
-    var model: Model = GPT_3_5_TURBO,
+    var model: Model = PENROSE_411,
     var messages: MutableList<MessageBuilder> = mutableListOf(),
     var temperature: Float = 0.8f,
     var maxTokens: Int = 1024,

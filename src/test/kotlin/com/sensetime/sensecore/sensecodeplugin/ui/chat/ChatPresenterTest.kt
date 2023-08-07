@@ -43,7 +43,7 @@ class ChatPresenterTest {
             chatView.setPrompt("action")
             chatView.appendToExplanation("action")
             openApi.executeBasicActionStreaming(
-                BasicPrompt.Chat(listOf(message), "").createRequest(Model.GPT_3_5_TURBO, 0.7f, 1024)
+                BasicPrompt.Chat(listOf(message), "").createRequest(Model.PENROSE_411, 0.7f, 1024)
             )
         }
     }
@@ -55,7 +55,7 @@ class ChatPresenterTest {
         coVerify {
             chatView.setPrompt(prompt.action)
             chatView.clearExplanation()
-            openApi.executeBasicActionStreaming(prompt.createRequest(Model.GPT_3_5_TURBO, 0.7f, 1024))
+            openApi.executeBasicActionStreaming(prompt.createRequest(Model.PENROSE_411, 0.7f, 1024))
         }
     }
 
