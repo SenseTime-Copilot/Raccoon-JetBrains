@@ -7,12 +7,12 @@
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <applicationService serviceImplementation="dev.jamiecraane.gptmentorplugin.services.MyApplicationService"/>
-        <projectService serviceImplementation="dev.jamiecraane.gptmentorplugin.services.MyProjectService"/>
+        <applicationService serviceImplementation="com.sensetime.sensecore.sensecodeplugin.services.MyApplicationService"/>
+        <projectService serviceImplementation="com.sensetime.sensecore.sensecodeplugin.services.MyProjectService"/>
 
         <toolWindow id="SenseCode"
-                    factoryClass="dev.jamiecraane.gptmentorplugin.ui.GptMentorToolWindowFactory"
-                    icon="dev.jamiecraane.gptmentorplugin.ui.Icons.ToolWindow"
+                    factoryClass="com.sensetime.sensecore.sensecodeplugin.ui.GptMentorToolWindowFactory"
+                    icon="com.sensetime.sensecore.sensecodeplugin.ui.Icons.ToolWindow"
                     anchor="right">
 
         </toolWindow>
@@ -35,44 +35,44 @@
                     anchor="last">
             </add-to-group>
 
-            <action id="explainCode" class="dev.jamiecraane.gptmentorplugin.actions.editor.ExplainCodeAction"
+            <action id="explainCode" class="com.sensetime.sensecore.sensecodeplugin.actions.editor.ExplainCodeAction"
                     text="Explain Code">
                 <keyboard-shortcut first-keystroke="control alt shift E" keymap="$default" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift E" keymap="Mac OS X" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift E" keymap="Mac OS X 10.5+" replace-all="true"/>
             </action>
 
-            <action id="improveCode" class="dev.jamiecraane.gptmentorplugin.actions.editor.ImproveCodeAction"
+            <action id="improveCode" class="com.sensetime.sensecore.sensecodeplugin.actions.editor.ImproveCodeAction"
                     text="Improve Code">
                 <keyboard-shortcut first-keystroke="control alt shift I" keymap="$default" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift I" keymap="Mac OS X" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift I" keymap="Mac OS X 10.5+" replace-all="true"/>
             </action>
-            <action id="reviewCode" class="dev.jamiecraane.gptmentorplugin.actions.editor.ReviewCodeAction"
+            <action id="reviewCode" class="com.sensetime.sensecore.sensecodeplugin.actions.editor.ReviewCodeAction"
                     text="Review Code">
                 <keyboard-shortcut first-keystroke="control alt shift R" keymap="$default" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift R" keymap="Mac OS X" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift R" keymap="Mac OS X 10.5+" replace-all="true"/>
             </action>
-            <action id="createUnitTest" class="dev.jamiecraane.gptmentorplugin.actions.editor.CreateUnitTestAction"
+            <action id="createUnitTest" class="com.sensetime.sensecore.sensecodeplugin.actions.editor.CreateUnitTestAction"
                     text="Create Unit Test">
                 <keyboard-shortcut first-keystroke="control alt shift T" keymap="$default"/>
                 <keyboard-shortcut first-keystroke="control alt shift T" keymap="Mac OS X" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift T" keymap="Mac OS X 10.5+" replace-all="true"/>
             </action>
-            <action id="addComments" class="dev.jamiecraane.gptmentorplugin.actions.editor.AddCommentsAction"
+            <action id="addComments" class="com.sensetime.sensecore.sensecodeplugin.actions.editor.AddCommentsAction"
                     text="Add Comments">
                 <keyboard-shortcut first-keystroke="control alt shift C" keymap="$default"/>
                 <keyboard-shortcut first-keystroke="control alt shift C" keymap="Mac OS X" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift C" keymap="Mac OS X 10.5+" replace-all="true"/>
             </action>
-            <action id="promptFromSelection" class="dev.jamiecraane.gptmentorplugin.actions.editor.PromptFromSelectionAction"
+            <action id="promptFromSelection" class="com.sensetime.sensecore.sensecodeplugin.actions.editor.PromptFromSelectionAction"
                     text="Prompt From Selection">
                 <keyboard-shortcut first-keystroke="control alt shift P" keymap="$default"/>
                 <keyboard-shortcut first-keystroke="control alt shift P" keymap="Mac OS X" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift P" keymap="Mac OS X 10.5+" replace-all="true"/>
             </action>
-            <action id="appendSelectionToPrompt" class="dev.jamiecraane.gptmentorplugin.actions.editor.AppendPromptFromSelectionAction"
+            <action id="appendSelectionToPrompt" class="com.sensetime.sensecore.sensecodeplugin.actions.editor.AppendPromptFromSelectionAction"
                     text="Append Selected Text">
                 <keyboard-shortcut first-keystroke="control alt shift S" keymap="$default"/>
                 <keyboard-shortcut first-keystroke="control alt shift S" keymap="Mac OS X" replace-all="true"/>
@@ -88,14 +88,14 @@
                     anchor="last">
             </add-to-group>
 
-            <action id="promptFromFile" class="dev.jamiecraane.gptmentorplugin.actions.file.NewPromptFromFileAction"
+            <action id="promptFromFile" class="com.sensetime.sensecore.sensecodeplugin.actions.file.NewPromptFromFileAction"
                     text="New Prompt From File(s)"/>
 
-            <action id="appendPromptFromFile" class="dev.jamiecraane.gptmentorplugin.actions.file.AppendPromptFromFileAction"
+            <action id="appendPromptFromFile" class="com.sensetime.sensecore.sensecodeplugin.actions.file.AppendPromptFromFileAction"
                     text="Append Prompt With File(s)"/>
         </group>
 
-        <action id="addGitCommitsToPrompt" class="dev.jamiecraane.gptmentorplugin.actions.git.AddGitCommitsToPromptAction"
+        <action id="addGitCommitsToPrompt" class="com.sensetime.sensecore.sensecodeplugin.actions.git.AddGitCommitsToPromptAction"
                 text="Add Commits To Prompt">
             <add-to-group group-id="Vcs.Log.ContextMenu"/>
         </action>
@@ -104,13 +104,13 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <applicationConfigurable
-                instance="dev.jamiecraane.gptmentorplugin.configuration.GptMentorConfigurable"
+                instance="com.sensetime.sensecore.sensecodeplugin.configuration.GptMentorConfigurable"
                 id="dev.jamiecraane.fasttravel.configuration.FastTravelConfigurable"
                 displayName="SenseCode"/>
 
-        <applicationService serviceImplementation="dev.jamiecraane.gptmentorplugin.configuration.GptMentorSettingsState"/>
+        <applicationService serviceImplementation="com.sensetime.sensecore.sensecodeplugin.configuration.GptMentorSettingsState"/>
 
-        <applicationService serviceImplementation="dev.jamiecraane.gptmentorplugin.ui.history.state.HistoryState"/>
+        <applicationService serviceImplementation="com.sensetime.sensecore.sensecodeplugin.ui.history.state.HistoryState"/>
     </extensions>
 
 </idea-plugin>
