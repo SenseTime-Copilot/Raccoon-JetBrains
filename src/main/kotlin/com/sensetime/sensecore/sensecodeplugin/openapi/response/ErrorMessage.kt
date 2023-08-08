@@ -1,16 +1,19 @@
 package com.sensetime.sensecore.sensecodeplugin.openapi.response
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class ErrorResponse(
-    val error: ErrorMessage? = null,
+    val code: Int? = null,
+    val message: String? = null,
+    val details: List<ErrorDetails>? = null,
 )
 
 @Serializable
-data class ErrorMessage(
-    val message: String = "",
-    val type: String = "",
-    val param: String = "",
-    val code: String = ""
+data class ErrorDetails(
+    @SerialName("@type")
+    val type: String? = null,
+    val domain: String? = null,
+    val reason: String? = null
 )

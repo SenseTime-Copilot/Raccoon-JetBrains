@@ -5,11 +5,6 @@ import com.sensetime.sensecore.sensecodeplugin.openapi.response.ErrorResponse
 import com.sensetime.sensecore.sensecodeplugin.openapi.response.streaming.ChatCompletion
 import com.sensetime.sensecore.sensecodeplugin.security.GptMentorCredentialsManager
 import io.ktor.client.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
-import io.ktor.util.*
-import io.ktor.util.logging.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.awaitClose
@@ -18,6 +13,10 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.sse.EventSources
+import java.text.SimpleDateFormat
+import java.util.*
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
 
 class RealOpenApi(
     private val client: HttpClient,
@@ -25,41 +24,59 @@ class RealOpenApi(
     private val credentialsManager: GptMentorCredentialsManager,
 ) : OpenApi {
 
-    private suspend fun withAuth(block: suspend (apiKey: String) -> String): String {
-        return credentialsManager.getPassword()?.let { apiKey ->
-            block(apiKey)
-        } ?: throw IllegalStateException("No API key found")
+    private fun getUTCDate(): String {
+        val sdf = SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss 'GMT'", Locale.ENGLISH)
+        sdf.timeZone = TimeZone.getTimeZone("UTC")
+        return sdf.format(Date())
     }
 
-    private suspend fun makeHttpRequest(url: String, request: ChatGptRequest): String {
-        return withAuth { apiKey ->
-            client.post(url) {
-                bearerAuth(apiKey)
-                contentType(ContentType.Application.Json)
-                setBody(JSON.encodeToString(ChatGptRequest.serializer(), request))
-            }.bodyAsText()
+    private fun getAuthorization(date: String): String {
+        return try {
+            val message = "date: ${date}\nPOST /studio/ams/data/v1/chat/completions HTTP/1.1"
+
+            val sha256HMAC = Mac.getInstance("HmacSHA256")
+            sha256HMAC.init(SecretKeySpec(credentialsManager.getSecretKey().toByteArray(), "HmacSHA256"))
+            val signature = Base64.getEncoder().encodeToString(sha256HMAC.doFinal(message.toByteArray()))
+
+            val ak = credentialsManager.getAccessKey()
+            """
+                hmac accesskey="$ak", algorithm="hmac-sha256", headers="date request-line", signature="$signature"
+            """.trimIndent()
+        } catch (e: Exception) {
+            ""
         }
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     override suspend fun executeBasicActionStreaming(chatGptRequest: ChatGptRequest) =
         callbackFlow {
+            val date = getUTCDate()
             val request = Request.Builder()
                 .url(API_ENDPOINT)
-                .header("Authorization", "Bearer ${credentialsManager.getPassword()}")
+                .header("Authorization", getAuthorization(date))
                 .addHeader("Accept", "text/event-stream")
                 .addHeader("Content-Type", "application/json")
+                .addHeader("Date", date)
                 .post(JSON.encodeToString(ChatGptRequest.serializer(), chatGptRequest).toRequestBody())
                 .build()
 
             val listener = ChatGptEventSourceListener(
                 logger = logger,
                 onError = { response ->
-                    val message = parseErrorMessage(response?.body?.string())
-                        ?: response?.message?.takeIf { it.isNotEmpty() }
-                        ?: UNKNOWM_ERROR
-
-                    trySend(StreamingResponse.Error(message))
+                    try {
+                        val errorResponse = response?.body?.string()?.let {
+                            JSON.decodeFromString(ErrorResponse.serializer(), it)
+                        }
+                        val message = listOfNotNull(
+                            response?.code?.let { "Http status: $it" },
+                            "message: ${errorResponse?.message?.takeIf { it.isNotEmpty() } ?: response?.message?.takeIf { it.isNotEmpty() } ?: UNKNOWM_ERROR}",
+                            errorResponse?.code?.let { "server code: $it" },
+                            errorResponse?.details?.firstOrNull()?.reason?.let { "reason: $it" }
+                        ).joinToString()
+                        trySend(StreamingResponse.Error(message))
+                    } catch (e: Exception) {
+                        trySend(StreamingResponse.Error(e.message ?: UNKNOWM_ERROR))
+                    }
                 },
             ) { response ->
                 try {
@@ -67,7 +84,7 @@ class RealOpenApi(
                         trySend(StreamingResponse.Done)
                     } else {
                         val chatCompletion = JSON.decodeFromString(ChatCompletion.serializer(), response)
-                        val content = chatCompletion.choices.firstOrNull()?.delta?.content ?: ""
+                        val content = chatCompletion.choices?.firstOrNull()?.message?.content ?: ""
                         trySend(StreamingResponse.Data(content))
                     }
                 } catch (e: Exception) {
@@ -88,12 +105,8 @@ class RealOpenApi(
             }
         }
 
-    private fun parseErrorMessage(json: String?) = json?.let {
-        JSON.decodeFromString(ErrorResponse.serializer(), it)
-    }?.error?.message
-
     companion object {
-        const val API_ENDPOINT = "https://api.openai.com/v1/chat/completions"
+        const val API_ENDPOINT = "https://ams.sensecoreapi.cn/studio/ams/data/v1/chat/completions"
         private const val UNKNOWM_ERROR = "Unknown error"
         private val logger = com.intellij.openapi.diagnostic.Logger.getInstance(RealOpenApi::class.java)
         private const val MESSAGE_DONE = "[DONE]"

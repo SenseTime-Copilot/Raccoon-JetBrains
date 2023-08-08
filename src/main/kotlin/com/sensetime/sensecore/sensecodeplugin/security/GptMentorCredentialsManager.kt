@@ -6,7 +6,7 @@ import com.intellij.ide.passwordSafe.PasswordSafe
 
 
 object GptMentorCredentialsManager {
-    fun getAccessKey(): String? {
+    fun getAccessKey(): String {
         return getPasswordSafe(apiAccessKey)
     }
 
@@ -14,7 +14,7 @@ object GptMentorCredentialsManager {
         setPasswordSafe(apiAccessKey, password)
     }
 
-    fun getSecretKey(): String? {
+    fun getSecretKey(): String {
         return getPasswordSafe(apiSecretKey)
     }
 
@@ -30,11 +30,11 @@ object GptMentorCredentialsManager {
         return CredentialAttributes(generateServiceName("SenseCodePasswordManager", key))
     }
 
-    private fun getPasswordSafe(attributes: CredentialAttributes): String? {
+    private fun getPasswordSafe(attributes: CredentialAttributes): String {
         return try {
-            PasswordSafe.instance.getPassword(attributes)
+            PasswordSafe.instance.getPassword(attributes) ?: ""
         } catch (e: Exception) {
-            null
+            ""
         }
     }
 
