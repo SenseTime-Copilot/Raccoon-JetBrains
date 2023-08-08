@@ -95,20 +95,32 @@ class GptMentorConfigurable : Configurable {
         var gridY = 0
         c.gridy = gridY
         c.gridx = 0
-        settingsPanel.add(JLabel("SenseCore AccessKey ID:", JLabel.TRAILING).apply { preferredSize = Dimension(100, 0) }, c)
+        settingsPanel.add(JLabel("AccessKey ID:", JLabel.TRAILING).apply { preferredSize = Dimension(100, 0) }, c)
         c.gridx = 1
         settingsPanel.add(apiAccessKey, c)
 
         c.gridy = ++gridY
         c.gridx = 0
-        settingsPanel.add(JLabel("SenseCore AccessKey Secret:", JLabel.TRAILING).apply { preferredSize = Dimension(100, 0) }, c)
+        settingsPanel.add(JLabel("AccessKey Secret:", JLabel.TRAILING).apply { preferredSize = Dimension(100, 0) }, c)
         c.gridx = 1
         settingsPanel.add(apiSecretKey, c)
+
+        c.gridy = ++gridY
+        c.gridx = 0
+        settingsPanel.add(JLabel("", JLabel.TRAILING), c)
+        c.gridx = 1
+        settingsPanel.add(
+            JLabel(
+                "SenseCore AccessKey ID and Secret, you can get it from \"https://console.sensecore.cn/iam/Security/access-key\"",
+                JLabel.LEADING
+            ), c
+        )
 
         gridY = addAdvancedParameters(c, gridY)
 
         for (promptIndex in prompts.indices) {
             c.gridy = ++gridY
+            c.gridx = 0
             settingsPanel.add(labels[promptIndex], c)
 
             c.gridx = 1
@@ -158,11 +170,11 @@ class GptMentorConfigurable : Configurable {
         settingsPanel.add(modelComboBox, c)
 
         //        add label below combox with the text: gpt-4 is in limited beta. Check OpenAI for availability.
-        c.gridy = ++gridY1
-        c.gridx = 0
-        settingsPanel.add(JLabel("", JLabel.TRAILING), c)
-        c.gridx = 1
-        settingsPanel.add(JLabel("gpt-4 is in limited beta. See OpenAI for availability", JLabel.LEADING), c)
+//        c.gridy = ++gridY1
+//        c.gridx = 0
+//        settingsPanel.add(JLabel("", JLabel.TRAILING), c)
+//        c.gridx = 1
+//        settingsPanel.add(JLabel("gpt-4 is in limited beta. See OpenAI for availability", JLabel.LEADING), c)
         return gridY1
     }
 
@@ -178,8 +190,12 @@ class GptMentorConfigurable : Configurable {
         c.gridx = 0
         settingsPanel.add(JLabel("", JLabel.TRAILING), c)
         c.gridx = 1
-        settingsPanel.add(JLabel("The temperature to use (0..2). Lower values are more conservative, higher values are more creative.",
-            JLabel.LEADING), c)
+        settingsPanel.add(
+            JLabel(
+                "The temperature to use (0..2). Lower values are more conservative, higher values are more creative.",
+                JLabel.LEADING
+            ), c
+        )
         return gridY1
     }
 
@@ -195,9 +211,22 @@ class GptMentorConfigurable : Configurable {
         c.gridx = 0
         settingsPanel.add(JLabel("", JLabel.TRAILING), c)
         c.gridx = 1
-        settingsPanel.add(JLabel("""The maximum number of tokens to generate in the output. Longer outputs may take longer to generate.
-            |The maxtokens of the completion and the input combined cannot exceed 4096.
-        """.trimMargin(), JLabel.LEADING), c)
+        settingsPanel.add(
+            JLabel(
+                "The maximum number of tokens to generate in the output. Longer outputs may take longer to generate.",
+                JLabel.LEADING
+            ), c
+        )
+        c.gridy = ++gridY1
+        c.gridx = 0
+        settingsPanel.add(JLabel("", JLabel.TRAILING), c)
+        c.gridx = 1
+        settingsPanel.add(
+            JLabel(
+                "The maxtokens of the completion and the input combined cannot exceed 4096.",
+                JLabel.LEADING
+            ), c
+        )
         return gridY1
     }
 
@@ -212,8 +241,8 @@ class GptMentorConfigurable : Configurable {
         }
     }
 
-    private fun getAccessKey() = GptMentorCredentialsManager.getAccessKey() ?: "YOUR_ACCESS_KEY"
-    private fun getSecretKey() = GptMentorCredentialsManager.getSecretKey() ?: "YOUR_SECRET_KEY"
+    private fun getAccessKey() = GptMentorCredentialsManager.getAccessKey()
+    private fun getSecretKey() = GptMentorCredentialsManager.getSecretKey()
 
     override fun isModified(): Boolean {
         var modified = false
