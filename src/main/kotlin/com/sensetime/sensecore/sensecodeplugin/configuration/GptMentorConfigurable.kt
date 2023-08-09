@@ -5,12 +5,11 @@ import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.components.JBTextArea
-import com.sensetime.sensecore.sensecodeplugin.configuration.GptMentorSettingsState.Companion.DEFAULT_PROMPT_ADD_COMMENTS
-import com.sensetime.sensecore.sensecodeplugin.configuration.GptMentorSettingsState.Companion.DEFAULT_PROMPT_CHAT
-import com.sensetime.sensecore.sensecodeplugin.configuration.GptMentorSettingsState.Companion.DEFAULT_PROMPT_CREATE_UNIT_TEST
-import com.sensetime.sensecore.sensecodeplugin.configuration.GptMentorSettingsState.Companion.DEFAULT_PROMPT_EXPLAIN
-import com.sensetime.sensecore.sensecodeplugin.configuration.GptMentorSettingsState.Companion.DEFAULT_PROMPT_IMPROVE_CODE
-import com.sensetime.sensecore.sensecodeplugin.configuration.GptMentorSettingsState.Companion.DEFAULT_PROMPT_REVIEW
+import com.sensetime.sensecore.sensecodeplugin.configuration.GptMentorSettingsState.Companion.DEFAULT_PROMPT_GENERATION
+import com.sensetime.sensecore.sensecodeplugin.configuration.GptMentorSettingsState.Companion.DEFAULT_SYSTEM_PROMPT_CHAT
+import com.sensetime.sensecore.sensecodeplugin.configuration.GptMentorSettingsState.Companion.DEFAULT_PROMPT_TEST_GENERATION
+import com.sensetime.sensecore.sensecodeplugin.configuration.GptMentorSettingsState.Companion.DEFAULT_PROMPT_CORRECTION
+import com.sensetime.sensecore.sensecodeplugin.configuration.GptMentorSettingsState.Companion.DEFAULT_PROMPT_REFACTORING
 import com.sensetime.sensecore.sensecodeplugin.domain.Model
 import com.sensetime.sensecore.sensecodeplugin.security.GptMentorCredentialsManager
 import com.sensetime.sensecore.sensecodeplugin.ui.common.ConstraintTextField
@@ -24,12 +23,11 @@ class GptMentorConfigurable : Configurable {
     private val apiAccessKey = JBPasswordField()
     private val apiSecretKey = JBPasswordField()
 
-    private val explainCodePrompt = createTextArea()
-    private val createUnitTestPrompt = createTextArea()
-    private val improveCodePrompt = createTextArea()
-    private val reviewCodePrompt = createTextArea()
-    private val addDocsPrompt = createTextArea()
-    private val chatPrompt = createTextArea()
+    private val codeGenerationPrompt = createTextArea()
+    private val testGenerationPrompt = createTextArea()
+    private val codeCorrectionPrompt = createTextArea()
+    private val codeRefactoringPrompt = createTextArea()
+    private val chatSystemPrompt = createTextArea()
     private val modelComboBox = ComboBox(Model.values().map {
         it.code
     }.toTypedArray())
@@ -55,12 +53,11 @@ class GptMentorConfigurable : Configurable {
     private fun createFromConfig(): JComponent {
         apiAccessKey.text = getAccessKey()
         apiSecretKey.text = getSecretKey()
-        explainCodePrompt.text = config.systemPromptExplainCode
-        createUnitTestPrompt.text = config.systemPromptCreateUnitTest
-        improveCodePrompt.text = config.systemPromptImproveCode
-        reviewCodePrompt.text = config.systemPromptReviewCode
-        addDocsPrompt.text = config.systemPromptAddDocs
-        chatPrompt.text = config.systemPromptChat
+        codeGenerationPrompt.text = config.promptCodeGeneration
+        testGenerationPrompt.text = config.promptTestGeneration
+        codeCorrectionPrompt.text = config.promptCodeCorrection
+        codeRefactoringPrompt.text = config.promptCodeRefactoring
+        chatSystemPrompt.text = config.systemPromptChat
         modelComboBox.selectedItem = config.selectedModel
         temperature.text = config.temperature.toString()
         maxTokens.text = config.maxTokens.toString()
@@ -76,20 +73,19 @@ class GptMentorConfigurable : Configurable {
         c.insets = Insets(0, 0, GAP, GAP)
 
         val prompts = arrayListOf(
-            explainCodePrompt,
-            createUnitTestPrompt,
-            improveCodePrompt,
-            reviewCodePrompt,
-            addDocsPrompt,
-            chatPrompt
+            codeGenerationPrompt,
+            testGenerationPrompt,
+            codeCorrectionPrompt,
+            codeRefactoringPrompt,
+            chatSystemPrompt
         )
+
         val labels = listOf<Component>(
-            JLabel("Explain Code Prompt:", JLabel.TRAILING),
-            JLabel("Create Unit Test Prompt:", JLabel.TRAILING),
-            JLabel("Improve Code Prompt:", JLabel.TRAILING),
-            JLabel("Review Code Prompt:", JLabel.TRAILING),
-            JLabel("Add Comments Prompt:", JLabel.TRAILING),
-            JLabel("Chat Prompt:", JLabel.TRAILING)
+            JLabel("Code Generation Prompt:", JLabel.TRAILING),
+            JLabel("Text Generation Prompt:", JLabel.TRAILING),
+            JLabel("Code Correction Prompt:", JLabel.TRAILING),
+            JLabel("Code Refactoring Prompt:", JLabel.TRAILING),
+            JLabel("Chat System Prompt:", JLabel.TRAILING)
         )
 
         var gridY = 0
@@ -232,12 +228,11 @@ class GptMentorConfigurable : Configurable {
 
     private fun resetPrompt(i: Int) {
         when (i) {
-            0 -> explainCodePrompt.text = DEFAULT_PROMPT_EXPLAIN
-            1 -> createUnitTestPrompt.text = DEFAULT_PROMPT_CREATE_UNIT_TEST
-            2 -> improveCodePrompt.text = DEFAULT_PROMPT_IMPROVE_CODE
-            3 -> reviewCodePrompt.text = DEFAULT_PROMPT_REVIEW
-            4 -> addDocsPrompt.text = DEFAULT_PROMPT_ADD_COMMENTS
-            5 -> chatPrompt.text = DEFAULT_PROMPT_CHAT
+            0 -> codeGenerationPrompt.text = DEFAULT_PROMPT_GENERATION
+            1 -> testGenerationPrompt.text = DEFAULT_PROMPT_TEST_GENERATION
+            2 -> codeCorrectionPrompt.text = DEFAULT_PROMPT_CORRECTION
+            3 -> codeRefactoringPrompt.text = DEFAULT_PROMPT_REFACTORING
+            4 -> chatSystemPrompt.text = DEFAULT_SYSTEM_PROMPT_CHAT
         }
     }
 
@@ -248,12 +243,11 @@ class GptMentorConfigurable : Configurable {
         var modified = false
         modified = modified || apiAccessKey.text != getAccessKey()
         modified = modified || apiSecretKey.text != getSecretKey()
-        modified = modified || explainCodePrompt.text != config.systemPromptExplainCode
-        modified = modified || createUnitTestPrompt.text != config.systemPromptCreateUnitTest
-        modified = modified || improveCodePrompt.text != config.systemPromptImproveCode
-        modified = modified || reviewCodePrompt.text != config.systemPromptReviewCode
-        modified = modified || addDocsPrompt.text != config.systemPromptAddDocs
-        modified = modified || chatPrompt.text != config.systemPromptChat
+        modified = modified || codeGenerationPrompt.text != config.promptCodeGeneration
+        modified = modified || testGenerationPrompt.text != config.promptTestGeneration
+        modified = modified || codeCorrectionPrompt.text != config.promptCodeCorrection
+        modified = modified || codeRefactoringPrompt.text != config.promptCodeRefactoring
+        modified = modified || chatSystemPrompt.text != config.systemPromptChat
         modified = modified || modelComboBox.selectedItem != config.selectedModel
         modified = modified || (temperature.text) != config.temperature.toString()
         modified = modified || maxTokens.text != config.maxTokens.toString()
@@ -266,12 +260,11 @@ class GptMentorConfigurable : Configurable {
             return
         }
 
-        config.systemPromptExplainCode = explainCodePrompt.text
-        config.systemPromptCreateUnitTest = createUnitTestPrompt.text
-        config.systemPromptImproveCode = improveCodePrompt.text
-        config.systemPromptReviewCode = reviewCodePrompt.text
-        config.systemPromptAddDocs = addDocsPrompt.text
-        config.systemPromptChat = chatPrompt.text
+        config.promptCodeGeneration = codeGenerationPrompt.text
+        config.promptTestGeneration = testGenerationPrompt.text
+        config.promptCodeCorrection = codeCorrectionPrompt.text
+        config.promptCodeRefactoring = codeRefactoringPrompt.text
+        config.systemPromptChat = chatSystemPrompt.text
         config.selectedModel = modelComboBox.selectedItem as String
         config.temperature = (temperature.text.toFloatOrNull() ?: config.temperature).coerceIn(0f, 2f)
         config.maxTokens = (maxTokens.text.toIntOrNull() ?: config.maxTokens).coerceIn(1, 4096)

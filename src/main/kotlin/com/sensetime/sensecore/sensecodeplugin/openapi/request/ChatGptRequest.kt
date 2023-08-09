@@ -16,8 +16,8 @@ data class ChatGptRequest(
     @SerialName("max_tokens")
     val maxTokens: Int = 256,
     val stream: Boolean = false,
-    val n:Int = 1,
-    val stop:String = "<|end|>"
+    val n: Int = 1,
+    val stop: String = "<|end|>"
 ) {
     @Serializable
     data class Message(
@@ -37,13 +37,16 @@ data class ChatGptRequest(
                 return Message(role, content)
             }
         }
+
         @Serializable(with = Role.RoleSerializer::class)
         enum class Role(val code: String) {
             USER("user"),
+            ASSISTANT("assistant"),
             SYSTEM("system");
 
             companion object {
-                fun fromCode(code: String): Role = values().firstOrNull { it.code.equals(code, ignoreCase = true) } ?: USER
+                fun fromCode(code: String): Role =
+                    values().firstOrNull { it.code.equals(code, ignoreCase = true) } ?: USER
             }
 
             @OptIn(ExperimentalSerializationApi::class)

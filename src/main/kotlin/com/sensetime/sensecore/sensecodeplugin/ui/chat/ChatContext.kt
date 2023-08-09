@@ -17,18 +17,16 @@ data class ChatContext(
     fun addMessage(message: String, role: ChatGptRequest.Message.Role): ChatContext {
         val chatContext = when (chat) {
             is BasicPrompt.Chat -> {
-                ChatContext(chatId, chat.copy(
-                    messages = chat.messages + ChatGptRequest.Message.newMessage(message, role)))
+                ChatContext(
+                    chatId, chat.copy(
+                        messages = chat.messages + ChatGptRequest.Message.newMessage(message, role)
+                    )
+                )
             }
 
-            is BasicPrompt.AddComments -> getUpdatedChat(message, chat.code, chat.systemMessage)
-            is BasicPrompt.CreateUnitTest -> getUpdatedChat(message, chat.code, chat.systemMessage)
-            is BasicPrompt.ExplainCode -> getUpdatedChat(message, chat.code, chat.systemMessage)
-            is BasicPrompt.ImproveCode -> getUpdatedChat(message, chat.code, chat.systemMessage)
+            is BasicPrompt.TaskPrompt -> getUpdatedChat(message, chat.action, chat.systemPrompt)
             is BasicPrompt.PromptFromSelection,
             -> getUpdatedChat(message, chat.code, chat.systemMessage)
-
-            is BasicPrompt.ReviewCode -> getUpdatedChat(message, chat.code, chat.systemMessage)
         }
         return chatContext
     }

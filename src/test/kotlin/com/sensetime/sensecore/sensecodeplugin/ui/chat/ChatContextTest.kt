@@ -10,7 +10,7 @@ class ChatContextTest {
     fun testFromPrompt() {
         // given
         val id = "123"
-        val prompt = BasicPrompt.ExplainCode("code", "system message")
+        val prompt = BasicPrompt.TaskPrompt("code", "system message")
 
         // when
         val chatContext = ChatContext.fromPrompt(id, prompt)

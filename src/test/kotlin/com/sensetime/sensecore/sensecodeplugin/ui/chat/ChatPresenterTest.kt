@@ -24,7 +24,7 @@ class ChatPresenterTest {
     private val openApi: OpenApi = mockk(relaxed = true)
     private val mainPresenter: MainPresenter = mockk(relaxed = true)
 
-    private val prompt = BasicPrompt.ExplainCode("action", "")
+    private val prompt = BasicPrompt.TaskPrompt("action", "")
     private val message = ChatGptRequest.Message.newUserMessage("action")
 
     private val historyRepository: HistoryRepository = mockk(relaxed = true)

@@ -51,13 +51,14 @@ class RealOpenApi(
     override suspend fun executeBasicActionStreaming(chatGptRequest: ChatGptRequest) =
         callbackFlow {
             val date = getUTCDate()
+            val postJson = JSON.encodeToString(ChatGptRequest.serializer(), chatGptRequest)
             val request = Request.Builder()
                 .url(API_ENDPOINT)
                 .header("Authorization", getAuthorization(date))
                 .addHeader("Accept", "text/event-stream")
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Date", date)
-                .post(JSON.encodeToString(ChatGptRequest.serializer(), chatGptRequest).toRequestBody())
+                .post(postJson.toRequestBody())
                 .build()
 
             val listener = ChatGptEventSourceListener(

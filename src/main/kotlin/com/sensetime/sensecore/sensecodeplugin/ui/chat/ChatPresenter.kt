@@ -147,8 +147,13 @@ class ChatPresenter(
         chatView.onExplanationDone()
         chatView.clearPrompt()
         chatView.updateNumberOfTokens("")
-        chatContext = chatContext.addMessage(explanationBuilder.toString(), ChatGptRequest.Message.Role.SYSTEM)
-        historyRepository.addOrUpdateHistoryItem(HistoryItem.from(chatContext, state = GptMentorSettingsState.getInstance()))
+        chatContext = chatContext.addMessage(explanationBuilder.toString(), ChatGptRequest.Message.Role.ASSISTANT)
+        historyRepository.addOrUpdateHistoryItem(
+            HistoryItem.from(
+                chatContext,
+                state = GptMentorSettingsState.getInstance()
+            )
+        )
     }
 
     fun onStopClicked() {
@@ -186,9 +191,11 @@ class ChatPresenter(
                                 chatView.appendToExplanation(message.content.addNewLinesIfNeeded(2))
                             }
 
-                            ChatGptRequest.Message.Role.SYSTEM -> {
+                            ChatGptRequest.Message.Role.ASSISTANT -> {
                                 chatView.appendExplanation(message.content.addNewLinesIfNeeded(2))
                             }
+
+                            ChatGptRequest.Message.Role.SYSTEM -> {}
                         }
                     }
                 }
