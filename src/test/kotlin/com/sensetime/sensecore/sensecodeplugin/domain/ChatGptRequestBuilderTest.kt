@@ -10,7 +10,7 @@ class ChatGptRequestBuilderTest {
     fun testBuilder() {
         // Given
         val expectedRequest = ChatGptRequest(
-            model = Model.GPT_4,
+            model = Model.PENROSE_411,
             temperature = 0.9f,
             maxTokens = 2048,
             messages = listOf(
@@ -21,7 +21,7 @@ class ChatGptRequestBuilderTest {
 
         // When
         val actualRequest = ChatGptRequestBuilder().apply {
-            model = Model.GPT_4
+            model = Model.PENROSE_411
             temperature = 0.9f
             maxTokens = 2048
             message {

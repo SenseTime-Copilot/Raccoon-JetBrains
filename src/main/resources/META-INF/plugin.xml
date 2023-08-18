@@ -75,6 +75,13 @@
                 <keyboard-shortcut first-keystroke="control alt shift S" keymap="Mac OS X" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift S" keymap="Mac OS X 10.5+" replace-all="true"/>
             </action>
+            <action id="manualTriggerCodeCompletionAction"
+                    class="com.sensetime.sensecore.sensecodeplugin.actions.editor.ManualTriggerCodeCompletionAction"
+                    text="Trigger Completion">
+                <keyboard-shortcut first-keystroke="control alt SLASH" keymap="$default"/>
+                <keyboard-shortcut first-keystroke="control alt SLASH" keymap="Mac OS X" replace-all="true"/>
+                <keyboard-shortcut first-keystroke="control alt SLASH" keymap="Mac OS X 10.5+" replace-all="true"/>
+            </action>
         </group>
 
         <group id="gptMentorFileActions" text="SenseCode"
