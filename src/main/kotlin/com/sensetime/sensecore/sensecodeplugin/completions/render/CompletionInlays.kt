@@ -33,9 +33,18 @@ class CompletionInlays(parent: Disposable) : Disposable {
             return
         }
 
-        inlineInlay = editor.inlayModel.addInlineElement(offset, true, InlineElementRenderer(lines.first()))
+        val firstLine = lines.first()
+        if (firstLine.isNotEmpty()) {
+            inlineInlay = editor.inlayModel.addInlineElement(offset, true, InlineElementRenderer(lines.first()))
+        }
         if (lines.size > 1) {
-            blockInlay = editor.inlayModel.addBlockElement(offset, true, false, 1, BlockElementRenderer(lines))
+            blockInlay = editor.inlayModel.addBlockElement(
+                offset,
+                true,
+                false,
+                1,
+                BlockElementRenderer(lines.subList(1, lines.size))
+            )
         }
     }
 }

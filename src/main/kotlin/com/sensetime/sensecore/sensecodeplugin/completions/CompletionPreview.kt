@@ -1,33 +1,30 @@
 package com.sensetime.sensecore.sensecodeplugin.completions
 
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.actionSystem.CommonDataKeys
-import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.editor.Caret
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
-import com.intellij.psi.PsiDocumentManager
-import com.intellij.psi.PsiFile
 import com.intellij.refactoring.rename.inplace.InplaceRefactoring
 import com.sensetime.sensecore.sensecodeplugin.completions.render.CompletionInlays
 
 class CompletionPreview private constructor(
     tmpEditor: Editor,
-    private val offset: Int,
-    private var completions: List<String>
+    private val offset: Int
 ) : Disposable {
+    public var done: Boolean = false
     private var currentIndex = 0
     private var editor: Editor? = null
     private val inlays: CompletionInlays
+    private var completions: List<String>? = null
 
     init {
         editor = tmpEditor
         inlays = CompletionInlays(this)
         EditorUtil.disposeWithEditor(tmpEditor, this)
         tmpEditor.putUserData(COMPLETION_PREVIEW, this)
+        showCompletion()
     }
 
     override fun dispose() {
@@ -35,22 +32,30 @@ class CompletionPreview private constructor(
         editor = null
     }
 
-    fun showCompletion(): String? {
+    fun appendCompletions(suffixes: List<String>) {
+        completions = completions?.mapIndexed { index: Int, s: String ->
+            s + suffixes.getOrNull(index)
+        } ?: suffixes
+        showCompletion()
+    }
+
+    private fun showCompletion(): String? {
         inlays.clear()
         return editor?.let {
-            if (completions.isEmpty() || (it !is EditorImpl) || it.selectionModel.hasSelection() || (InplaceRefactoring.getActiveInplaceRenamer(
+            if ((it !is EditorImpl) || it.selectionModel.hasSelection() || (InplaceRefactoring.getActiveInplaceRenamer(
                     it
                 ) != null)
             ) {
                 return null
             }
-            return try {
-                val completion = completions[currentIndex]
-                it.document.startGuardedBlockChecking()
-                inlays.render(it, completion, offset)
-                completion
-            } finally {
-                it.document.stopGuardedBlockChecking()
+            return completions?.getOrNull(currentIndex)?.let { completion ->
+                try {
+                    it.document.startGuardedBlockChecking()
+                    inlays.render(it, completion, offset)
+                    completion
+                } finally {
+                    it.document.stopGuardedBlockChecking()
+                }
             }
         }
     }
@@ -60,11 +65,14 @@ class CompletionPreview private constructor(
     }
 
     fun apply() {
-        cancel()
-        editor?.let {
-            val completion = completions[currentIndex]
-            it.document.insertString(offset, completion)
-            it.caretModel.moveToOffset(offset + completion.length)
+        if (done) {
+            cancel()
+            editor?.let {
+                completions?.getOrNull(currentIndex)?.let { completion ->
+                    it.document.insertString(offset, completion)
+                    it.caretModel.moveToOffset(offset + completion.length)
+                }
+            }
         }
     }
 
@@ -77,9 +85,9 @@ class CompletionPreview private constructor(
         }
 
         @JvmStatic
-        fun createInstance(editor: Editor, offset: Int, completions: List<String>): CompletionPreview {
+        fun createInstance(editor: Editor, offset: Int): CompletionPreview {
             getInstance(editor)?.cancel()
-            return CompletionPreview(editor, offset, completions)
+            return CompletionPreview(editor, offset)
         }
     }
 }
