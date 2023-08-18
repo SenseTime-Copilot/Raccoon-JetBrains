@@ -1,4 +1,4 @@
-package com.sensetime.sensecore.sensecodeplugin.actions.editor
+package com.sensetime.sensecore.sensecodeplugin.actions.inline
 
 import com.intellij.codeInsight.CodeInsightActionHandler
 import com.intellij.codeInsight.actions.BaseCodeInsightAction
@@ -23,7 +23,7 @@ import kotlinx.coroutines.flow.collect
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 
-class ManualTriggerCodeCompletionAction : BaseCodeInsightAction(false) {
+class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), InlineCompletionAction {
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var apiJob: Job? = null
     private val openApi: OpenApi = RealOpenApi(
@@ -81,7 +81,6 @@ $code<fim_middle><fim_suffix>""".trimIndent()
             }
         }
     }
-
 
     override fun getHandler(): CodeInsightActionHandler {
         return CodeInsightActionHandler { _: Project?, editor: Editor, psiFile: PsiFile? ->

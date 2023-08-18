@@ -66,8 +66,9 @@ class CompletionPreview private constructor(
 
     fun apply() {
         if (done) {
+            val tmpEditor = editor
             cancel()
-            editor?.let {
+            tmpEditor?.let {
                 completions?.getOrNull(currentIndex)?.let { completion ->
                     it.document.insertString(offset, completion)
                     it.caretModel.moveToOffset(offset + completion.length)

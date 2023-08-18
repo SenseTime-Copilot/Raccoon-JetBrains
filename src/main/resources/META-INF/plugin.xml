@@ -75,13 +75,6 @@
                 <keyboard-shortcut first-keystroke="control alt shift S" keymap="Mac OS X" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift S" keymap="Mac OS X 10.5+" replace-all="true"/>
             </action>
-            <action id="manualTriggerCodeCompletionAction"
-                    class="com.sensetime.sensecore.sensecodeplugin.actions.editor.ManualTriggerCodeCompletionAction"
-                    text="Trigger Completion">
-                <keyboard-shortcut first-keystroke="control alt SLASH" keymap="$default"/>
-                <keyboard-shortcut first-keystroke="control alt SLASH" keymap="Mac OS X" replace-all="true"/>
-                <keyboard-shortcut first-keystroke="control alt SLASH" keymap="Mac OS X 10.5+" replace-all="true"/>
-            </action>
         </group>
 
         <group id="gptMentorFileActions" text="SenseCode"
@@ -107,6 +100,17 @@
             <add-to-group group-id="Vcs.Log.ContextMenu"/>
         </action>
 
+        <action id="manualTriggerInlineCompletionAction"
+                class="com.sensetime.sensecore.sensecodeplugin.actions.inline.ManualTriggerInlineCompletionAction"
+                text="Trigger Inline Completion">
+            <keyboard-shortcut first-keystroke="control alt SLASH" keymap="$default"/>
+            <keyboard-shortcut first-keystroke="control alt SLASH" keymap="Mac OS X" replace-all="true"/>
+            <keyboard-shortcut first-keystroke="control alt SLASH" keymap="Mac OS X 10.5+" replace-all="true"/>
+        </action>
+        <action class="com.sensetime.sensecore.sensecodeplugin.actions.inline.AcceptInlineCompletionAction"
+                id="acceptInlineCompletionAction" text="Accept Inline Completion">
+            <keyboard-shortcut first-keystroke="TAB" keymap="$default"/>
+        </action>
     </actions>
 
     <extensions defaultExtensionNs="com.intellij">
@@ -120,6 +124,11 @@
 
         <applicationService
                 serviceImplementation="com.sensetime.sensecore.sensecodeplugin.ui.history.state.HistoryState"/>
+
+        <actionPromoter implementation="com.sensetime.sensecore.sensecodeplugin.actions.inline.InlineActionsPromoter"/>
+        <editorActionHandler action="EditorEscape"
+                             implementationClass="com.sensetime.sensecore.sensecodeplugin.actions.inline.EscapeEditorActionHandler"
+                             id="escapeEditorActionHandler" order="before hide-hints"/>
     </extensions>
 
 </idea-plugin>
