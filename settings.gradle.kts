@@ -1,1 +1,1 @@
-rootProject.name = "gpt-mentor-plugin"
+rootProject.name = "sensecode-plugin"

@@ -1,41 +1,50 @@
-# gpt-mentor-plugin
-
-![Build](https://github.com/jcraane/gpt-mentor-plugin/workflows/Build/badge.svg)
-[![Version](https://img.shields.io/jetbrains/plugin/v/PLUGIN_ID.svg)](https://plugins.jetbrains.com/plugin/PLUGIN_ID)
-[![Downloads](https://img.shields.io/jetbrains/plugin/d/PLUGIN_ID.svg)](https://plugins.jetbrains.com/plugin/PLUGIN_ID)
+# SenseCode
 
 <!-- Plugin description -->
-GPT-Mentor which is powered by Open AI is a plugin that helps you to improve your code. It can explain your code, improve your code, review your code, create unit tests and add comments to your code.
+SenseCode 是基于商汤 SenseCore 大装置 及 SenseNova 日日新大模型而开发的代码助手。
 
-It also enables you to create custom chats. 
+## 登录账号
 
-The default shortcuts for the standard actions are:
-- Explain Code: Ctrl + Alt + Shift + E
-- Improve Code: Ctrl + Alt + Shift + I
-- Review Code: Ctrl + Alt + Shift + R
-- Create Unit Test: Ctrl + Alt + Shift + T
-- Add Comments: Ctrl + Alt + Shift + C
+您可以在 IDE 设置界面中，选择 SenseCode 后在 `AccessKey ID` 和 `AccessKey Secret` 字段填入您[商汤 SenseCore 大装置账号的AccessKey](https://console.sensecore.cn/iam/Security/access-key)相关信息即可。
 
-Each action uses a custom system prompt to instruct ChatGPT how to behave. Those prompts can be adjusted in the settings of the plugin if required.
+> SenseCode 当前处于对特定企业用户邀约测试阶段，尚未对企业和个人用户全面开放。如您对 SenseCode 感兴趣，敬请发送邮件至 <sensecode@sensetime.com>，并留下您的企业或个人信息。
 
-The history view displays the chat history. You can also remove messages from the history. 
+## 编辑器内代码补全
 
-- Double-click on a chat in the history view to open the chat in the editor. 
-- Select one or multiple elements and use the backspace or context menu to delete items from the history
-- Rename history items with the context menu or Shift+F6
+您可以在编辑器内通过手动方式（默认热键为 `Ctrl + Alt + /` ）触发代码补全。自动方式开发中...
 
-Right-click on a file in the tree view to add the contents of the file to the chat window.<br><br>
+触发补全事件后，稍等片刻补全内容会逐步出现，您可以使用 `Tab` 键接受建议。
 
-Select Commits in the VCS log and use right-click -> Add Commits To Prompt to send the commit messages to the chat window.<br><br>
+> 编辑器在触发补全事件后，如遇用户点击 `Esc` 键的或其他移动、输入行为，则会 **取消** 补全操作。
 
-To start using it create an account and API key at: https://platform.openai.com/account/api-keys  
+## 在编辑器内触发 SenseCode 命令
 
-After you have created an API key you can add it in the settings of the plugin.  
+你可以在编辑器内选择指定代码，然后单击右键选择 ` SenseCode ` 即可查看可以执行的命令， 选择想要执行的命令即可。
 
-To see the uptime of the OpenAI API visit: https://status.openai.com/uptime
+也可在选择指定代码后直接使用热键触发命令， 默认热键为
+
+- Generation: `Ctrl + Alt + Shift + G`
+- Add Test: `Ctrl + Alt + Shift + U`
+- Code Correction: `Ctrl + Alt + Shift + F`
+- Refactoring: `Ctrl + Alt + Shift + R`
+
+## 在侧边栏助手内使用 SenseCode 命令
+
+你也可以在 SenseCode 的侧边栏中直接以对话形式向助手提问。
+
+SenseCode 的侧边栏助手中，默认为 `流式输出` 模式，即回答将在产生过程中逐步显示，以便于您提早审阅结果，在这种模式下，您可以随时点击 `Stop` 按钮来终止此次回答。
+
+## 问题反馈
+
+如使用过程中遇到问题或有任何改进意见，欢迎发送邮件到 <sensecode@sensetime.com> 反馈。
+
+## 免责声明
+
+在使用商汤科技（“我方”）AI 代码助手及相关服务（以下简称 “本服务”）前，请您务必仔细阅读并理解透彻本《免责声明》。 请您知悉，如果您选择继续使用本服务，意味着您充分知悉并接受以下使用条件：
+
+* 您知悉并理解，本服务的输出内容及代码，为使用深度合成技术生成的文本信息，我们对其生成内容的准确性、完整性和功能性不做任何保证，并且其生成的内容不代表我们的态度或观点。
+* 您理解并同意，本服务所为您展示的代码只是 “推荐”，若您选择采纳本服务所推荐的代码，应当视为您实际撰写了此代码，您应当是所产生、选择的代码的唯一著作权人。我方不会就本服务所推荐的任何代码承担安全、瑕疵、质量、兼容等任何保证责任，无论是明示或暗示，您有责任确保你生成的代码的安全和质量（无论其是由您完全自主撰写或者是采纳了本服务提出的建议），我们建议您在使用本服务推荐的代码时采取与使用您完全自主编写的代码时相同的预防措施。
+* 您同意并承诺，不会使用本服务进行违反法律的应用开发，如您使用本服务开展特定行业的业务应用（如教育、医疗、银行行业），将同时遵守相关国家规定的用户数据保护法律和内容管理法律。
+* 您确认并同意，我方不会因为本服务或您使用本服务违反上述约定，而需要承担任何责任。
+
 <!-- Plugin description end -->
-
----
-Plugin based on the [IntelliJ Platform Plugin Template][template].
-
-[template]: https://github.com/JetBrains/intellij-platform-plugin-template
