@@ -2,6 +2,7 @@ package com.sensetime.sensecore.sensecodeplugin.completions
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.util.Disposer
@@ -13,7 +14,7 @@ class CompletionPreview private constructor(
     tmpEditor: Editor,
     private val offset: Int
 ) : Disposable {
-    public var done: Boolean = false
+    var done: Boolean = false
     private var currentIndex = 0
     private var editor: Editor? = null
     private val inlays: CompletionInlays
@@ -21,10 +22,11 @@ class CompletionPreview private constructor(
 
     init {
         editor = tmpEditor
-        inlays = CompletionInlays(this)
         EditorUtil.disposeWithEditor(tmpEditor, this)
+        inlays = CompletionInlays(this)
+        tmpEditor.caretModel.addCaretListener(EditorCaretListener(), this)
+        (tmpEditor as? EditorEx)?.addFocusListener(EditorFocusChangeListener(), this)
         tmpEditor.putUserData(COMPLETION_PREVIEW, this)
-        showCompletion()
     }
 
     override fun dispose() {

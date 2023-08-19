@@ -129,6 +129,8 @@
         <editorActionHandler action="EditorEscape"
                              implementationClass="com.sensetime.sensecore.sensecodeplugin.actions.inline.EscapeEditorActionHandler"
                              id="escapeEditorActionHandler" order="before hide-hints"/>
+        <editorFactoryDocumentListener
+                implementation="com.sensetime.sensecore.sensecodeplugin.completions.CompletionDocumentListener"/>
     </extensions>
 
 </idea-plugin>
