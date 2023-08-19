@@ -37,68 +37,68 @@
             </add-to-group>
 
             <action id="generateCode" class="com.sensetime.sensecore.sensecodeplugin.actions.editor.GenerateCodeAction"
-                    text="Generate Code">
+                    text="Generation">
                 <keyboard-shortcut first-keystroke="control alt shift G" keymap="$default" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift G" keymap="Mac OS X" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift G" keymap="Mac OS X 10.5+" replace-all="true"/>
             </action>
 
             <action id="generateTest" class="com.sensetime.sensecore.sensecodeplugin.actions.editor.GenerateTestAction"
-                    text="Generate Test">
-                <keyboard-shortcut first-keystroke="control alt shift T" keymap="$default" replace-all="true"/>
-                <keyboard-shortcut first-keystroke="control alt shift T" keymap="Mac OS X" replace-all="true"/>
-                <keyboard-shortcut first-keystroke="control alt shift T" keymap="Mac OS X 10.5+" replace-all="true"/>
+                    text="Add Test">
+                <keyboard-shortcut first-keystroke="control alt shift U" keymap="$default" replace-all="true"/>
+                <keyboard-shortcut first-keystroke="control alt shift U" keymap="Mac OS X" replace-all="true"/>
+                <keyboard-shortcut first-keystroke="control alt shift U" keymap="Mac OS X 10.5+" replace-all="true"/>
             </action>
             <action id="correctCode" class="com.sensetime.sensecore.sensecodeplugin.actions.editor.CorrectCodeAction"
-                    text="Correct Code">
-                <keyboard-shortcut first-keystroke="control alt shift C" keymap="$default" replace-all="true"/>
-                <keyboard-shortcut first-keystroke="control alt shift C" keymap="Mac OS X" replace-all="true"/>
-                <keyboard-shortcut first-keystroke="control alt shift C" keymap="Mac OS X 10.5+" replace-all="true"/>
+                    text="Code Correction">
+                <keyboard-shortcut first-keystroke="control alt shift F" keymap="$default" replace-all="true"/>
+                <keyboard-shortcut first-keystroke="control alt shift F" keymap="Mac OS X" replace-all="true"/>
+                <keyboard-shortcut first-keystroke="control alt shift F" keymap="Mac OS X 10.5+" replace-all="true"/>
             </action>
             <action id="refactorCode" class="com.sensetime.sensecore.sensecodeplugin.actions.editor.RefactorCodeAction"
-                    text="Refactor Code">
+                    text="Refactoring">
                 <keyboard-shortcut first-keystroke="control alt shift R" keymap="$default"/>
                 <keyboard-shortcut first-keystroke="control alt shift R" keymap="Mac OS X" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift R" keymap="Mac OS X 10.5+" replace-all="true"/>
             </action>
-            <action id="promptFromSelection"
-                    class="com.sensetime.sensecore.sensecodeplugin.actions.editor.PromptFromSelectionAction"
-                    text="Prompt From Selection">
-                <keyboard-shortcut first-keystroke="control alt shift P" keymap="$default"/>
-                <keyboard-shortcut first-keystroke="control alt shift P" keymap="Mac OS X" replace-all="true"/>
-                <keyboard-shortcut first-keystroke="control alt shift P" keymap="Mac OS X 10.5+" replace-all="true"/>
-            </action>
-            <action id="appendSelectionToPrompt"
-                    class="com.sensetime.sensecore.sensecodeplugin.actions.editor.AppendPromptFromSelectionAction"
-                    text="Append Selected Text">
-                <keyboard-shortcut first-keystroke="control alt shift S" keymap="$default"/>
-                <keyboard-shortcut first-keystroke="control alt shift S" keymap="Mac OS X" replace-all="true"/>
-                <keyboard-shortcut first-keystroke="control alt shift S" keymap="Mac OS X 10.5+" replace-all="true"/>
-            </action>
+            <!--            <action id="promptFromSelection"-->
+            <!--                    class="com.sensetime.sensecore.sensecodeplugin.actions.editor.PromptFromSelectionAction"-->
+            <!--                    text="Prompt From Selection">-->
+            <!--                <keyboard-shortcut first-keystroke="control alt shift P" keymap="$default"/>-->
+            <!--                <keyboard-shortcut first-keystroke="control alt shift P" keymap="Mac OS X" replace-all="true"/>-->
+            <!--                <keyboard-shortcut first-keystroke="control alt shift P" keymap="Mac OS X 10.5+" replace-all="true"/>-->
+            <!--            </action>-->
+            <!--            <action id="appendSelectionToPrompt"-->
+            <!--                    class="com.sensetime.sensecore.sensecodeplugin.actions.editor.AppendPromptFromSelectionAction"-->
+            <!--                    text="Append Selected Text">-->
+            <!--                <keyboard-shortcut first-keystroke="control alt shift S" keymap="$default"/>-->
+            <!--                <keyboard-shortcut first-keystroke="control alt shift S" keymap="Mac OS X" replace-all="true"/>-->
+            <!--                <keyboard-shortcut first-keystroke="control alt shift S" keymap="Mac OS X 10.5+" replace-all="true"/>-->
+            <!--            </action>-->
         </group>
 
-        <group id="gptMentorFileActions" text="SenseCode"
-               popup="true">
-            <!--            Right-click on a file in the file tree -->
-            <add-to-group
-                    group-id="CutCopyPasteGroup"
-                    anchor="last">
-            </add-to-group>
+        <!--        <group id="gptMentorFileActions" text="SenseCode"-->
+        <!--               popup="true">-->
+        <!--            &lt;!&ndash;            Right-click on a file in the file tree &ndash;&gt;-->
+        <!--            <add-to-group-->
+        <!--                    group-id="CutCopyPasteGroup"-->
+        <!--                    anchor="last">-->
+        <!--            </add-to-group>-->
 
-            <action id="promptFromFile"
-                    class="com.sensetime.sensecore.sensecodeplugin.actions.file.NewPromptFromFileAction"
-                    text="New Prompt From File(s)"/>
+        <!--            <action id="promptFromFile"-->
+        <!--                    class="com.sensetime.sensecore.sensecodeplugin.actions.file.NewPromptFromFileAction"-->
+        <!--                    text="New Prompt From File(s)"/>-->
 
-            <action id="appendPromptFromFile"
-                    class="com.sensetime.sensecore.sensecodeplugin.actions.file.AppendPromptFromFileAction"
-                    text="Append Prompt With File(s)"/>
-        </group>
+        <!--            <action id="appendPromptFromFile"-->
+        <!--                    class="com.sensetime.sensecore.sensecodeplugin.actions.file.AppendPromptFromFileAction"-->
+        <!--                    text="Append Prompt With File(s)"/>-->
+        <!--        </group>-->
 
-        <action id="addGitCommitsToPrompt"
-                class="com.sensetime.sensecore.sensecodeplugin.actions.git.AddGitCommitsToPromptAction"
-                text="Add Commits To Prompt">
-            <add-to-group group-id="Vcs.Log.ContextMenu"/>
-        </action>
+        <!--        <action id="addGitCommitsToPrompt"-->
+        <!--                class="com.sensetime.sensecore.sensecodeplugin.actions.git.AddGitCommitsToPromptAction"-->
+        <!--                text="Add Commits To Prompt">-->
+        <!--            <add-to-group group-id="Vcs.Log.ContextMenu"/>-->
+        <!--        </action>-->
 
         <action id="manualTriggerInlineCompletionAction"
                 class="com.sensetime.sensecore.sensecodeplugin.actions.inline.ManualTriggerInlineCompletionAction"
