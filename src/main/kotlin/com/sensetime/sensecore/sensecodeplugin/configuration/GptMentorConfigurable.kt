@@ -236,6 +236,20 @@ class GptMentorConfigurable : Configurable {
         }
     }
 
+    override fun reset() {
+        apiAccessKey.text = getAccessKey()
+        apiSecretKey.text = getSecretKey()
+        codeGenerationPrompt.text = config.promptCodeGeneration
+        testGenerationPrompt.text = config.promptTestGeneration
+        codeCorrectionPrompt.text = config.promptCodeCorrection
+        codeRefactoringPrompt.text = config.promptCodeRefactoring
+        chatSystemPrompt.text = config.systemPromptChat
+        modelComboBox.selectedItem = config.selectedModel
+        temperature.text = config.temperature.toString()
+        maxTokens.text = config.maxTokens.toString()
+        super.reset()
+    }
+
     private fun getAccessKey() = GptMentorCredentialsManager.getAccessKey()
     private fun getSecretKey() = GptMentorCredentialsManager.getSecretKey()
 
