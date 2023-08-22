@@ -82,7 +82,7 @@ class GptMentorConfigurable : Configurable {
 
         val labels = listOf<Component>(
             JLabel("Code Generation Prompt:", JLabel.TRAILING),
-            JLabel("Text Generation Prompt:", JLabel.TRAILING),
+            JLabel("Test Generation Prompt:", JLabel.TRAILING),
             JLabel("Code Correction Prompt:", JLabel.TRAILING),
             JLabel("Code Refactoring Prompt:", JLabel.TRAILING),
             JLabel("Chat System Prompt:", JLabel.TRAILING)
@@ -234,6 +234,20 @@ class GptMentorConfigurable : Configurable {
             3 -> codeRefactoringPrompt.text = DEFAULT_PROMPT_REFACTORING
             4 -> chatSystemPrompt.text = DEFAULT_SYSTEM_PROMPT_CHAT
         }
+    }
+
+    override fun reset() {
+        apiAccessKey.text = getAccessKey()
+        apiSecretKey.text = getSecretKey()
+        codeGenerationPrompt.text = config.promptCodeGeneration
+        testGenerationPrompt.text = config.promptTestGeneration
+        codeCorrectionPrompt.text = config.promptCodeCorrection
+        codeRefactoringPrompt.text = config.promptCodeRefactoring
+        chatSystemPrompt.text = config.systemPromptChat
+        modelComboBox.selectedItem = config.selectedModel
+        temperature.text = config.temperature.toString()
+        maxTokens.text = config.maxTokens.toString()
+        super.reset()
     }
 
     private fun getAccessKey() = GptMentorCredentialsManager.getAccessKey()

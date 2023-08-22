@@ -281,6 +281,6 @@ class ChatPanel(mainPresenter: MainPresenter) : JPanel(), ChatView {
 
     companion object {
         private const val PROMPT_MAX_HEIGHT = 200
-        private val INTRO_MESSAGE = "Hello, I am GPT-Mentor, your smart coding assistant!"
+        private val INTRO_MESSAGE = "Hello, I am SenseCode, your smart coding assistant!"
     }
 }
