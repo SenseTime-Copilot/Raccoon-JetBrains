@@ -157,7 +157,7 @@ class GptMentorToolWindowFactory : ToolWindowFactory {
     }
 
     companion object {
-        const val ID = "GPT-Mentor"
+        const val ID = "SenseCode"
         private val logger = com.intellij.openapi.diagnostic.Logger.getInstance(RealOpenApi::class.java)
     }
 }
