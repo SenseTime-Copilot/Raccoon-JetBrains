@@ -82,7 +82,7 @@ class GptMentorConfigurable : Configurable {
 
         val labels = listOf<Component>(
             JLabel("Code Generation Prompt:", JLabel.TRAILING),
-            JLabel("Text Generation Prompt:", JLabel.TRAILING),
+            JLabel("Test Generation Prompt:", JLabel.TRAILING),
             JLabel("Code Correction Prompt:", JLabel.TRAILING),
             JLabel("Code Refactoring Prompt:", JLabel.TRAILING),
             JLabel("Chat System Prompt:", JLabel.TRAILING)
