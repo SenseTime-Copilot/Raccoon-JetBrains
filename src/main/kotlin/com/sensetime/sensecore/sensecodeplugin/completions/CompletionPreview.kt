@@ -5,6 +5,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.impl.EditorImpl
+import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.refactoring.rename.inplace.InplaceRefactoring
@@ -15,6 +16,14 @@ class CompletionPreview private constructor(
     private val offset: Int
 ) : Disposable {
     var done: Boolean = false
+        set(value) {
+            field = value
+            if (value && completions?.getOrNull(currentIndex).isNullOrEmpty()) {
+                editor?.let {
+                    JBPopupFactory.getInstance().createMessage("Code completion is empty").showInBestPositionFor(it)
+                }
+            }
+        }
     private var currentIndex = 0
     private var editor: Editor? = null
     private val inlays: CompletionInlays
