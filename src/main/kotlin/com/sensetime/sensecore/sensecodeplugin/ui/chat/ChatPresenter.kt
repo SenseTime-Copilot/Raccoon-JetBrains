@@ -108,7 +108,7 @@ class ChatPresenter(
                 val chatGptRequest = prompt.createRequest(
                     model = state.model,
                     temperature = state.temperature,
-                    maxTokens = state.maxTokens,
+                    maxTokens = 4096,
                 )
                 openApi.executeBasicActionStreaming(chatGptRequest)
                     .collect { streamingResponse ->
