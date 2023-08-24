@@ -1,43 +1,34 @@
-<!-- Keep a Changelog guide -> https://keepachangelog.com -->
-    
-# gpt-mentor-plugin Changelog
+# SenseCode Changelog
 
-## [Unreleased]
+## [0.1.0] - 2023-08-19
 
-## [0.0.1] - 2023-03-02
+### 主要功能
 
-## [0.0.5] - 2023-03-29
+- 仅支持手动填入AK/SK形式登录. 注: 没有登录状态以及用户名, 填入正确的AK/SK即可使用, 否则会报错
+- 行内代码补全: 目前仅支持手动触发(默认触发热键为`Ctrl+Alt+/`, 使用`Tab`接收建议). 用户手动点击Esc键, 或进行任意光标移动(包括输入)以及焦点丢失, 都会取消展示中的补全信息
+- 侧边栏助手: 支持在侧边栏, 以问答形式直接向代码助手提问. 支持历史
+- 选中代码功能: 选中代码时, 可通过在编辑器内右键选择SenseCode触发, 或直接使用热键触发
+- 后端使用新版本的chat 接口
 
-- Add compatibility for IntelliJ 2023.*
-- Updated default font to Menlo for better readability
-- Fixed Issue #4: Resolved bug causing crashes in certain situations
-- Fixed Issue #1: Addressed error preventing proper functionality
-- Added toolwindow icon for improved user experience
+###  与VSCode版本差异:
 
-## [0.0.6] - 2023-03-29
+- 行内代码补全: 暂不支持自动方式, 不支持设置多个候选, 补全性能目前通过直接设置maxTokens实现
+- 侧边栏助手: 暂时缺少"向SenseCode提问"和"代码转换"功能
+- 固定为stream流式, 不支持设置, 暂不支持提问示例
+- 助手的回复, 没有代码高亮, 只是简单的文本展示
+- 侧边栏UI不同, 历史等使用方式不同
+- 后端接口: 暂不支持后端日志采集
 
-- Send vcs commits to prompt by right-click on commit message(s) and select: Add Commits To Prompt
-- Fixed issue #10 where custom prompts were not being taken into account
+## [0.1.1] - 2023-08-22
 
-## [0.0.7] - 2023-04-06
+### BugFix
 
-- Added scrollbars to history panel
-- Renamed settings prompt for consistency
-- Add model, temperature and max tokens to settings
-- Fixed toolwindow state
+- 更新侧边栏默认提示及help页面
+- 触发代码任务后, 会自动激活SenseCode侧边栏
+- 修复配置页IntelliJ自带Reset按钮未生效的问题
+- 在补全内容为空时添加提示
+- 修复请求400时, submit按钮会一直处于loading状态
 
-## [0.0.8] - 2023-06-13
+### 遗留问题
 
-- Add gpt-3.5-turbo-16k model
-- Add gpt-4-32k model
-- Create prompt with the contents of multiple selected files using the New Prompt or Append to Prompt actions (right-click in Project view)
-
-## [0.0.9] - 2023-07-27
-
-- Compatibility with IntelliJ 2023.2
-
-### Added
-- Initial scaffold created from [IntelliJ Platform Plugin Template](https://github.com/JetBrains/intellij-platform-plugin-template)
-
-[Unreleased]: https://github.com/jcraane/gpt-mentor-plugin/compare/v0.0.1...HEAD
-[0.0.1]: https://github.com/jcraane/gpt-mentor-plugin/commits/v0.0.1
+- 目前后端的报错模式, 在java中暂时没法捕捉到内容安全的错误信息, 所以现在只会展示Unknown error, 待后续后端更新stream模式下error格式后, 会修复为展示对应的错误信息
