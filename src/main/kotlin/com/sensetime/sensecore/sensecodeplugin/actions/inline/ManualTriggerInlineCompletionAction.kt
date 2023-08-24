@@ -54,31 +54,92 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Inline
             return result
         }
 
+        data class UserContent(var text: String, var offset: Int, val maxLength: Int) {
+            fun cutByMaxLength(preScale: Float = 0.7f): Boolean {
+                if (maxLength >= text.length) {
+                    return true
+                }
+                if (offset >= preScale * text.length) {
+                    val endIndex = text.length.coerceAtMost(offset + ((1.0f - preScale) * text.length).toInt())
+                    val startIndex = 0.coerceAtLeast(endIndex - maxLength)
+                    text = text.substring(startIndex, endIndex)
+                    offset -= startIndex
+                } else {
+                    text = text.substring(0, maxLength)
+                }
+                return false
+            }
+
+            fun tryAppendPre(preText: String): Boolean {
+                if (text.length + preText.length > maxLength) {
+                    return false
+                }
+                text = preText + text
+                offset += preText.length
+                return true
+            }
+
+            fun tryAppendPost(postText: String): Boolean {
+                if (text.length + postText.length > maxLength) {
+                    return false
+                }
+                text += postText
+                return true
+            }
+
+            fun getContent(): String {
+                return if (text.length > offset) {
+                    """<fim_prefix>Please do not provide any explanations at the end. Please complete the following code.
+
+${text.substring(0, offset)}<fim_suffix>${text.substring(offset)}<fim_middle>""".trimIndent()
+                } else {
+                    """<fim_prefix>Please do not provide any explanations at the end. Please complete the following code.
+
+$text<fim_middle><fim_suffix>""".trimIndent()
+                }
+            }
+        }
+
         @JvmStatic
-        private fun getContent(psiElement: PsiElement, caretOffsetInElement: Int, maxLength: Int): String {
-            var code = psiElement.text
-            var offset = caretOffsetInElement
-            var curPsiElement = psiElement
-            while (true) {
-                if ((null == curPsiElement.parent) || (curPsiElement.parent.text.length > maxLength)) {
-                    break
+        private fun getUserContent(psiElement: PsiElement, caretOffsetInElement: Int, maxLength: Int): String {
+            var userContent = UserContent(psiElement.text, caretOffsetInElement, maxLength)
+            if (userContent.cutByMaxLength()) {
+                var curPsiElement = psiElement
+                while (true) {
+                    if (curPsiElement is PsiFile) {
+                        break
+                    }
+                    if ((null == curPsiElement.parent) || (curPsiElement.parent.text.length > maxLength)) {
+                        var appendPreOk = true
+                        var appendPostOk = true
+                        var prePsiElement = curPsiElement.prevSibling
+                        var nextPsiElement = curPsiElement.nextSibling
+                        while (true) {
+                            appendPreOk =
+                                appendPreOk && (prePsiElement?.text?.let { userContent.tryAppendPre(it) } ?: false)
+                            appendPostOk =
+                                appendPostOk && (nextPsiElement?.text?.let { userContent.tryAppendPost(it) } ?: false)
+                            if (!appendPreOk && !appendPostOk) {
+                                break
+                            }
+                            if (appendPreOk) {
+                                prePsiElement = prePsiElement?.prevSibling
+                            }
+                            if (appendPostOk) {
+                                nextPsiElement = nextPsiElement?.nextSibling
+                            }
+                        }
+                        break
+                    }
+                    userContent = UserContent(
+                        curPsiElement.parent.text,
+                        userContent.offset + curPsiElement.startOffsetInParent,
+                        maxLength
+                    )
+                    curPsiElement = curPsiElement.parent
                 }
-                code = curPsiElement.parent.text
-                offset += curPsiElement.startOffsetInParent
-                if (curPsiElement.parent is PsiFile) {
-                    break
-                }
-                curPsiElement = curPsiElement.parent
             }
-            return if (code.length > offset) {
-                """<fim_prefix>Please do not provide any explanations at the end. Please complete the following code.
-
-${code.substring(0, offset)}<fim_suffix>${code.substring(offset)}<fim_middle>""".trimIndent()
-            } else {
-                """<fim_prefix>Please do not provide any explanations at the end. Please complete the following code.
-
-$code<fim_middle><fim_suffix>""".trimIndent()
-            }
+            return userContent.getContent()
         }
     }
 
@@ -87,7 +148,7 @@ $code<fim_middle><fim_suffix>""".trimIndent()
             apiJob?.cancel()
             var caretOffset = editor.caretModel.offset
             apiJob = findPsiElementAt(psiFile, caretOffset)?.let { psiElement ->
-                if (!isWhiteSpacePsi(psiElement)) {
+                if (!isWhiteSpacePsi(psiElement) && psiElement.text.length <= 16) {
                     caretOffset = psiElement.endOffset
                 }
                 val completionPreview =
@@ -100,7 +161,7 @@ $code<fim_middle><fim_suffix>""".trimIndent()
                     this.systemPrompt("")
                     message {
                         role = ChatGptRequest.Message.Role.USER
-                        content = getContent(psiElement, caretOffset - psiElement.textOffset, 2048)
+                        content = getUserContent(psiElement, caretOffset - psiElement.textOffset, 2048)
                     }
                     stream = true
                 }
