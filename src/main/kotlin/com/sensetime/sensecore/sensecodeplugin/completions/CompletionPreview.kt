@@ -21,7 +21,7 @@ class CompletionPreview private constructor(
             if (value && completions?.getOrNull(currentIndex).isNullOrEmpty()) {
                 editor?.let {
                     val popup = JBPopupFactory.getInstance().createMessage("Code completion is empty")
-                    Disposer.register(this, popup)
+//                    Disposer.register(this, popup)
                     popup.showInBestPositionFor(it)
                 }
             }
@@ -48,7 +48,7 @@ class CompletionPreview private constructor(
     fun showError(message: String) {
         editor?.let {
             val popup = JBPopupFactory.getInstance().createMessage(message)
-            Disposer.register(this, popup)
+//            Disposer.register(this, popup)
             popup.showInBestPositionFor(it)
         }
     }
