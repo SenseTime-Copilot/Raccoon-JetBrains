@@ -4,6 +4,16 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
+data class ChatRespError(
+    val error: ErrorMessage
+)
+
+@Serializable
+data class ErrorMessage(
+    val message: String
+)
+
+@Serializable
 data class ChatCompletion(
     val id: String,
     val created: Long,
