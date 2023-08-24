@@ -20,7 +20,9 @@ class CompletionPreview private constructor(
             field = value
             if (value && completions?.getOrNull(currentIndex).isNullOrEmpty()) {
                 editor?.let {
-                    JBPopupFactory.getInstance().createMessage("Code completion is empty").showInBestPositionFor(it)
+                    val popup = JBPopupFactory.getInstance().createMessage("Code completion is empty")
+                    Disposer.register(this, popup)
+                    popup.showInBestPositionFor(it)
                 }
             }
         }
@@ -41,6 +43,14 @@ class CompletionPreview private constructor(
     override fun dispose() {
         editor?.putUserData(COMPLETION_PREVIEW, null)
         editor = null
+    }
+
+    fun showError(message: String) {
+        editor?.let {
+            val popup = JBPopupFactory.getInstance().createMessage(message)
+            Disposer.register(this, popup)
+            popup.showInBestPositionFor(it)
+        }
     }
 
     fun appendCompletions(suffixes: List<String>) {
