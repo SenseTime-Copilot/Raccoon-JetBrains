@@ -3,6 +3,7 @@ package com.sensetime.sensecore.sensecodeplugin.openapi
 import com.sensetime.sensecore.sensecodeplugin.openapi.request.ChatGptRequest
 import com.sensetime.sensecore.sensecodeplugin.openapi.response.ErrorResponse
 import com.sensetime.sensecore.sensecodeplugin.openapi.response.streaming.ChatCompletion
+import com.sensetime.sensecore.sensecodeplugin.openapi.response.streaming.ChatRespError
 import com.sensetime.sensecore.sensecodeplugin.security.GptMentorCredentialsManager
 import io.ktor.client.*
 import io.ktor.utils.io.*
@@ -93,7 +94,12 @@ class RealOpenApi(
                     if (e is CancellationException) {
                         throw e
                     } else {
-                        trySend(StreamingResponse.Error(e.message ?: UNKNOWM_ERROR))
+                        try {
+                            val error = JSON.decodeFromString(ChatRespError.serializer(), response)
+                            trySend(StreamingResponse.Error(error.error.message))
+                        } catch (ee: Exception) {
+                            trySend(StreamingResponse.Error(e.message ?: UNKNOWM_ERROR))
+                        }
                     }
                 }
             }

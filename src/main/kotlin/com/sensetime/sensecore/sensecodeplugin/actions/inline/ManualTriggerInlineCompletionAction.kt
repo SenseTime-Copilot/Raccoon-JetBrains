@@ -177,7 +177,10 @@ $text<fim_middle><fim_suffix>""".trimIndent()
                                             )
                                         )
 
-                                        is StreamingResponse.Error -> {}
+                                        is StreamingResponse.Error -> {
+                                            completionPreview.showError(streamingResponse.error)
+                                        }
+
                                         StreamingResponse.Done -> completionPreview.done = true
                                     }
                                 }
