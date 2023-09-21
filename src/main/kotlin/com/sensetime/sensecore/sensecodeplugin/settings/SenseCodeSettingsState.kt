@@ -5,30 +5,26 @@ import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.util.xmlb.XmlSerializerUtil
-import com.sensetime.sensecore.sensecodeplugin.clients.SenseCoreClient
+import com.sensetime.sensecore.sensecodeplugin.clients.SenseNovaClient
+import com.sensetime.sensecore.sensecodeplugin.utils.SenseCodePlugin
 
 @State(
     name = "com.sensetime.sensecore.sensecodeplugin.settings.SenseCodeSettingsState",
-    storages = [Storage("SenseCodeSettings.xml")]
+    storages = [Storage("SenseCodeIntelliJSettings.xml")]
 )
 data class SenseCodeSettingsState(
-    var completionPreference: ModelConfig.CompletionPreference = ModelConfig.CompletionPreference.BALANCED
+    var version: String = SenseCodePlugin.version
 ) : PersistentStateComponent<SenseCodeSettingsState> {
-
-    var selectedClientIndex: Int = 0
-        set(value) {
-            if (value < 0 || value >= clients.size) {
-                throw IndexOutOfBoundsException("Set invalid selectedClientIndex value($value), clients size(${clients.size})")
-            }
-            field = value
-        }
-    val clients: List<ClientConfig> = listOf(SenseCoreClient.getDefaultClientConfig())
-    fun getSelectedClientConfig(): ClientConfig = clients[selectedClientIndex]
+    val selectedClientName: String = SenseNovaClient.CLIENT_NAME
+    fun getSelectedClientConfig(): ClientConfig = clients.getValue(selectedClientName)
+    val clients: Map<String, ClientConfig> =
+        mapOf(SenseNovaClient.CLIENT_NAME to SenseNovaClient.getDefaultClientConfig())
 
     var isStream: Boolean = true
     var candidates: Int = 1
     var isAutoCompleteMode: Boolean = false
     var autoCompleteDelayMs: Int = 1000
+    var completionPreference: ModelConfig.CompletionPreference = ModelConfig.CompletionPreference.BALANCED
 
     fun restore() {
         loadState(SenseCodeSettingsState())

@@ -41,6 +41,8 @@ abstract class CodeClient {
     abstract val name: String
 
     abstract val userName: String?
+    abstract val isLogin: Boolean
+    abstract val isSupportLogin: Boolean
     abstract suspend fun login(apiEndpoint: String)
     abstract suspend fun logout(apiEndpoint: String)
 

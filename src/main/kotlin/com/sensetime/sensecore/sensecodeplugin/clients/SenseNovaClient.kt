@@ -1,12 +1,16 @@
 package com.sensetime.sensecore.sensecodeplugin.clients
 
 import com.intellij.credentialStore.Credentials
+import com.sensetime.sensecore.sensecodeplugin.actions.task.*
 import com.sensetime.sensecore.sensecodeplugin.clients.requests.CodeRequest
 import com.sensetime.sensecore.sensecodeplugin.clients.requests.SenseNovaCodeRequest
 import com.sensetime.sensecore.sensecodeplugin.clients.responses.CodeResponse
 import com.sensetime.sensecore.sensecodeplugin.clients.responses.SenseNovaCodeResponse
 import com.sensetime.sensecore.sensecodeplugin.clients.responses.SenseNovaStatus
+import com.sensetime.sensecore.sensecodeplugin.i18n.SenseCodeBundle
 import com.sensetime.sensecore.sensecodeplugin.services.http.authentication.SenseNovaAuthService
+import com.sensetime.sensecore.sensecodeplugin.settings.ClientConfig
+import com.sensetime.sensecore.sensecodeplugin.settings.ModelConfig
 import com.sensetime.sensecore.sensecodeplugin.settings.SenseCodeCredentialsManager
 import com.sensetime.sensecore.sensecodeplugin.settings.letIfFilled
 import kotlinx.serialization.SerialName
@@ -20,6 +24,11 @@ class SenseNovaClient : CodeClient() {
 
     override val userName: String?
         get() = accessToken.letIfFilled { user, _ -> user } ?: aksk.letIfFilled { _, _ -> "$name ak/sk user" }
+
+    override val isLogin: Boolean
+        get() = accessToken.letIfFilled { _, _ -> true } ?: false
+
+    override val isSupportLogin: Boolean = true
 
     override suspend fun login(apiEndpoint: String) {
         SenseNovaAuthService.Util.startLoginFromBrowser(
@@ -112,9 +121,25 @@ class SenseNovaClient : CodeClient() {
     private suspend fun getAccessToken(env: String): Credentials? = checkRefreshToken(env) ?: accessToken
 
     companion object {
+        const val CLIENT_NAME = "sensenova"
+        private const val AKSK_KEY = "aksk"
+        private const val REFRESH_TOKEN_KEY = "refreshToken"
+        private const val ACCESS_TOKEN_KEY = "accessToken"
+        private const val TOKEN_EXPIRES_AFTER = 3600 * 24 * 7
+
+        private const val PTC_CODE_S_MODEL_NAME = "novs-ptc-s-v1-code"
+
+        private val aksk: Credentials?
+            get() = SenseCodeCredentialsManager.getClientAuth(CLIENT_NAME, AKSK_KEY)
+        private val refreshToken: Credentials?
+            get() = SenseCodeCredentialsManager.getClientAuth(CLIENT_NAME, REFRESH_TOKEN_KEY)
+        private val accessToken: Credentials?
+            get() = SenseCodeCredentialsManager.getClientAuth(CLIENT_NAME, ACCESS_TOKEN_KEY)
+
         @Serializable
         private data class JWTPayload(val email: String? = null, val exp: Int? = null)
 
+        @JvmStatic
         fun updateLoginResult(token: String, refresh: String, expires: Int?) {
             token.split(".").getOrNull(1)?.let { payloadString ->
                 val payloadObject: JWTPayload = SenseCodeClientJson.decodeFromString(
@@ -132,19 +157,59 @@ class SenseNovaClient : CodeClient() {
             }
         }
 
-        private const val CLIENT_NAME = "sensenova"
-        private const val AKSK_KEY = "aksk"
-        private const val REFRESH_TOKEN_KEY = "refreshToken"
-        private const val ACCESS_TOKEN_KEY = "accessToken"
-        private const val TOKEN_EXPIRES_AFTER = 3600 * 24 * 7
+        @JvmStatic
+        private fun getCodeTaskActionPrompt(taskType: String, custom: String = ""): String =
+            "\n### Instruction:\nTask type: ${taskType}. ${SenseCodeBundle.message("completions.task.prompt.penrose.explanation")}.${custom}\n\n### Input:\n{code}\n"
 
-        private val aksk: Credentials?
-            get() = SenseCodeCredentialsManager.getClientAuth(CLIENT_NAME, AKSK_KEY)
-        private val refreshToken: Credentials?
-            get() = SenseCodeCredentialsManager.getClientAuth(CLIENT_NAME, REFRESH_TOKEN_KEY)
-        private val accessToken: Credentials?
-            get() = SenseCodeCredentialsManager.getClientAuth(CLIENT_NAME, ACCESS_TOKEN_KEY)
+        @JvmStatic
+        private fun makePTCCodeSModelConfig(): ModelConfig {
+            val maxInputTokens = 4096
+            val tokenLimit = 8192
+            return ModelConfig(
+                PTC_CODE_S_MODEL_NAME, 0.5f, "<|end|>", maxInputTokens, tokenLimit, mapOf(
+                    CodeTaskActionBase.getActionKey(GenerationAction::class) to ModelConfig.PromptTemplate(
+                        getCodeTaskActionPrompt("code generation")
+                    ),
+                    CodeTaskActionBase.getActionKey(AddTestAction::class) to ModelConfig.PromptTemplate(
+                        getCodeTaskActionPrompt("test sample generation")
+                    ),
+                    CodeTaskActionBase.getActionKey(CodeConversionAction::class) to ModelConfig.PromptTemplate(
+                        getCodeTaskActionPrompt(
+                            "code language conversion",
+                            SenseCodeBundle.message("completions.task.prompt.penrose.language.convert")
+                        )
+                    ),
+                    CodeTaskActionBase.getActionKey(CodeCorrectionAction::class) to ModelConfig.PromptTemplate(
+                        getCodeTaskActionPrompt("code error correction")
+                    ),
+                    CodeTaskActionBase.getActionKey(RefactoringAction::class) to ModelConfig.PromptTemplate(
+                        getCodeTaskActionPrompt("code refactoring and optimization")
+                    )
+                ), ModelConfig.PromptTemplate("{content}"), mapOf(), mapOf(
+                    "middle" to ModelConfig.PromptTemplate("<fim_prefix>Please do not provide any explanations at the end. Please complete the following code.\n\n{prefix}<fim_suffix>{suffix}<fim_middle>"),
+                    "end" to ModelConfig.PromptTemplate("<fim_prefix>Please do not provide any explanations at the end. Please complete the following code.\n\n{prefix}<fim_middle><fim_suffix>")
+                ), mapOf(
+                    ModelConfig.CompletionPreference.SPEED_PRIORITY to 128,
+                    ModelConfig.CompletionPreference.BALANCED to 256,
+                    ModelConfig.CompletionPreference.BEST_EFFORT to (tokenLimit - maxInputTokens)
+                )
+            )
+        }
 
+        @JvmStatic
+        fun getDefaultClientConfig(): ClientConfig = ClientConfig(
+            CLIENT_NAME,
+            ::SenseNovaClient,
+            PTC_CODE_S_MODEL_NAME,
+            PTC_CODE_S_MODEL_NAME,
+            PTC_CODE_S_MODEL_NAME,
+            PTC_CODE_S_MODEL_NAME,
+            "https://api.sensenova.cn/v1/llm/code/chat-completions",
+            mapOf(PTC_CODE_S_MODEL_NAME to makePTCCodeSModelConfig())
+        )
+
+
+        @JvmStatic
         private fun getEnvFromApiEndpoint(apiEndpoint: String): String {
             val startIndex = apiEndpoint.indexOf(".sensenova.")
             if (startIndex >= 0) {
@@ -156,8 +221,13 @@ class SenseNovaClient : CodeClient() {
             return "cn"
         }
 
+        @JvmStatic
         private fun getLoginUrl(env: String): String = "https://login.sensenova.$env/#/login"
+
+        @JvmStatic
         private fun getLogoutUrl(env: String): String = "https://iam-login.sensenova.$env/sensenova-sso/v1/logout"
+
+        @JvmStatic
         private fun getRefreshTokenUrl(env: String): String = "https://iam-login.sensenova.$env/sensenova-sso/v1/token"
     }
 }

@@ -2,15 +2,16 @@ package com.sensetime.sensecore.sensecodeplugin.settings
 
 data class ModelConfig(
     val name: String,
-    var temperature: Float,
+    val temperature: Float,
     val stop: String,
+    val maxInputTokens: Int,
     val tokenLimit: Int,
     val codeTaskActions: Map<String, PromptTemplate>,
     val freeChatPromptTemplate: PromptTemplate,
     val customPromptTemplate: Map<String, PromptTemplate>,
     val inlineCompletionPromptTemplate: Map<String, PromptTemplate>,
     val completionPreferenceMap: Map<CompletionPreference, Int>,
-    val maxTokens: Int? = null
+    val maxNewTokens: Int? = null
 ) {
     enum class CompletionPreference(val key: String) {
         SPEED_PRIORITY("settings.CompletionPreference.SpeedPriority"),
@@ -20,6 +21,6 @@ data class ModelConfig(
 
     data class PromptTemplate(val prompt: String = "", val system: String = "")
 
-    fun getMaxTokens(completionPreference: CompletionPreference): Int =
-        maxTokens ?: completionPreferenceMap.getValue(completionPreference)
+    fun getMaxNewTokens(completionPreference: CompletionPreference): Int =
+        maxNewTokens ?: completionPreferenceMap.getValue(completionPreference)
 }
