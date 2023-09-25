@@ -1,5 +1,6 @@
 package com.sensetime.sensecore.sensecodeplugin.clients
 
+import com.ibm.icu.text.MessageFormat
 import com.intellij.credentialStore.Credentials
 import com.sensetime.sensecore.sensecodeplugin.actions.task.*
 import com.sensetime.sensecore.sensecodeplugin.clients.requests.CodeRequest
@@ -7,7 +8,7 @@ import com.sensetime.sensecore.sensecodeplugin.clients.requests.SenseNovaCodeReq
 import com.sensetime.sensecore.sensecodeplugin.clients.responses.CodeResponse
 import com.sensetime.sensecore.sensecodeplugin.clients.responses.SenseNovaCodeResponse
 import com.sensetime.sensecore.sensecodeplugin.clients.responses.SenseNovaStatus
-import com.sensetime.sensecore.sensecodeplugin.i18n.SenseCodeBundle
+import com.sensetime.sensecore.sensecodeplugin.resources.SenseCodeBundle
 import com.sensetime.sensecore.sensecodeplugin.services.http.authentication.SenseNovaAuthService
 import com.sensetime.sensecore.sensecodeplugin.settings.ClientConfig
 import com.sensetime.sensecore.sensecodeplugin.settings.ModelConfig
@@ -25,7 +26,7 @@ class SenseNovaClient : CodeClient() {
     override val userName: String?
         get() = accessToken.letIfFilled { user, _ -> user } ?: aksk.letIfFilled { _, _ -> "$name ak/sk user" }
 
-    override val isLogin: Boolean
+    override val alreadyLoggedIn: Boolean
         get() = accessToken.letIfFilled { _, _ -> true } ?: false
 
     override val isSupportLogin: Boolean = true
@@ -50,6 +51,28 @@ class SenseNovaClient : CodeClient() {
             SenseCodeCredentialsManager.setClientAuth(CLIENT_NAME, REFRESH_TOKEN_KEY)
         }
     }
+
+    override fun getAkSkSettings(): AkSkSettings = AkSkSettings(
+        "$name ak/sk",
+        "SenseNova AccessKey ID and Secret: ${
+            MessageFormat.format(
+                SenseCodeBundle.message(
+                    "settings.group.aksk.nova.comment",
+                    "<a href='sensenova access control'>https://console.sensenova.cn/#/account/access-control/access-control-home</a>"
+                )
+            )
+        }",
+        AkSkSettingsItem(
+            "Access Key ID",
+            null,
+            { SenseCodeCredentialsManager.getClientAk(CLIENT_NAME) ?: "" },
+            { SenseCodeCredentialsManager.setClientAk(CLIENT_NAME, it) }),
+        AkSkSettingsItem(
+            "Secret Access Key",
+            null,
+            { SenseCodeCredentialsManager.getClientSk(CLIENT_NAME) ?: "" },
+            { SenseCodeCredentialsManager.setClientSk(CLIENT_NAME, it) })
+    )
 
     override suspend fun addAuthorization(requestBuilder: Request.Builder, apiEndpoint: String): Request.Builder =
         getAccessToken(getEnvFromApiEndpoint((apiEndpoint)))?.letIfFilled { _, password ->
@@ -122,7 +145,6 @@ class SenseNovaClient : CodeClient() {
 
     companion object {
         const val CLIENT_NAME = "sensenova"
-        private const val AKSK_KEY = "aksk"
         private const val REFRESH_TOKEN_KEY = "refreshToken"
         private const val ACCESS_TOKEN_KEY = "accessToken"
         private const val TOKEN_EXPIRES_AFTER = 3600 * 24 * 7
@@ -130,7 +152,7 @@ class SenseNovaClient : CodeClient() {
         private const val PTC_CODE_S_MODEL_NAME = "novs-ptc-s-v1-code"
 
         private val aksk: Credentials?
-            get() = SenseCodeCredentialsManager.getClientAuth(CLIENT_NAME, AKSK_KEY)
+            get() = SenseCodeCredentialsManager.getClientAkSk(CLIENT_NAME)
         private val refreshToken: Credentials?
             get() = SenseCodeCredentialsManager.getClientAuth(CLIENT_NAME, REFRESH_TOKEN_KEY)
         private val accessToken: Credentials?

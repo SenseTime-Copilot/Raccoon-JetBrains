@@ -18,6 +18,7 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlin.reflect.KMutableProperty0
 
 internal suspend fun Call.await(): Response =
     suspendCancellableCoroutine { continuation ->
@@ -41,10 +42,26 @@ abstract class CodeClient {
     abstract val name: String
 
     abstract val userName: String?
-    abstract val isLogin: Boolean
+    abstract val alreadyLoggedIn: Boolean
     abstract val isSupportLogin: Boolean
     abstract suspend fun login(apiEndpoint: String)
     abstract suspend fun logout(apiEndpoint: String)
+
+    data class AkSkSettingsItem(
+        val label: String,
+        val toolTipText: String?,
+        val getter: () -> String,
+        val setter: (String) -> Unit
+    )
+
+    data class AkSkSettings(
+        val groupTitle: String,
+        val groupComment: String?,
+        val akItem: AkSkSettingsItem?,
+        val skItem: AkSkSettingsItem
+    )
+
+    open fun getAkSkSettings(): AkSkSettings? = null
 
     class UnauthorizedException(clientName: String? = null, details: String? = null) :
         Exception("Code client${if (clientName.isNullOrBlank()) "" else "($clientName)"} unauthorized${if (details.isNullOrBlank()) "!" else ": $details"}")

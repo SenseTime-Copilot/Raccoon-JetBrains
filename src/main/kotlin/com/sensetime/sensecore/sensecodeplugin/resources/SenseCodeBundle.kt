@@ -1,4 +1,4 @@
-package com.sensetime.sensecore.sensecodeplugin.i18n
+package com.sensetime.sensecore.sensecodeplugin.resources
 
 import com.intellij.DynamicBundle
 import org.jetbrains.annotations.Nls

@@ -20,7 +20,6 @@ data class SenseCodeSettingsState(
     val clients: Map<String, ClientConfig> =
         mapOf(SenseNovaClient.CLIENT_NAME to SenseNovaClient.getDefaultClientConfig())
 
-    var isStream: Boolean = true
     var candidates: Int = 1
     var isAutoCompleteMode: Boolean = false
     var autoCompleteDelayMs: Int = 1000
