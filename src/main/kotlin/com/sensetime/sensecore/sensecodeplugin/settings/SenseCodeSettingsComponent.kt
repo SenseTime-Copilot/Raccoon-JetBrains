@@ -9,8 +9,8 @@ import com.sensetime.sensecore.sensecodeplugin.ui.common.UserLoginPanel
 import java.awt.event.ActionEvent
 
 internal fun Panel.akskPasswordRow(item: CodeClient.AkSkSettingsItem): Row =
-    row {
-        passwordField().bindText(item.getter, item.setter).label(item.label).component.toolTipText = item.toolTipText
+    row(item.label) {
+        passwordField().bindText(item.getter, item.setter).component.toolTipText = item.toolTipText
     }
 
 internal fun Panel.akskCollapsibleRow(akskSettings: CodeClient.AkSkSettings): CollapsibleRow =
@@ -18,8 +18,10 @@ internal fun Panel.akskCollapsibleRow(akskSettings: CodeClient.AkSkSettings): Co
         akskSettings.akItem?.let { ak ->
             akskPasswordRow(ak)
         }
-        akskPasswordRow(akskSettings.skItem)
-    }.applyIfNotNull(akskSettings.groupComment?.takeIf { it.isNotBlank() }) { rowComment(it) }
+        akskPasswordRow(akskSettings.skItem).applyIfNotNull(akskSettings.groupComment?.takeIf { it.isNotBlank() }) {
+            rowComment(it)
+        }
+    }
 
 class SenseCodeSettingsComponent(akskSettings: CodeClient.AkSkSettings?) : UserLoginPanel() {
     fun getSettingsPanel(
@@ -66,7 +68,7 @@ class SenseCodeSettingsComponent(akskSettings: CodeClient.AkSkSettings?) : UserL
             buttonsGroup {
                 row(SenseCodeBundle.message("settings.group.InlineCompletion.CompletionPreference.label")) {
                     for (value in ModelConfig.CompletionPreference.values()) {
-                        radioButton(value.key, value)
+                        radioButton(SenseCodeBundle.message(value.key), value)
                     }
                 }
             }.bind(SenseCodeSettingsState.instance::completionPreference)

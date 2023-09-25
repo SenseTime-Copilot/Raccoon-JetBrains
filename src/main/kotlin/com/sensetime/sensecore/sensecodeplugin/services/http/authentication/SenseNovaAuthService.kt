@@ -40,13 +40,9 @@ class SenseNovaAuthService : RestService() {
         }
 
         fun startLoginFromBrowser(loginUrl: String, refreshExpiresAfter: Int) {
-            val loginUrlWithQuery = Urls.newFromEncoded(loginUrl).addParameters(
-                mapOf(
-                    "redirect_url" to baseUrl.toExternalForm(),
-                    "refresh_expires_after" to "$refreshExpiresAfter"
-                )
-            ).toExternalForm()
-            BrowserUtil.browse(loginUrlWithQuery)
+            BrowserUtil.browse(
+                "$loginUrl?redirect_url=${baseUrl.toExternalForm()}&refresh_expires_after=$refreshExpiresAfter"
+            )
         }
     }
 }

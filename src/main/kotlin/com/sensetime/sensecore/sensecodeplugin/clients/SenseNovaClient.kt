@@ -58,7 +58,7 @@ class SenseNovaClient : CodeClient() {
             MessageFormat.format(
                 SenseCodeBundle.message(
                     "settings.group.aksk.nova.comment",
-                    "<a href='sensenova access control'>https://console.sensenova.cn/#/account/access-control/access-control-home</a>"
+                    "<a href='https://console.sensenova.cn/#/account/access-control/access-control-home'>sensenova access control</a>"
                 )
             )
         }",
@@ -230,11 +230,12 @@ class SenseNovaClient : CodeClient() {
             mapOf(PTC_CODE_S_MODEL_NAME to makePTCCodeSModelConfig())
         )
 
-
         @JvmStatic
         private fun getEnvFromApiEndpoint(apiEndpoint: String): String {
-            val startIndex = apiEndpoint.indexOf(".sensenova.")
+            val envPrefix = ".sensenova."
+            var startIndex = apiEndpoint.indexOf(envPrefix)
             if (startIndex >= 0) {
+                startIndex += envPrefix.length
                 val endIndex = apiEndpoint.indexOf('/', startIndex)
                 if (endIndex > startIndex) {
                     return apiEndpoint.substring(startIndex, endIndex)

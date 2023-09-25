@@ -1,6 +1,7 @@
 package com.sensetime.sensecore.sensecodeplugin.ui.common
 
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
 import java.awt.event.ActionEvent
 import javax.swing.JButton
 import javax.swing.JComponent
@@ -17,7 +18,10 @@ class LoadingButton(
         button.addActionListener { e ->
             _onClick?.let {
                 startLoading()
-                it(e) { ApplicationManager.getApplication().invokeLater { stopLoading() } }
+                it(e) {
+                    ApplicationManager.getApplication()
+                        .invokeLater({ stopLoading() }, ModalityState.stateForComponent(button))
+                }
             }
         }
     }

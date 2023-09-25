@@ -27,7 +27,7 @@ class SenseCodeConfigurable : Configurable {
     }
 
     override fun getDisplayName(): String = "SenseCode"
-    override fun isModified(): Boolean = (true == loginJob?.isActive) || (true == settingsPanel?.isModified())
+    override fun isModified(): Boolean = (true == settingsPanel?.isModified())
 
     override fun apply() {
         settingsPanel?.apply()
@@ -36,6 +36,10 @@ class SenseCodeConfigurable : Configurable {
     override fun reset() {
         super.reset()
         settingsPanel?.reset()
+    }
+
+    override fun cancel() {
+        super.cancel()
         cancelLoginJob()
     }
 
