@@ -1,15 +1,34 @@
 package com.sensetime.sensecore.sensecodeplugin.settings
 
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.ui.DialogPanel
+import com.intellij.util.messages.SimpleMessageBusConnection
 import com.sensetime.sensecore.sensecodeplugin.clients.CodeClientManager
+import com.sensetime.sensecore.sensecodeplugin.messages.SENSE_CODE_CLIENTS_TOPIC
+import com.sensetime.sensecore.sensecodeplugin.messages.SenseCodeClientsListener
 import kotlinx.coroutines.Job
 import javax.swing.JComponent
 
-class SenseCodeConfigurable : Configurable {
+class SenseCodeConfigurable : Configurable, SenseCodeClientsListener {
     private var loginJob: Job? = null
+    private var clientMessageBusConnection: SimpleMessageBusConnection? = null
+
     private var settingsPanel: DialogPanel? = null
     private var settingsComponent: SenseCodeSettingsComponent? = null
+
+    override fun onUserNameChanged(userName: String?) {
+        ApplicationManager.getApplication()
+            .invokeLater({ settingsComponent?.setUserName(userName) }, ModalityState.stateForComponent(settingsPanel!!))
+    }
+
+    override fun onAlreadyLoggedInChanged(alreadyLoggedIn: Boolean) {
+        ApplicationManager.getApplication().invokeLater(
+            { settingsComponent?.setAlreadyLoggedIn(alreadyLoggedIn) },
+            ModalityState.stateForComponent(settingsPanel!!)
+        )
+    }
 
     override fun createComponent(): JComponent? {
         val (client, _) = CodeClientManager.getClientAndConfigLet()
@@ -23,6 +42,8 @@ class SenseCodeConfigurable : Configurable {
                 invokeOnCompletion { onCompletion() }
             }
         }
+        clientMessageBusConnection = ApplicationManager.getApplication().messageBus.connect()
+            .also { it.subscribe(SENSE_CODE_CLIENTS_TOPIC, this) }
         return settingsPanel
     }
 
@@ -38,16 +59,18 @@ class SenseCodeConfigurable : Configurable {
         settingsPanel?.reset()
     }
 
-    override fun cancel() {
-        super.cancel()
-        cancelLoginJob()
-    }
-
     override fun disposeUIResources() {
         super.disposeUIResources()
         cancelLoginJob()
+        disconnectClientMessageBusConnection()
+
         settingsPanel = null
         settingsComponent = null
+    }
+
+    private fun disconnectClientMessageBusConnection() {
+        clientMessageBusConnection?.disconnect()
+        clientMessageBusConnection = null
     }
 
     private fun cancelLoginJob() {
