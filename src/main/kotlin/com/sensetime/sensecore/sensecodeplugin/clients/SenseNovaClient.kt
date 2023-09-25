@@ -19,6 +19,8 @@ import kotlinx.serialization.Serializable
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.*
+import com.auth0.jwt.JWT
+import com.auth0.jwt.algorithms.Algorithm
 
 class SenseNovaClient : CodeClient() {
     override val name: String = CLIENT_NAME
@@ -75,9 +77,9 @@ class SenseNovaClient : CodeClient() {
     )
 
     override suspend fun addAuthorization(requestBuilder: Request.Builder, apiEndpoint: String): Request.Builder =
-        getAccessToken(getEnvFromApiEndpoint((apiEndpoint)))?.letIfFilled { _, password ->
-            requestBuilder.addHeader("Authorization", "Bearer $password")
-        } ?: throw UnauthorizedException(name, "access token is empty")
+        (getAccessToken(getEnvFromApiEndpoint((apiEndpoint))).letIfFilled { _, password -> password }
+            ?: getAuthorizationFromAkSk())?.let { requestBuilder.addHeader("Authorization", "Bearer $it") }
+            ?: throw UnauthorizedException(name, "access token is empty")
 
     override fun addPostBody(
         requestBuilder: Request.Builder, request: CodeRequest, stream: Boolean
@@ -113,7 +115,7 @@ class SenseNovaClient : CodeClient() {
 
     private suspend fun checkRefreshToken(env: String): Credentials? = kotlin.runCatching {
         accessToken?.userName?.takeIf { it.isNotBlank() }?.let { currentUserName ->
-            refreshToken?.letIfFilled { user, password ->
+            refreshToken.letIfFilled { user, password ->
                 user.toIntOrNull()?.takeIf { expiresIn -> ((Date().time / 1000L) + (3600L * 24)) > expiresIn }
                     ?.let { password }
             }?.let { refreshToken ->
@@ -157,6 +159,13 @@ class SenseNovaClient : CodeClient() {
             get() = SenseCodeCredentialsManager.getClientAuth(CLIENT_NAME, REFRESH_TOKEN_KEY)
         private val accessToken: Credentials?
             get() = SenseCodeCredentialsManager.getClientAuth(CLIENT_NAME, ACCESS_TOKEN_KEY)
+
+        @JvmStatic
+        private fun getAuthorizationFromAkSk(): String? = aksk.letIfFilled { ak, sk ->
+            JWT.create().withIssuer(ak).withHeader(mapOf("alg" to "HS256"))
+                .withExpiresAt(Date(System.currentTimeMillis() + 1800 * 1000))
+                .withNotBefore(Date(System.currentTimeMillis() - 5 * 1000)).sign(Algorithm.HMAC256(sk))
+        }
 
         @Serializable
         private data class JWTPayload(val email: String? = null, val exp: Int? = null)

@@ -36,6 +36,8 @@ dependencies {
     implementation("io.ktor:ktor-client-core:2.2.2")
     implementation("io.ktor:ktor-client-cio:2.2.2")
 
+    implementation("com.auth0:java-jwt:4.4.0")
+
     // junit
     testImplementation("junit:junit:4.13.2")
     // Used for SSE
