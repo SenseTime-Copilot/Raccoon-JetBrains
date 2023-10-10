@@ -1,83 +1,129 @@
 package com.sensetime.sensecore.sensecodeplugin.ui.common
 
+import ai.grazie.utils.applyIfNotNull
+import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.ui.DialogPanel
+import com.intellij.openapi.util.Disposer
 import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.components.ActionLink
-import com.intellij.ui.dsl.builder.AlignY
-import com.intellij.ui.dsl.builder.RightGap
-import com.intellij.ui.dsl.builder.panel
+import com.intellij.ui.dsl.builder.*
+import com.intellij.util.messages.SimpleMessageBusConnection
+import com.intellij.util.ui.JBFont
+import com.sensetime.sensecore.sensecodeplugin.clients.CodeClient
+import com.sensetime.sensecore.sensecodeplugin.clients.CodeClientManager
+import com.sensetime.sensecore.sensecodeplugin.messages.SENSE_CODE_CLIENTS_TOPIC
+import com.sensetime.sensecore.sensecodeplugin.messages.SenseCodeClientsListener
 import com.sensetime.sensecore.sensecodeplugin.resources.SenseCodeBundle
 import com.sensetime.sensecore.sensecodeplugin.resources.SenseCodeIcons
+import kotlinx.coroutines.Job
 import java.awt.Font
-import java.awt.event.ActionEvent
 import javax.swing.JLabel
 
-open class UserLoginPanel {
-    fun setUserName(userName: String?) {
-        userNameLabel.text = userName ?: "unauthorized"
+internal fun Panel.akskPasswordRow(item: CodeClient.AkSkSettingsItem): Row =
+    row(item.label) {
+        passwordField().bindText(item.getter, item.setter).component.toolTipText = item.toolTipText
     }
 
-    open fun setAlreadyLoggedIn(alreadyLoggedIn: Boolean) {
-        loginButton.button.text =
-            SenseCodeBundle.message(if (alreadyLoggedIn) "user.button.logout" else "user.button.login")
-    }
-
-    fun setIsSupportLogin(isSupportLogin: Boolean) {
-        loginButton.setIsEnabled(isSupportLogin)
-        if (!isSupportLogin) {
-            loginButton.button.toolTipText = SenseCodeBundle.message("user.tooltip.LoginNotSupported")
+internal fun Panel.akskCollapsibleRow(akskSettings: CodeClient.AkSkSettings): CollapsibleRow =
+    collapsibleGroup(akskSettings.groupTitle) {
+        akskSettings.akItem?.let { ak ->
+            akskPasswordRow(ak)
+        }
+        akskPasswordRow(akskSettings.skItem).applyIfNotNull(akskSettings.groupComment?.takeIf { it.isNotBlank() }) {
+            rowComment(it)
         }
     }
 
-    fun setOnLoginClick(onLoginClick: ((ActionEvent, () -> Unit) -> Unit)? = null) {
-        loginButton.setOnClick(onLoginClick)
-    }
-
-    protected fun setupUserLoginPanel(
-        userName: String?,
-        alreadyLoggedIn: Boolean,
-        isSupportLogin: Boolean,
-        onLoginClick: ((ActionEvent, () -> Unit) -> Unit)? = null
-    ) {
-        setUserName(userName)
-        setAlreadyLoggedIn(alreadyLoggedIn)
-        setIsSupportLogin(isSupportLogin)
-        setOnLoginClick(onLoginClick)
-    }
-
-    fun getUserLoginPanel(
-        userName: String?,
-        alreadyLoggedIn: Boolean,
-        isSupportLogin: Boolean,
-        onLoginClick: ((ActionEvent, () -> Unit) -> Unit)? = null
-    ): DialogPanel {
-        setupUserLoginPanel(userName, alreadyLoggedIn, isSupportLogin, onLoginClick)
-        return userLoginPanel
-    }
-
-    private val userNameLabel: JLabel = JLabel("").apply { font = remakeFont(font, USER_FONT_SCALE, Font.BOLD) }
+class UserLoginPanel(parent: Disposable, akskSettings: CodeClient.AkSkSettings? = null) : Disposable {
+    private var akskGroup: CollapsibleRow? = null
+    private val userIconLabel: JLabel = JLabel()
+    private val userNameLabel: JLabel = JLabel("").apply { font = JBFont.label().biggerOn(3f).asBold() }
     private val loginButton: LoadingButton = LoadingButton(
+        this,
         ActionLink().apply {
+            isFocusPainted = false
             autoHideOnDisable = false
-            font = remakeFont(font, USER_FONT_SCALE)
+            font = JBFont.label().biggerOn(1f)
         },
         JLabel(AnimatedIcon.Big.INSTANCE)
-    )
-    protected val userLoginPanel: DialogPanel = panel {
+    ) { _, onCompletion -> loginJob = CodeClientManager.login().apply { invokeOnCompletion { onCompletion() } } }
+
+    private var loginJob: Job? = null
+        set(value) {
+            field?.cancel()
+            field = value
+        }
+    private var clientMessageBusConnection: SimpleMessageBusConnection? = null
+        set(value) {
+            field?.disconnect()
+            field = value
+        }
+
+    val userLoginPanel: DialogPanel = panel {
         align(AlignY.CENTER)
         row {
-            icon(SenseCodeIcons.DEFAULT_USER_AVATAR).gap(RightGap.SMALL)
+            cell(userIconLabel).gap(RightGap.SMALL)
             cell(userNameLabel).gap(RightGap.COLUMNS)
             cell(loginButton.button)
             cell(loginButton.loading)
         }
+        akskGroup = akskSettings?.let {
+            akskCollapsibleRow(it)
+        }
     }
 
-    companion object {
-        private const val USER_FONT_SCALE = 1.3f
+    init {
+        val (client, _) = CodeClientManager.getClientAndConfigPair()
+        setUserName(client.userName)
+        setAlreadyLoggedIn(client.alreadyLoggedIn)
+        setIsSupportLogin(client.isSupportLogin)
 
-        @JvmStatic
-        private fun remakeFont(font: Font, scale: Float, style: Int = 0): Font =
-            Font(font.name, (font.style or style), (font.size * scale).toInt())
+        clientMessageBusConnection = ApplicationManager.getApplication().messageBus.connect().also {
+            it.subscribe(SENSE_CODE_CLIENTS_TOPIC, object : SenseCodeClientsListener {
+                override fun onUserNameChanged(userName: String?) {
+                    ApplicationManager.getApplication()
+                        .invokeLater({ setUserName(userName) }, ModalityState.stateForComponent(userLoginPanel))
+                }
+
+                override fun onAlreadyLoggedInChanged(alreadyLoggedIn: Boolean) {
+                    ApplicationManager.getApplication().invokeLater(
+                        { setAlreadyLoggedIn(alreadyLoggedIn) },
+                        ModalityState.stateForComponent(userLoginPanel)
+                    )
+                }
+            })
+        }
+
+        Disposer.register(parent, this)
+    }
+
+    override fun dispose() {
+        loginJob = null
+        clientMessageBusConnection = null
+    }
+
+    private fun setUserName(userName: String?) {
+        if (userName.isNullOrBlank()) {
+            userIconLabel.icon = SenseCodeIcons.NOT_LOGGED_USER
+            userNameLabel.text = "unauthorized"
+        } else {
+            userIconLabel.icon = SenseCodeIcons.LOGGED_USER
+            userNameLabel.text = userName
+        }
+    }
+
+    private fun setAlreadyLoggedIn(alreadyLoggedIn: Boolean) {
+        loginButton.button.text =
+            SenseCodeBundle.message(if (alreadyLoggedIn) "user.button.logout" else "user.button.login")
+        akskGroup?.expanded = !alreadyLoggedIn
+    }
+
+    private fun setIsSupportLogin(isSupportLogin: Boolean) {
+        loginButton.isEnabled = isSupportLogin
+        if (!isSupportLogin) {
+            loginButton.button.toolTipText = SenseCodeBundle.message("user.tooltip.LoginNotSupported")
+        }
     }
 }

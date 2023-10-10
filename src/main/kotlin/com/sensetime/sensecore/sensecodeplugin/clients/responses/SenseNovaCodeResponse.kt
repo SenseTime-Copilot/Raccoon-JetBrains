@@ -34,8 +34,14 @@ data class SenseNovaCodeResponseData(
     override val created: Int? = null,
     override val usage: UsageImpl? = null,
     override val choices: List<SenseNovaChoice>? = null,
+    @SerialName("status")
     override val error: SenseNovaStatus? = null
 ) : CodeResponse
 
 @Serializable
-data class SenseNovaCodeResponse(val data: SenseNovaCodeResponseData)
+data class SenseNovaCodeResponse(
+    val data: SenseNovaCodeResponseData? = null,
+    val error: SenseNovaStatus? = null
+) {
+    fun toCodeResponse(): CodeResponse = data ?: SenseNovaCodeResponseData(error = error)
+}

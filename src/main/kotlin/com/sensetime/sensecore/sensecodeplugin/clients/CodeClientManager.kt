@@ -10,7 +10,7 @@ import kotlinx.coroutines.*
 object CodeClientManager {
     class CredentialsListener : SenseCodeCredentialsListener {
         override fun onClientAuthChanged(name: String, key: String) {
-            getClientAndConfigLet().first.takeIf { name == it.name }?.let { client ->
+            getClientAndConfigPair().first.takeIf { name == it.name }?.let { client ->
                 ApplicationManager.getApplication().messageBus.syncPublisher(SENSE_CODE_CLIENTS_TOPIC).run {
                     onUserNameChanged(client.userName)
                     onAlreadyLoggedInChanged(client.alreadyLoggedIn)
@@ -20,22 +20,22 @@ object CodeClientManager {
     }
 
     private var _client: CodeClient? = null
-    fun getClientAndConfigLet(): Pair<CodeClient, ClientConfig> {
+    fun getClientAndConfigPair(): Pair<CodeClient, ClientConfig> {
         val clientConfig: ClientConfig = SenseCodeSettingsState.instance.getSelectedClientConfig()
         return Pair(_client?.takeIf { it.name == clientConfig.name } ?: clientConfig.constructor()
             .also { _client = it }, clientConfig)
     }
 
+    fun getUserName(): String? = getClientAndConfigPair().first.userName
+
     fun login(): Job = otherCoroutineScope.launch {
-        val (client, config) = getClientAndConfigLet()
+        val (client, config) = getClientAndConfigPair()
         (if (client.alreadyLoggedIn) client::logout else client::login)(config.apiEndpoint)
     }
-
 
     private val otherCoroutineScope: CoroutineScope =
         CoroutineScope(SupervisorJob() + Dispatchers.IO + CoroutineName("SenseCodeOther"))
 
-    var toolWindowJob: Job? = null
     val clientCoroutineScope: CoroutineScope =
         CoroutineScope(SupervisorJob() + Dispatchers.IO + CoroutineName("SenseCodeClient"))
 }

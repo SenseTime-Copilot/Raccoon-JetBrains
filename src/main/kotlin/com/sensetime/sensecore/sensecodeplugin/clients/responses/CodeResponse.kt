@@ -43,11 +43,12 @@ interface Error {
     val error: String?
 
     fun hasError(): Boolean = !error.isNullOrBlank()
-    fun getShowError(): String = error?.takeIf { it.isNotBlank() } ?: "Unknown error"
-}
+    fun getShowError(): String = error?.takeIf { it.isNotBlank() } ?: UNKNOWN_ERROR
 
-@Serializable
-data class ErrorImpl(override val error: String? = null) : Error
+    companion object {
+        const val UNKNOWN_ERROR: String = "Unknown error"
+    }
+}
 
 interface CodeResponse : Common {
     val usage: Usage?
@@ -58,7 +59,7 @@ interface CodeResponse : Common {
         val result = listOfNotNull(choices?.let { CodeStreamResponse.TokenChoices(this, it) },
             usage?.takeIf { it.hasUsage() }?.let { CodeStreamResponse.TokenUsage(this, it) },
             error?.takeIf { it.hasError() }?.let { CodeStreamResponse.Error(it.getShowError()) })
-        return result.ifEmpty { listOf(CodeStreamResponse.Unknown(this)) }
+        return result.ifEmpty { listOf(CodeStreamResponse.Error(Error.UNKNOWN_ERROR)) }
     }
 }
 
@@ -66,7 +67,6 @@ sealed class CodeStreamResponse {
     object Connected : CodeStreamResponse()
     data class TokenChoices(val common: Common, val choices: List<Choice>) : CodeStreamResponse()
     data class TokenUsage(val common: Common, val usage: Usage) : CodeStreamResponse()
-    data class Unknown(val common: Common? = null) : CodeStreamResponse()
     data class Error(val error: String) : CodeStreamResponse()
     object Done : CodeStreamResponse()
     object Closed : CodeStreamResponse()

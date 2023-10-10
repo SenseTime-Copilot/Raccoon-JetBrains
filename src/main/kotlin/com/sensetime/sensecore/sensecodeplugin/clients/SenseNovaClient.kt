@@ -57,11 +57,9 @@ class SenseNovaClient : CodeClient() {
     override fun getAkSkSettings(): AkSkSettings = AkSkSettings(
         "$name ak/sk",
         "SenseNova AccessKey ID and Secret: ${
-            MessageFormat.format(
-                SenseCodeBundle.message(
-                    "settings.group.aksk.nova.comment",
-                    "<a href='https://console.sensenova.cn/#/account/access-control/access-control-home'>sensenova access control</a>"
-                )
+            SenseCodeBundle.message(
+                "settings.group.aksk.nova.comment",
+                "<a href='https://console.sensenova.cn/#/account/access-control/access-control-home'>sensenova access control</a>"
             )
         }",
         AkSkSettingsItem(
@@ -90,7 +88,7 @@ class SenseNovaClient : CodeClient() {
     }
 
     override fun toCodeResponse(body: String, stream: Boolean): CodeResponse =
-        SenseCodeClientJson.decodeFromString(SenseNovaCodeResponse.serializer(), body).data
+        SenseCodeClientJson.decodeFromString(SenseNovaCodeResponse.serializer(), body).toCodeResponse()
 
     @Serializable
     private data class RefreshRequest(

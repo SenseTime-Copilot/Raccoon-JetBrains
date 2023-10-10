@@ -13,7 +13,7 @@ import com.sensetime.sensecore.sensecodeplugin.utils.SenseCodePlugin
     storages = [Storage("SenseCodeIntelliJSettings.xml")]
 )
 data class SenseCodeSettingsState(
-    var version: String = SenseCodePlugin.version
+    var version: String = ""
 ) : PersistentStateComponent<SenseCodeSettingsState> {
     val selectedClientName: String = SenseNovaClient.CLIENT_NAME
     fun getSelectedClientConfig(): ClientConfig = clients.getValue(selectedClientName)
@@ -26,7 +26,7 @@ data class SenseCodeSettingsState(
     var completionPreference: ModelConfig.CompletionPreference = ModelConfig.CompletionPreference.BALANCED
 
     fun restore() {
-        loadState(SenseCodeSettingsState())
+        loadState(SenseCodeSettingsState(SenseCodePlugin.version))
     }
 
     override fun getState(): SenseCodeSettingsState = this

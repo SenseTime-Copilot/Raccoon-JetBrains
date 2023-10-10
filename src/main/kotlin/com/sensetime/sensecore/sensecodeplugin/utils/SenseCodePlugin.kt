@@ -5,7 +5,7 @@ import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.extensions.PluginId
 
 object SenseCodePlugin {
-    val PLUGIN_ID: String = "com.sensetime.sensecore.sensecodeplugin"
+    const val PLUGIN_ID: String = "com.sensetime.sensecore.sensecodeplugin"
 
     val plugin: IdeaPluginDescriptor by lazy {
         PluginManagerCore.getPlugin(PluginId.getId(PLUGIN_ID)) ?: throw RuntimeException("Not found $PLUGIN_ID!")
@@ -13,4 +13,6 @@ object SenseCodePlugin {
 
     val version: String
         get() = plugin.version
+
+    const val NAME: String = "SenseCode"
 }

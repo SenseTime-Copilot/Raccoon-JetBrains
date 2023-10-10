@@ -18,7 +18,6 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
-import kotlin.reflect.KMutableProperty0
 
 internal suspend fun Call.await(): Response =
     suspendCancellableCoroutine { continuation ->
@@ -158,9 +157,10 @@ abstract class CodeClient {
             httpCode,
             clientResponse?.message?.takeIf { it.isNotBlank() }?.let { "Message: $it" },
             "Details: ${
-                (clientResponse?.body?.string()?.let {
-                    kotlin.runCatching { toCodeResponse(it, stream) }.getOrNull()
-                }?.error ?: ErrorImpl()).getShowError()
+                clientResponse?.body?.string()?.let {
+                    kotlin.runCatching { toCodeResponse(it, stream).error?.getShowError() }
+                        .getOrElse { "Exception: ${it.localizedMessage}" }
+                } ?: Error.UNKNOWN_ERROR
             }",
             t?.let { "Exception: ${it.localizedMessage}" }).joinToString("\n")
     }
