@@ -2,10 +2,12 @@ package com.sensetime.sensecore.sensecodeplugin.clients
 
 import com.sensetime.sensecore.sensecodeplugin.clients.requests.CodeRequest
 import com.sensetime.sensecore.sensecodeplugin.clients.responses.*
+import com.sensetime.sensecore.sensecodeplugin.utils.SenseCodeNotification
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import okhttp3.*
 import okhttp3.sse.EventSource
@@ -41,10 +43,15 @@ abstract class CodeClient {
     abstract val name: String
 
     abstract val userName: String?
-    abstract val alreadyLoggedIn: Boolean
-    abstract val isSupportLogin: Boolean
-    abstract suspend fun login(apiEndpoint: String)
-    abstract suspend fun logout(apiEndpoint: String)
+    open val alreadyLoggedIn: Boolean = false
+    open val isSupportLogin: Boolean = false
+    open suspend fun login(apiEndpoint: String) {
+        throw NotImplementedError("")
+    }
+
+    open suspend fun logout(apiEndpoint: String) {
+        throw NotImplementedError("")
+    }
 
     data class AkSkSettingsItem(
         val label: String,
@@ -65,12 +72,20 @@ abstract class CodeClient {
     class UnauthorizedException(clientName: String? = null, details: String? = null) :
         Exception("Code client${if (clientName.isNullOrBlank()) "" else "($clientName)"} unauthorized${if (details.isNullOrBlank()) "!" else ": $details"}")
 
-    suspend fun request(request: CodeRequest): CodeResponse = client.newCall(toOkHttpRequest(request, false)).await()
-        .let { response ->
-            response.takeIf { it.isSuccessful }?.body?.let { toCodeResponse(it.string(), false) } ?: throw IOException(
-                toErrorMessage(false, response)
-            )
-        }
+    suspend fun request(request: CodeRequest): CodeResponse = try {
+        client.newCall(toOkHttpRequest(request, false)).await()
+            .let { response ->
+                response.takeIf { it.isSuccessful }?.body?.let { toCodeResponse(it.string(), false) }
+                    ?: throw IOException(toErrorMessage(false, response).apply {
+                        response.code.takeIf { 401 == it }?.let {
+                            SenseCodeNotification.notifyLoginWithSettingsAction()
+                        }
+                    })
+            }
+    } catch (e: UnauthorizedException) {
+        SenseCodeNotification.notifyLoginWithSettingsAction()
+        throw e
+    }
 
     fun requestStream(request: CodeRequest): Flow<CodeStreamResponse> = callbackFlow {
         val eventSource = factory.newEventSource(toOkHttpRequest(request, true), object : EventSourceListener() {
@@ -112,12 +127,20 @@ abstract class CodeClient {
 
                 openResponse = null
                 trySendBlocking(CodeStreamResponse.Error(toErrorMessage(true, response, t)))
+                response?.code?.takeIf { 401 == it }?.let {
+                    SenseCodeNotification.notifyLoginWithSettingsAction()
+                }
             }
         })
 
         awaitClose {
             eventSource.cancel()
         }
+    }.catch { e ->
+        if (e is UnauthorizedException) {
+            SenseCodeNotification.notifyLoginWithSettingsAction()
+        }
+        throw e
     }
 
 
@@ -127,7 +150,8 @@ abstract class CodeClient {
 
     protected abstract suspend fun addAuthorization(
         requestBuilder: Request.Builder,
-        apiEndpoint: String
+        apiEndpoint: String,
+        utcDate: String
     ): Request.Builder
 
     protected abstract fun addPostBody(
@@ -137,14 +161,15 @@ abstract class CodeClient {
     ): Request.Builder
 
     protected open suspend fun toOkHttpRequest(request: CodeRequest, stream: Boolean): Request {
+        val utcDate: String = getUTCDate()
         var requestBuilder = Request.Builder()
             .url(request.apiEndpoint)
             .header("Content-Type", "application/json")
-            .addHeader("Date", getUTCDate())
+            .addHeader("Date", utcDate)
         if (stream) {
             requestBuilder = requestBuilder.addHeader("Accept", "text/event-stream")
         }
-        requestBuilder = addAuthorization(requestBuilder, request.apiEndpoint)
+        requestBuilder = addAuthorization(requestBuilder, request.apiEndpoint, utcDate)
         return addPostBody(requestBuilder, request, stream).build()
     }
 

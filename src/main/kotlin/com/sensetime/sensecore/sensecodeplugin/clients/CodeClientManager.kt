@@ -21,7 +21,7 @@ object CodeClientManager {
 
     private var _client: CodeClient? = null
     fun getClientAndConfigPair(): Pair<CodeClient, ClientConfig> {
-        val clientConfig: ClientConfig = SenseCodeSettingsState.instance.getSelectedClientConfig()
+        val clientConfig: ClientConfig = SenseCodeSettingsState.instance.selectedClientConfig
         return Pair(_client?.takeIf { it.name == clientConfig.name } ?: clientConfig.constructor()
             .also { _client = it }, clientConfig)
     }

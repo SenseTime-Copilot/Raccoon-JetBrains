@@ -15,21 +15,31 @@ import com.sensetime.sensecore.sensecodeplugin.utils.SenseCodePlugin
 data class SenseCodeSettingsState(
     var version: String = ""
 ) : PersistentStateComponent<SenseCodeSettingsState> {
-    val selectedClientName: String = SenseNovaClient.CLIENT_NAME
-    fun getSelectedClientConfig(): ClientConfig = clients.getValue(selectedClientName)
-    val clients: Map<String, ClientConfig> =
-        mapOf(SenseNovaClient.CLIENT_NAME to SenseNovaClient.getDefaultClientConfig())
-
     var candidates: Int = 1
     var isAutoCompleteMode: Boolean = false
     var autoCompleteDelayMs: Int = 1000
     var completionPreference: ModelConfig.CompletionPreference = ModelConfig.CompletionPreference.BALANCED
 
+    var selectedClientName: String = SenseNovaClient.CLIENT_NAME
+    var clientApiEndpointMap: Map<String, String> = mapOf(SenseNovaClient.CLIENT_NAME to SenseNovaClient.API_ENDPOINT)
+    private val clients: Map<String, ClientConfig> =
+        mapOf(SenseNovaClient.CLIENT_NAME to SenseNovaClient.getDefaultClientConfig())
+    val selectedClientConfig: ClientConfig
+        get() = selectedClientName.let {
+            clients.getValue(it).apply { apiEndpoint = clientApiEndpointMap.getValue(it) }
+        }
+
     fun restore() {
         loadState(SenseCodeSettingsState(SenseCodePlugin.version))
     }
 
-    override fun getState(): SenseCodeSettingsState = this
+    override fun getState(): SenseCodeSettingsState {
+        if (version != SenseCodePlugin.version) {
+            version = SenseCodePlugin.version
+        }
+        return this
+    }
+
     override fun loadState(state: SenseCodeSettingsState) {
         XmlSerializerUtil.copyBean(state, this)
     }

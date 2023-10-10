@@ -1,8 +1,6 @@
 package com.sensetime.sensecore.sensecodeplugin.clients
 
-import com.ibm.icu.text.MessageFormat
 import com.intellij.credentialStore.Credentials
-import com.sensetime.sensecore.sensecodeplugin.actions.task.*
 import com.sensetime.sensecore.sensecodeplugin.clients.requests.CodeRequest
 import com.sensetime.sensecore.sensecodeplugin.clients.requests.SenseNovaCodeRequest
 import com.sensetime.sensecore.sensecodeplugin.clients.responses.CodeResponse
@@ -11,7 +9,6 @@ import com.sensetime.sensecore.sensecodeplugin.clients.responses.SenseNovaStatus
 import com.sensetime.sensecore.sensecodeplugin.resources.SenseCodeBundle
 import com.sensetime.sensecore.sensecodeplugin.services.http.authentication.SenseNovaAuthService
 import com.sensetime.sensecore.sensecodeplugin.settings.ClientConfig
-import com.sensetime.sensecore.sensecodeplugin.settings.ModelConfig
 import com.sensetime.sensecore.sensecodeplugin.settings.SenseCodeCredentialsManager
 import com.sensetime.sensecore.sensecodeplugin.settings.letIfFilled
 import kotlinx.serialization.SerialName
@@ -21,17 +18,10 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.*
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import com.sensetime.sensecore.sensecodeplugin.clients.models.PenroseModels
 
-class SenseNovaClient : CodeClient() {
+class SenseNovaClient : AkSkAndLoginCodeClient() {
     override val name: String = CLIENT_NAME
-
-    override val userName: String?
-        get() = accessToken.letIfFilled { user, _ -> user } ?: aksk.letIfFilled { _, _ -> "$name ak/sk user" }
-
-    override val alreadyLoggedIn: Boolean
-        get() = accessToken.letIfFilled { _, _ -> true } ?: false
-
-    override val isSupportLogin: Boolean = true
 
     override suspend fun login(apiEndpoint: String) {
         SenseNovaAuthService.Util.startLoginFromBrowser(
@@ -43,14 +33,14 @@ class SenseNovaClient : CodeClient() {
     override suspend fun logout(apiEndpoint: String) {
         try {
             kotlin.runCatching {
+                val utcDate: String = getUTCDate()
                 addAuthorization(
                     Request.Builder().url(getLogoutUrl(getEnvFromApiEndpoint(apiEndpoint)))
-                        .header("Content-Type", "application/json").addHeader("Date", getUTCDate()), apiEndpoint
+                        .header("Content-Type", "application/json").addHeader("Date", utcDate), apiEndpoint, utcDate
                 )
             }.onSuccess { client.newCall(it.get().build()).await() }
         } finally {
-            SenseCodeCredentialsManager.setClientAuth(CLIENT_NAME, ACCESS_TOKEN_KEY)
-            SenseCodeCredentialsManager.setClientAuth(CLIENT_NAME, REFRESH_TOKEN_KEY)
+            clearLoginToken()
         }
     }
 
@@ -62,19 +52,15 @@ class SenseNovaClient : CodeClient() {
                 "<a href='https://console.sensenova.cn/#/account/access-control/access-control-home'>sensenova access control</a>"
             )
         }",
-        AkSkSettingsItem(
-            "Access Key ID",
-            null,
-            { SenseCodeCredentialsManager.getClientAk(CLIENT_NAME) ?: "" },
-            { SenseCodeCredentialsManager.setClientAk(CLIENT_NAME, it) }),
-        AkSkSettingsItem(
-            "Secret Access Key",
-            null,
-            { SenseCodeCredentialsManager.getClientSk(CLIENT_NAME) ?: "" },
-            { SenseCodeCredentialsManager.setClientSk(CLIENT_NAME, it) })
+        AkSkSettingsItem("Access Key ID", null, this::akGetter, this::akSetter),
+        AkSkSettingsItem("Secret Access Key", null, this::skGetter, this::skSetter)
     )
 
-    override suspend fun addAuthorization(requestBuilder: Request.Builder, apiEndpoint: String): Request.Builder =
+    override suspend fun addAuthorization(
+        requestBuilder: Request.Builder,
+        apiEndpoint: String,
+        utcDate: String
+    ): Request.Builder =
         (getAccessToken(getEnvFromApiEndpoint((apiEndpoint))).letIfFilled { _, password -> password }
             ?: getAuthorizationFromAkSk())?.let { requestBuilder.addHeader("Authorization", "Bearer $it") }
             ?: throw UnauthorizedException(name, "access token is empty")
@@ -142,28 +128,17 @@ class SenseNovaClient : CodeClient() {
     }.getOrNull()
 
     private suspend fun getAccessToken(env: String): Credentials? = checkRefreshToken(env) ?: accessToken
+    private fun getAuthorizationFromAkSk(): String? = aksk.letIfFilled { ak, sk ->
+        JWT.create().withIssuer(ak).withHeader(mapOf("alg" to "HS256"))
+            .withExpiresAt(Date(System.currentTimeMillis() + 1800 * 1000))
+            .withNotBefore(Date(System.currentTimeMillis() - 5 * 1000)).sign(Algorithm.HMAC256(sk))
+    }
 
     companion object {
         const val CLIENT_NAME = "sensenova"
-        private const val REFRESH_TOKEN_KEY = "refreshToken"
-        private const val ACCESS_TOKEN_KEY = "accessToken"
+        const val API_ENDPOINT = "https://api.sensenova.cn/v1/llm/code/chat-completions"
         private const val TOKEN_EXPIRES_AFTER = 3600 * 24 * 7
-
         private const val PTC_CODE_S_MODEL_NAME = "novs-ptc-s-v1-code"
-
-        private val aksk: Credentials?
-            get() = SenseCodeCredentialsManager.getClientAkSk(CLIENT_NAME)
-        private val refreshToken: Credentials?
-            get() = SenseCodeCredentialsManager.getClientAuth(CLIENT_NAME, REFRESH_TOKEN_KEY)
-        private val accessToken: Credentials?
-            get() = SenseCodeCredentialsManager.getClientAuth(CLIENT_NAME, ACCESS_TOKEN_KEY)
-
-        @JvmStatic
-        private fun getAuthorizationFromAkSk(): String? = aksk.letIfFilled { ak, sk ->
-            JWT.create().withIssuer(ak).withHeader(mapOf("alg" to "HS256"))
-                .withExpiresAt(Date(System.currentTimeMillis() + 1800 * 1000))
-                .withNotBefore(Date(System.currentTimeMillis() - 5 * 1000)).sign(Algorithm.HMAC256(sk))
-        }
 
         @Serializable
         private data class JWTPayload(val email: String? = null, val exp: Int? = null)
@@ -187,45 +162,6 @@ class SenseNovaClient : CodeClient() {
         }
 
         @JvmStatic
-        private fun getCodeTaskActionPrompt(taskType: String, custom: String = ""): String =
-            "\n### Instruction:\nTask type: ${taskType}. ${SenseCodeBundle.message("completions.task.prompt.penrose.explanation")}.${custom}\n\n### Input:\n{code}\n"
-
-        @JvmStatic
-        private fun makePTCCodeSModelConfig(): ModelConfig {
-            val maxInputTokens = 4096
-            val tokenLimit = 8192
-            return ModelConfig(
-                PTC_CODE_S_MODEL_NAME, 0.5f, "<|end|>", maxInputTokens, tokenLimit, mapOf(
-                    CodeTaskActionBase.getActionKey(GenerationAction::class) to ModelConfig.PromptTemplate(
-                        getCodeTaskActionPrompt("code generation")
-                    ),
-                    CodeTaskActionBase.getActionKey(AddTestAction::class) to ModelConfig.PromptTemplate(
-                        getCodeTaskActionPrompt("test sample generation")
-                    ),
-                    CodeTaskActionBase.getActionKey(CodeConversionAction::class) to ModelConfig.PromptTemplate(
-                        getCodeTaskActionPrompt(
-                            "code language conversion",
-                            SenseCodeBundle.message("completions.task.prompt.penrose.language.convert")
-                        )
-                    ),
-                    CodeTaskActionBase.getActionKey(CodeCorrectionAction::class) to ModelConfig.PromptTemplate(
-                        getCodeTaskActionPrompt("code error correction")
-                    ),
-                    CodeTaskActionBase.getActionKey(RefactoringAction::class) to ModelConfig.PromptTemplate(
-                        getCodeTaskActionPrompt("code refactoring and optimization")
-                    )
-                ), ModelConfig.PromptTemplate("{content}"), mapOf(), mapOf(
-                    "middle" to ModelConfig.PromptTemplate("<fim_prefix>Please do not provide any explanations at the end. Please complete the following code.\n\n{prefix}<fim_suffix>{suffix}<fim_middle>"),
-                    "end" to ModelConfig.PromptTemplate("<fim_prefix>Please do not provide any explanations at the end. Please complete the following code.\n\n{prefix}<fim_middle><fim_suffix>")
-                ), mapOf(
-                    ModelConfig.CompletionPreference.SPEED_PRIORITY to 128,
-                    ModelConfig.CompletionPreference.BALANCED to 256,
-                    ModelConfig.CompletionPreference.BEST_EFFORT to (tokenLimit - maxInputTokens)
-                )
-            )
-        }
-
-        @JvmStatic
         fun getDefaultClientConfig(): ClientConfig = ClientConfig(
             CLIENT_NAME,
             ::SenseNovaClient,
@@ -233,8 +169,8 @@ class SenseNovaClient : CodeClient() {
             PTC_CODE_S_MODEL_NAME,
             PTC_CODE_S_MODEL_NAME,
             PTC_CODE_S_MODEL_NAME,
-            "https://api.sensenova.cn/v1/llm/code/chat-completions",
-            mapOf(PTC_CODE_S_MODEL_NAME to makePTCCodeSModelConfig())
+            API_ENDPOINT,
+            mapOf(PTC_CODE_S_MODEL_NAME to PenroseModels.makeModelSConfig(PTC_CODE_S_MODEL_NAME))
         )
 
         @JvmStatic
