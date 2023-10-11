@@ -5,6 +5,7 @@ import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.util.xmlb.XmlSerializerUtil
+import com.sensetime.sensecore.sensecodeplugin.clients.SenseCoreClient
 import com.sensetime.sensecore.sensecodeplugin.clients.SenseNovaClient
 import com.sensetime.sensecore.sensecodeplugin.utils.SenseCodePlugin
 
@@ -20,10 +21,16 @@ data class SenseCodeSettingsState(
     var autoCompleteDelayMs: Int = 1000
     var completionPreference: ModelConfig.CompletionPreference = ModelConfig.CompletionPreference.BALANCED
 
-    var selectedClientName: String = SenseNovaClient.CLIENT_NAME
-    var clientApiEndpointMap: Map<String, String> = mapOf(SenseNovaClient.CLIENT_NAME to SenseNovaClient.API_ENDPOINT)
+    var selectedClientName: String = SenseCoreClient.CLIENT_NAME
+    var clientApiEndpointMap: Map<String, String> = mapOf(
+        SenseCoreClient.CLIENT_NAME to SenseCoreClient.API_ENDPOINT,
+        SenseNovaClient.CLIENT_NAME to SenseNovaClient.API_ENDPOINT
+    )
     private val clients: Map<String, ClientConfig> =
-        mapOf(SenseNovaClient.CLIENT_NAME to SenseNovaClient.getDefaultClientConfig())
+        mapOf(
+            SenseCoreClient.CLIENT_NAME to SenseCoreClient.getDefaultClientConfig(),
+            SenseNovaClient.CLIENT_NAME to SenseNovaClient.getDefaultClientConfig()
+        )
     val selectedClientConfig: ClientConfig
         get() = selectedClientName.let {
             clients.getValue(it).apply { apiEndpoint = clientApiEndpointMap.getValue(it) }

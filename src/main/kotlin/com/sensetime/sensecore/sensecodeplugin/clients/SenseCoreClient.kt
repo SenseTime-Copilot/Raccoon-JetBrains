@@ -14,7 +14,7 @@ import com.sensetime.sensecore.sensecodeplugin.clients.responses.AMSCodeResponse
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
-class SenseCodeClient : AkSkCodeClient() {
+class SenseCoreClient : AkSkCodeClient() {
     override val name: String = CLIENT_NAME
 
     override fun getAkSkSettings(): AkSkSettings = AkSkSettings(
@@ -69,7 +69,7 @@ class SenseCodeClient : AkSkCodeClient() {
         @JvmStatic
         fun getDefaultClientConfig(): ClientConfig = ClientConfig(
             CLIENT_NAME,
-            ::SenseCodeClient,
+            ::SenseCoreClient,
             PENROSE_MODEL_S, PENROSE_MODEL_L, PENROSE_MODEL_S, PENROSE_MODEL_S,
             API_ENDPOINT,
             mapOf(
