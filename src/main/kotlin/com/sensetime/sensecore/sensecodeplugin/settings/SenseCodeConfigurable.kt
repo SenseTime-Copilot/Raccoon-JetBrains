@@ -14,14 +14,14 @@ import javax.swing.JComponent
 
 class SenseCodeConfigurable : Configurable {
     private class SettingsComponent : Disposable {
+        private val userLoginPanel: DialogPanel = UserLoginPanel(
+            this@SettingsComponent,
+            CodeClientManager.getClientAndConfigPair().first.getAkSkSettings()
+        ).userLoginPanel
+
         val settingsPanel: DialogPanel = panel {
             row {
-                cell(
-                    UserLoginPanel(
-                        this@SettingsComponent,
-                        CodeClientManager.getClientAndConfigPair().first.getAkSkSettings()
-                    ).userLoginPanel
-                )
+                cell(userLoginPanel)
             }
 
             group(SenseCodeBundle.message("settings.group.InlineCompletion.title")) {
@@ -58,6 +58,17 @@ class SenseCodeConfigurable : Configurable {
             }
         }
 
+        fun isModified(): Boolean = settingsPanel.isModified() || userLoginPanel.isModified()
+        fun apply() {
+            settingsPanel.apply()
+            userLoginPanel.apply()
+        }
+
+        fun reset() {
+            settingsPanel.reset()
+            userLoginPanel.reset()
+        }
+
         override fun dispose() {}
     }
 
@@ -75,15 +86,15 @@ class SenseCodeConfigurable : Configurable {
     }
 
     override fun getDisplayName(): String = SenseCodePlugin.NAME
-    override fun isModified(): Boolean = (true == settingsComponent?.settingsPanel?.isModified())
+    override fun isModified(): Boolean = (true == settingsComponent?.isModified())
 
     override fun apply() {
-        settingsComponent?.settingsPanel?.apply()
+        settingsComponent?.apply()
     }
 
     override fun reset() {
         super.reset()
-        settingsComponent?.settingsPanel?.reset()
+        settingsComponent?.reset()
     }
 
     override fun disposeUIResources() {
