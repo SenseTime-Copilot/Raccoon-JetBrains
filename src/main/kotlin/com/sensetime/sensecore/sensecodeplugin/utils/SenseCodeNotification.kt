@@ -5,7 +5,9 @@ import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationGroup
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
+import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.options.ShowSettingsUtil
+import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.sensetime.sensecore.sensecodeplugin.resources.SenseCodeBundle
 import com.sensetime.sensecore.sensecodeplugin.settings.SenseCodeConfigurable
 
@@ -30,5 +32,35 @@ object SenseCodeNotification {
                 NotificationType.WARNING
             ), SenseCodeBundle.message("notification.settings.goto.login")
         )
+    }
+
+    @JvmStatic
+    fun popupMessageInBestPositionForEditor(message: String, editor: Editor?) {
+        editor?.let {
+            JBPopupFactory.getInstance().createMessage(message).showInBestPositionFor(it)
+        }
+    }
+
+    @JvmStatic
+    fun popupNoCompletionSuggestionMessage(editor: Editor?) {
+        popupMessageInBestPositionForEditor(
+            SenseCodeBundle.message("completions.inline.warning.noCompletionSuggestion"),
+            editor
+        )
+    }
+
+    @JvmStatic
+    fun checkEditorSelectedText(maxInputTokens: Int, editor: Editor?): String? = editor?.let {
+        it.selectionModel.selectedText?.takeIf { text -> text.isNotBlank() }?.let { text ->
+            if (text.length / 4 > maxInputTokens) {
+                popupMessageInBestPositionForEditor(
+                    SenseCodeBundle.message("notification.editor.selectedText.tooLong"),
+                    editor
+                )
+                null
+            } else {
+                text
+            }
+        }
     }
 }

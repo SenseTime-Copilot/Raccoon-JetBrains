@@ -1,13 +1,17 @@
 package com.sensetime.sensecore.sensecodeplugin.toolwindows
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
+import com.intellij.util.messages.SimpleMessageBusConnection
 import com.sensetime.sensecore.sensecodeplugin.clients.CodeClientManager
 import com.sensetime.sensecore.sensecodeplugin.clients.requests.CodeRequest
 import com.sensetime.sensecore.sensecodeplugin.clients.responses.CodeStreamResponse
+import com.sensetime.sensecore.sensecodeplugin.messages.SENSE_CODE_TASKS_TOPIC
+import com.sensetime.sensecore.sensecodeplugin.messages.SenseCodeTasksListener
 import com.sensetime.sensecore.sensecodeplugin.resources.SenseCodeBundle
 import com.sensetime.sensecore.sensecodeplugin.settings.SenseCodeSettingsState
 import kotlinx.coroutines.Job
@@ -17,6 +21,13 @@ import java.awt.event.ActionEvent
 
 class SenseCodeToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
     var toolWindowJob: Job? = null
+
+    private var taskMessageBusConnection: SimpleMessageBusConnection? = null
+        set(value) {
+            field?.disconnect()
+            field = value
+        }
+
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
         val helpContent = toolWindow.contentManager.factory.createContent(
             HelpContentPanel(),
@@ -109,10 +120,25 @@ class SenseCodeToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
             )
         )
         toolWindow.contentManager.addContent(helpContent)
+
+        taskMessageBusConnection = ApplicationManager.getApplication().messageBus.connect().also {
+            it.subscribe(SENSE_CODE_TASKS_TOPIC, object : SenseCodeTasksListener {
+                override fun onNewTask(displayText: String, prompt: String?) {
+                    ApplicationManager.getApplication().invokeLater {
+                        toolWindow.contentManager.run {
+                            setSelectedContent(getContent(chatContentPanel))
+                        }
+                        toolWindow.show()
+                        chatContentPanel.newTask(displayText, prompt)
+                    }
+                }
+            })
+        }
     }
 
     override fun dispose() {
         toolWindowJob?.cancel()
         toolWindowJob = null
+        taskMessageBusConnection = null
     }
 }

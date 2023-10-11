@@ -5,6 +5,7 @@ import com.intellij.openapi.util.IconLoader
 object SenseCodeIcons {
     private const val ICONS_ROOT_DIR = "/icons"
     private const val USERS_DIR = "$ICONS_ROOT_DIR/users"
+    private const val STATUS_BAR_DIR = "$ICONS_ROOT_DIR/statusBar"
     private const val TOOLWINDOW_DIR = "$ICONS_ROOT_DIR/toolWindow"
 
     @JvmField
@@ -12,6 +13,15 @@ object SenseCodeIcons {
 
     @JvmField
     val NOT_LOGGED_USER = IconLoader.getIcon("$USERS_DIR/notLoggedUser", SenseCodeIcons::class.java)
+
+    @JvmField
+    val STATUS_BAR_DEFAULT = IconLoader.getIcon("$STATUS_BAR_DIR/default", SenseCodeIcons::class.java)
+
+    @JvmField
+    val STATUS_BAR_SUCCESS = IconLoader.getIcon("$STATUS_BAR_DIR/success", SenseCodeIcons::class.java)
+
+    @JvmField
+    val STATUS_BAR_ERROR = IconLoader.getIcon("$STATUS_BAR_DIR/error", SenseCodeIcons::class.java)
 
     @JvmField
     val TOOLWINDOW_USER = IconLoader.getIcon("$TOOLWINDOW_DIR/user", SenseCodeIcons::class.java)

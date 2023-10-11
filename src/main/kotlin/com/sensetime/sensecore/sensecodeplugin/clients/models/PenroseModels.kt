@@ -24,41 +24,59 @@ object PenroseModels {
     )
 
     @JvmStatic
-    private fun getModelSCodeTaskPrompt(taskType: String, custom: String = ""): String =
-        "\n### Instruction:\nTask type: ${taskType}. ${SenseCodeBundle.message("completions.task.prompt.penrose.explanation")}.${custom}\n\n### Input:\n%s\n"
+    private fun makeModelSCodeTaskPrompt(
+        taskType: String,
+        systemPrompt: String? = null,
+        custom: String = ""
+    ): ModelConfig.PromptTemplate = ModelConfig.PromptTemplate(
+        "### $taskType\n${custom}\n\n### Code:\n%s\n",
+        "\n### Instruction:\nTask type: ${taskType}. ${SenseCodeBundle.message("completions.task.prompt.penrose.explanation")}.${custom}\n\n### Input:\n%s\n",
+        systemPrompt
+    )
 
     @JvmStatic
     fun makeModelSConfig(
         name: String,
-        systemPromptTemplate: String? = null,
+        systemPrompt: String? = null,
         stop: String = "<|end|>",
         maxInputTokens: Int = 4096,
         tokenLimit: Int = 8192,
         codeTaskActions: Map<String, ModelConfig.PromptTemplate> = mapOf(
-            CodeTaskActionBase.getActionKey(GenerationAction::class) to ModelConfig.PromptTemplate(
-                getModelSCodeTaskPrompt("code generation"), systemPromptTemplate
+            CodeTaskActionBase.getActionKey(GenerationAction::class) to makeModelSCodeTaskPrompt(
+                "code generation",
+                systemPrompt
             ),
-            CodeTaskActionBase.getActionKey(AddTestAction::class) to ModelConfig.PromptTemplate(
-                getModelSCodeTaskPrompt("test sample generation"), systemPromptTemplate
+            CodeTaskActionBase.getActionKey(AddTestAction::class) to makeModelSCodeTaskPrompt(
+                "test sample generation",
+                systemPrompt
             ),
-            CodeTaskActionBase.getActionKey(CodeConversionAction::class) to ModelConfig.PromptTemplate(
-                getModelSCodeTaskPrompt(
-                    "code language conversion",
-                    SenseCodeBundle.message("completions.task.prompt.penrose.language.convert")
-                ), systemPromptTemplate
+            CodeTaskActionBase.getActionKey(CodeConversionAction::class) to makeModelSCodeTaskPrompt(
+                "code language conversion",
+                systemPrompt,
+                SenseCodeBundle.message("completions.task.prompt.penrose.language.convert")
             ),
-            CodeTaskActionBase.getActionKey(CodeCorrectionAction::class) to ModelConfig.PromptTemplate(
-                getModelSCodeTaskPrompt("code error correction"), systemPromptTemplate
+            CodeTaskActionBase.getActionKey(CodeCorrectionAction::class) to makeModelSCodeTaskPrompt(
+                "code error correction",
+                systemPrompt
             ),
-            CodeTaskActionBase.getActionKey(RefactoringAction::class) to ModelConfig.PromptTemplate(
-                getModelSCodeTaskPrompt("code refactoring and optimization"), systemPromptTemplate
+            CodeTaskActionBase.getActionKey(RefactoringAction::class) to makeModelSCodeTaskPrompt(
+                "code refactoring and optimization",
+                systemPrompt
             )
         ),
-        freeChatPromptTemplate: ModelConfig.PromptTemplate = ModelConfig.PromptTemplate("%s%s", systemPromptTemplate),
+        freeChatPromptTemplate: ModelConfig.PromptTemplate = ModelConfig.PromptTemplate("%s", null, systemPrompt),
         customPromptTemplate: Map<String, ModelConfig.PromptTemplate> = mapOf(),
         inlineCompletionPromptTemplate: Map<String, ModelConfig.PromptTemplate> = mapOf(
-            "middle" to ModelConfig.PromptTemplate("<fim_prefix>Please do not provide any explanations at the end. Please complete the following code.\n\n{prefix}<fim_suffix>{suffix}<fim_middle>"),
-            "end" to ModelConfig.PromptTemplate("<fim_prefix>Please do not provide any explanations at the end. Please complete the following code.\n\n{prefix}<fim_middle><fim_suffix>")
+            "middle" to ModelConfig.PromptTemplate(
+                "<fim_prefix>Please do not provide any explanations at the end. Please complete the following code.\n\n%s<fim_suffix>%s<fim_middle>",
+                null,
+                systemPrompt
+            ),
+            "end" to ModelConfig.PromptTemplate(
+                "<fim_prefix>Please do not provide any explanations at the end. Please complete the following code.\n\n%s<fim_middle><fim_suffix>",
+                null,
+                systemPrompt
+            )
         ),
         maxNewTokens: Int? = null
     ): ModelConfig = makeModelConfig(
@@ -73,12 +91,12 @@ object PenroseModels {
     @JvmStatic
     fun makeModelLConfig(
         name: String,
-        systemPromptTemplate: String? = null,
+        systemPrompt: String? = null,
         stop: String = "<|endofmessage|>",
         maxInputTokens: Int = 4096,
         tokenLimit: Int = 8192,
         codeTaskActions: Map<String, ModelConfig.PromptTemplate> = mapOf(),
-        freeChatPromptTemplate: ModelConfig.PromptTemplate = ModelConfig.PromptTemplate("%s%s", systemPromptTemplate),
+        freeChatPromptTemplate: ModelConfig.PromptTemplate = ModelConfig.PromptTemplate("%s", null, systemPrompt),
         customPromptTemplate: Map<String, ModelConfig.PromptTemplate> = mapOf(),
         inlineCompletionPromptTemplate: Map<String, ModelConfig.PromptTemplate> = mapOf(),
         maxNewTokens: Int? = null

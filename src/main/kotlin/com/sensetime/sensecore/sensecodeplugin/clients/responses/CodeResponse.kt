@@ -29,6 +29,9 @@ interface Usage {
         val total = getTotal()
         return (null != total) && total > 0
     }
+
+    fun getShowString(): String? =
+        if (hasUsage()) "Usage: prompt($prompt) + completion($completion) = ${getTotal()}" else null
 }
 
 @Serializable

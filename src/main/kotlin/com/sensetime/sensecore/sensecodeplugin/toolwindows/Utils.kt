@@ -78,16 +78,19 @@ object Utils {
         isEditable = false
         contentType = "text/html"
         text = convertMarkdownToHtml(displayText)
-        border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
 
         // color and align
         val attrs = SimpleAttributeSet()
-        if (isUser) {
-            StyleConstants.setAlignment(attrs, StyleConstants.ALIGN_RIGHT)
+        border = if (isUser) {
+            if (!displayText.contains('\n')) {
+                StyleConstants.setAlignment(attrs, StyleConstants.ALIGN_RIGHT)
+            }
             StyleConstants.setForeground(attrs, JBColor(Color(77, 111, 151), Color(115, 170, 212)))
+            BorderFactory.createEmptyBorder(10, 10, 10, 10)
         } else {
             StyleConstants.setAlignment(attrs, StyleConstants.ALIGN_LEFT)
             createAssistantForegroundAttributeSet(generateState, attrs)
+            BorderFactory.createEmptyBorder(10, 10, 10, 10)
         }
         styledDocument.setParagraphAttributes(0, styledDocument.length, attrs, false)
 

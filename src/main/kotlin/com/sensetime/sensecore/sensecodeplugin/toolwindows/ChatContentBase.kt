@@ -1,7 +1,10 @@
 package com.sensetime.sensecore.sensecodeplugin.toolwindows
 
+import com.intellij.ide.DataManager
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.observable.util.addListDataListener
 import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBScrollPane
@@ -101,10 +104,21 @@ abstract class ChatContentBase : JPanel(), Disposable, ListDataListener, ChatLas
     }
 
     private fun onSubmitButtonClick(e: ActionEvent?) {
-        makeUserMessage(userPromptTextArea.text)?.let {
-            conversationListModel.add(SenseCodeChatHistoryState.Conversation(it))
-            userPromptTextArea.text = ""
-            startGenerate(e)
+        CodeClientManager.getClientAndConfigPair().second.run { models[freeChatModelName] }?.let { modelConfig ->
+            makeUserMessage(
+                modelConfig.freeChatPromptTemplate.displayText.format(
+                    userPromptTextArea.text ?: ""
+                ) + (CommonDataKeys.PROJECT.getData(DataManager.getInstance().getDataContext(this))?.let { project ->
+                    SenseCodeNotification.checkEditorSelectedText(
+                        modelConfig.maxInputTokens,
+                        FileEditorManager.getInstance(project).selectedTextEditor
+                    )?.let { "\n$it\n" }
+                } ?: "")
+            )?.let {
+                conversationListModel.add(SenseCodeChatHistoryState.Conversation(it))
+                userPromptTextArea.text = ""
+                startGenerate(e)
+            }
         }
     }
 

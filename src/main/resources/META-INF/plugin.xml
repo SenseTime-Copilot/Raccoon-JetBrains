@@ -5,132 +5,120 @@
     <vendor>SenseTime</vendor>
 
     <depends>com.intellij.modules.platform</depends>
+    <resource-bundle>i18n.messages</resource-bundle>
+
+    <applicationListeners>
+        <listener class="com.sensetime.sensecore.sensecodeplugin.clients.CodeClientManager$CredentialsListener"
+                  topic="com.sensetime.sensecore.sensecodeplugin.messages.SenseCodeCredentialsListener"/>
+    </applicationListeners>
 
     <extensions defaultExtensionNs="com.intellij">
-        <applicationService
-                serviceImplementation="com.sensetime.sensecore.sensecodeplugin.services.MyApplicationService"/>
-        <projectService serviceImplementation="com.sensetime.sensecore.sensecodeplugin.services.MyProjectService"/>
+        <!--        UI-->
+        <notificationGroup displayType="BALLOON" id="com.sensetime.sensecore.sensecodeplugin.balloon"/>
 
-        <toolWindow id="SenseCode"
-                    factoryClass="com.sensetime.sensecore.sensecodeplugin.ui.GptMentorToolWindowFactory"
-                    icon="com.sensetime.sensecore.sensecodeplugin.ui.Icons.ToolWindow"
-                    anchor="right">
-
+        <toolWindow id="SenseCode" anchor="right"
+                    factoryClass="com.sensetime.sensecore.sensecodeplugin.toolwindows.SenseCodeToolWindowFactory"
+                    icon="com.sensetime.sensecore.sensecodeplugin.resources.SenseCodeIcons.TOOLWINDOW_SENSECODE">
         </toolWindow>
 
-        <iconMapper mappingFile="GPT MentorIconMappings.json "/>
+        <statusBarWidgetFactory id="SenseCode" order="last"
+                                implementation="com.sensetime.sensecore.sensecodeplugin.statusbar.SenseCodeStatusBarWidgetFactory"/>
+
+        <applicationConfigurable
+                instance="com.sensetime.sensecore.sensecodeplugin.settings.SenseCodeConfigurable"
+                id="com.sensetime.sensecore.sensecodeplugin.settings.SenseCodeConfigurable"
+                displayName="SenseCode"/>
+
+
+        <!--        Persistent Data-->
+        <applicationService
+                serviceImplementation="com.sensetime.sensecore.sensecodeplugin.settings.SenseCodeSettingsState"/>
+        <applicationService
+                serviceImplementation="com.sensetime.sensecore.sensecodeplugin.toolwindows.SenseCodeChatHistoryState"/>
+
+
+        <!--        Local Http Server-->
+        <httpRequestHandler
+                implementation="com.sensetime.sensecore.sensecodeplugin.services.http.authentication.SenseNovaAuthService"/>
+
+
+        <!--        Inline Completion-->
+        <actionPromoter implementation="com.sensetime.sensecore.sensecodeplugin.actions.inline.InlineActionsPromoter"/>
+        <editorActionHandler action="EditorEscape" order="before hide-hints"
+                             id="com.sensetime.sensecore.sensecodeplugin.actions.inline.EscapeEditorActionHandler"
+                             implementationClass="com.sensetime.sensecore.sensecodeplugin.actions.inline.EscapeEditorActionHandler"/>
     </extensions>
 
     <actions>
-        <group id="org.intellij.sdk.action.GroupedActions" text="SenseCode"
-               popup="true">
+        <!--        Code Task-->
+        <group id="com.sensetime.sensecore.sensecodeplugin.actions.CodeTaskGroup" text="SenseCode" popup="true">
             <!--            Add actions to the tools menu-->
             <add-to-group
                     group-id="ToolsMenu"
                     anchor="last">
             </add-to-group>
-
             <!--            Right-click in the editor-->
             <add-to-group
                     group-id="EditorPopupMenu"
                     anchor="last">
             </add-to-group>
 
-            <action id="generateCode" class="com.sensetime.sensecore.sensecodeplugin.actions.editor.GenerateCodeAction"
-                    text="Generation">
+            <action id="com.sensetime.sensecore.sensecodeplugin.actions.task.GenerationAction"
+                    class="com.sensetime.sensecore.sensecodeplugin.actions.task.GenerationAction">
                 <keyboard-shortcut first-keystroke="control alt shift G" keymap="$default" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift G" keymap="Mac OS X" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift G" keymap="Mac OS X 10.5+" replace-all="true"/>
             </action>
-
-            <action id="generateTest" class="com.sensetime.sensecore.sensecodeplugin.actions.editor.GenerateTestAction"
-                    text="Add Test">
+            <action id="com.sensetime.sensecore.sensecodeplugin.actions.task.AddTestAction"
+                    class="com.sensetime.sensecore.sensecodeplugin.actions.task.AddTestAction">
                 <keyboard-shortcut first-keystroke="control alt shift U" keymap="$default" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift U" keymap="Mac OS X" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift U" keymap="Mac OS X 10.5+" replace-all="true"/>
             </action>
-            <action id="correctCode" class="com.sensetime.sensecore.sensecodeplugin.actions.editor.CorrectCodeAction"
-                    text="Code Correction">
+            <action id="com.sensetime.sensecore.sensecodeplugin.actions.task.CodeConversionAction"
+                    class="com.sensetime.sensecore.sensecodeplugin.actions.task.CodeConversionAction">
+                <keyboard-shortcut first-keystroke="control alt shift X" keymap="$default" replace-all="true"/>
+                <keyboard-shortcut first-keystroke="control alt shift X" keymap="Mac OS X" replace-all="true"/>
+                <keyboard-shortcut first-keystroke="control alt shift X" keymap="Mac OS X 10.5+" replace-all="true"/>
+            </action>
+            <action id="com.sensetime.sensecore.sensecodeplugin.actions.task.CodeCorrectionAction"
+                    class="com.sensetime.sensecore.sensecodeplugin.actions.task.CodeCorrectionAction">
                 <keyboard-shortcut first-keystroke="control alt shift F" keymap="$default" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift F" keymap="Mac OS X" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift F" keymap="Mac OS X 10.5+" replace-all="true"/>
             </action>
-            <action id="refactorCode" class="com.sensetime.sensecore.sensecodeplugin.actions.editor.RefactorCodeAction"
-                    text="Refactoring">
+            <action id="com.sensetime.sensecore.sensecodeplugin.actions.task.RefactoringAction"
+                    class="com.sensetime.sensecore.sensecodeplugin.actions.task.RefactoringAction">
                 <keyboard-shortcut first-keystroke="control alt shift R" keymap="$default"/>
                 <keyboard-shortcut first-keystroke="control alt shift R" keymap="Mac OS X" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift R" keymap="Mac OS X 10.5+" replace-all="true"/>
             </action>
-            <!--            <action id="promptFromSelection"-->
-            <!--                    class="com.sensetime.sensecore.sensecodeplugin.actions.editor.PromptFromSelectionAction"-->
-            <!--                    text="Prompt From Selection">-->
-            <!--                <keyboard-shortcut first-keystroke="control alt shift P" keymap="$default"/>-->
-            <!--                <keyboard-shortcut first-keystroke="control alt shift P" keymap="Mac OS X" replace-all="true"/>-->
-            <!--                <keyboard-shortcut first-keystroke="control alt shift P" keymap="Mac OS X 10.5+" replace-all="true"/>-->
-            <!--            </action>-->
-            <!--            <action id="appendSelectionToPrompt"-->
-            <!--                    class="com.sensetime.sensecore.sensecodeplugin.actions.editor.AppendPromptFromSelectionAction"-->
-            <!--                    text="Append Selected Text">-->
-            <!--                <keyboard-shortcut first-keystroke="control alt shift S" keymap="$default"/>-->
-            <!--                <keyboard-shortcut first-keystroke="control alt shift S" keymap="Mac OS X" replace-all="true"/>-->
-            <!--                <keyboard-shortcut first-keystroke="control alt shift S" keymap="Mac OS X 10.5+" replace-all="true"/>-->
-            <!--            </action>-->
         </group>
 
-        <!--        <group id="gptMentorFileActions" text="SenseCode"-->
-        <!--               popup="true">-->
-        <!--            &lt;!&ndash;            Right-click on a file in the file tree &ndash;&gt;-->
-        <!--            <add-to-group-->
-        <!--                    group-id="CutCopyPasteGroup"-->
-        <!--                    anchor="last">-->
-        <!--            </add-to-group>-->
 
-        <!--            <action id="promptFromFile"-->
-        <!--                    class="com.sensetime.sensecore.sensecodeplugin.actions.file.NewPromptFromFileAction"-->
-        <!--                    text="New Prompt From File(s)"/>-->
-
-        <!--            <action id="appendPromptFromFile"-->
-        <!--                    class="com.sensetime.sensecore.sensecodeplugin.actions.file.AppendPromptFromFileAction"-->
-        <!--                    text="Append Prompt With File(s)"/>-->
-        <!--        </group>-->
-
-        <!--        <action id="addGitCommitsToPrompt"-->
-        <!--                class="com.sensetime.sensecore.sensecodeplugin.actions.git.AddGitCommitsToPromptAction"-->
-        <!--                text="Add Commits To Prompt">-->
-        <!--            <add-to-group group-id="Vcs.Log.ContextMenu"/>-->
-        <!--        </action>-->
-
-        <action id="manualTriggerInlineCompletionAction"
-                class="com.sensetime.sensecore.sensecodeplugin.actions.inline.ManualTriggerInlineCompletionAction"
-                text="Trigger Inline Completion">
+        <!--        Inline Completion-->
+        <action id="com.sensetime.sensecore.sensecodeplugin.actions.inline.ManualTriggerInlineCompletionAction"
+                class="com.sensetime.sensecore.sensecodeplugin.actions.inline.ManualTriggerInlineCompletionAction">
             <keyboard-shortcut first-keystroke="control alt SLASH" keymap="$default"/>
             <keyboard-shortcut first-keystroke="control alt SLASH" keymap="Mac OS X" replace-all="true"/>
             <keyboard-shortcut first-keystroke="control alt SLASH" keymap="Mac OS X 10.5+" replace-all="true"/>
         </action>
-        <action class="com.sensetime.sensecore.sensecodeplugin.actions.inline.AcceptInlineCompletionAction"
-                id="acceptInlineCompletionAction" text="Accept Inline Completion">
+        <action id="com.sensetime.sensecore.sensecodeplugin.actions.inline.ShowPreviousInlineCompletionAction"
+                class="com.sensetime.sensecore.sensecodeplugin.actions.inline.ShowPreviousInlineCompletionAction">
+            <keyboard-shortcut first-keystroke="alt OPEN_BRACKET" keymap="$default"/>
+        </action>
+        <action id="com.sensetime.sensecore.sensecodeplugin.actions.inline.ShowNextInlineCompletionAction"
+                class="com.sensetime.sensecore.sensecodeplugin.actions.inline.ShowNextInlineCompletionAction">
+            <keyboard-shortcut first-keystroke="alt CLOSE_BRACKET" keymap="$default"/>
+        </action>
+        <action id="com.sensetime.sensecore.sensecodeplugin.actions.inline.AcceptInlineCompletionAction"
+                class="com.sensetime.sensecore.sensecodeplugin.actions.inline.AcceptInlineCompletionAction"
+                text="Accept Inline Completion">
             <keyboard-shortcut first-keystroke="TAB" keymap="$default"/>
         </action>
     </actions>
-
-    <extensions defaultExtensionNs="com.intellij">
-        <applicationConfigurable
-                instance="com.sensetime.sensecore.sensecodeplugin.configuration.GptMentorConfigurable"
-                id="dev.jamiecraane.fasttravel.configuration.FastTravelConfigurable"
-                displayName="SenseCode"/>
-
-        <applicationService
-                serviceImplementation="com.sensetime.sensecore.sensecodeplugin.configuration.GptMentorSettingsState"/>
-
-        <applicationService
-                serviceImplementation="com.sensetime.sensecore.sensecodeplugin.ui.history.state.HistoryState"/>
-
-        <actionPromoter implementation="com.sensetime.sensecore.sensecodeplugin.actions.inline.InlineActionsPromoter"/>
-        <editorActionHandler action="EditorEscape"
-                             implementationClass="com.sensetime.sensecore.sensecodeplugin.actions.inline.EscapeEditorActionHandler"
-                             id="escapeEditorActionHandler" order="before hide-hints"/>
-        <editorFactoryDocumentListener
-                implementation="com.sensetime.sensecore.sensecodeplugin.completions.CompletionDocumentListener"/>
-    </extensions>
-
+    <!--    <extensions defaultExtensionNs="com.intellij">-->
+    <!--        <editorFactoryDocumentListener-->
+    <!--                implementation="com.sensetime.sensecore.sensecodeplugin.completions.CompletionDocumentListener"/>-->
+    <!--    </extensions>-->
 </idea-plugin>

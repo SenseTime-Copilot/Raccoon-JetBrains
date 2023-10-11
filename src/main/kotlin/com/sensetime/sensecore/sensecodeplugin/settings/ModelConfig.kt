@@ -19,7 +19,9 @@ data class ModelConfig(
         BEST_EFFORT("settings.CompletionPreference.BestEffort")
     }
 
-    data class PromptTemplate(val prompt: String = "", val system: String = "")
+    data class PromptTemplate(val displayText: String, val prompt: String? = null, val system: String? = null) {
+        fun getPromptTemplate(): String = prompt ?: displayText
+    }
 
     fun getMaxNewTokens(completionPreference: CompletionPreference): Int =
         maxNewTokens ?: completionPreferenceMap.getValue(completionPreference)

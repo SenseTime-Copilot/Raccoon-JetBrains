@@ -15,4 +15,8 @@ object SenseCodePlugin {
         get() = plugin.version
 
     const val NAME: String = "SenseCode"
+    const val TOOLWINDOW_ID: String = NAME
+    const val STATUS_BAR_ID: String = NAME
+
+    const val CODE_TASK_ACTIONS_GROUP = "com.sensetime.sensecore.sensecodeplugin.actions.CodeTaskGroup"
 }

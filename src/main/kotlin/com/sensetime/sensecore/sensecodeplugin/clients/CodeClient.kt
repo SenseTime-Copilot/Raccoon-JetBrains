@@ -1,13 +1,16 @@
 package com.sensetime.sensecore.sensecodeplugin.clients
 
+import com.intellij.openapi.application.ApplicationManager
 import com.sensetime.sensecore.sensecodeplugin.clients.requests.CodeRequest
 import com.sensetime.sensecore.sensecodeplugin.clients.responses.*
+import com.sensetime.sensecore.sensecodeplugin.messages.SENSE_CODE_CLIENTS_TOPIC
 import com.sensetime.sensecore.sensecodeplugin.utils.SenseCodeNotification
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.suspendCancellableCoroutine
 import okhttp3.*
 import okhttp3.sse.EventSource
@@ -18,6 +21,7 @@ import java.lang.Exception
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -73,23 +77,38 @@ abstract class CodeClient {
         Exception("Code client${if (clientName.isNullOrBlank()) "" else "($clientName)"} unauthorized${if (details.isNullOrBlank()) "!" else ": $details"}")
 
     suspend fun request(request: CodeRequest): CodeResponse = try {
+        ApplicationManager.getApplication().messageBus.syncPublisher(SENSE_CODE_CLIENTS_TOPIC).onStart()
         client.newCall(toOkHttpRequest(request, false)).await()
             .let { response ->
-                response.takeIf { it.isSuccessful }?.body?.let { toCodeResponse(it.string(), false) }
-                    ?: throw IOException(toErrorMessage(false, response).apply {
-                        response.code.takeIf { 401 == it }?.let {
-                            SenseCodeNotification.notifyLoginWithSettingsAction()
-                        }
-                    })
+                response.takeIf { it.isSuccessful }?.body?.let {
+                    toCodeResponse(it.string(), false).apply {
+                        ApplicationManager.getApplication().messageBus.syncPublisher(SENSE_CODE_CLIENTS_TOPIC)
+                            .onDone(usage)
+                    }
+                } ?: throw IOException(toErrorMessage(false, response).apply {
+                    response.code.takeIf { 401 == it }?.let {
+                        SenseCodeNotification.notifyLoginWithSettingsAction()
+                    }
+                })
             }
-    } catch (e: UnauthorizedException) {
-        SenseCodeNotification.notifyLoginWithSettingsAction()
+    } catch (e: Throwable) {
+        if (e is UnauthorizedException) {
+            SenseCodeNotification.notifyLoginWithSettingsAction()
+        }
+        if (e !is CancellationException) {
+            ApplicationManager.getApplication().messageBus.syncPublisher(SENSE_CODE_CLIENTS_TOPIC)
+                .onError(e.localizedMessage)
+        }
         throw e
+    } finally {
+        ApplicationManager.getApplication().messageBus.syncPublisher(SENSE_CODE_CLIENTS_TOPIC).onFinally()
     }
 
     fun requestStream(request: CodeRequest): Flow<CodeStreamResponse> = callbackFlow {
+        ApplicationManager.getApplication().messageBus.syncPublisher(SENSE_CODE_CLIENTS_TOPIC).onStart()
         val eventSource = factory.newEventSource(toOkHttpRequest(request, true), object : EventSourceListener() {
             private var openResponse: Response? = null
+            private var usage: Usage? = null
 
             override fun onOpen(eventSource: EventSource, response: Response) {
                 super.onOpen(eventSource, response)
@@ -104,8 +123,13 @@ abstract class CodeClient {
                 openResponse = null
                 if (isStreamResponseDone(data)) {
                     trySendBlocking(CodeStreamResponse.Done)
+                    ApplicationManager.getApplication().messageBus.syncPublisher(SENSE_CODE_CLIENTS_TOPIC)
+                        .onDone(usage)
                 } else {
                     toCodeResponse(data, true).toStreamResponse().forEach {
+                        if (it is CodeStreamResponse.TokenUsage) {
+                            usage = it.usage
+                        }
                         trySendBlocking(it)
                     }
                 }
@@ -126,23 +150,31 @@ abstract class CodeClient {
                 super.onFailure(eventSource, t, response)
 
                 openResponse = null
-                trySendBlocking(CodeStreamResponse.Error(toErrorMessage(true, response, t)))
+                val errorMessage = toErrorMessage(true, response, t)
+                trySendBlocking(CodeStreamResponse.Error(errorMessage))
                 response?.code?.takeIf { 401 == it }?.let {
                     SenseCodeNotification.notifyLoginWithSettingsAction()
                 }
+                ApplicationManager.getApplication().messageBus.syncPublisher(SENSE_CODE_CLIENTS_TOPIC)
+                    .onError(errorMessage)
             }
         })
 
         awaitClose {
             eventSource.cancel()
         }
+    }.onCompletion {
+        ApplicationManager.getApplication().messageBus.syncPublisher(SENSE_CODE_CLIENTS_TOPIC).onFinally()
     }.catch { e ->
         if (e is UnauthorizedException) {
             SenseCodeNotification.notifyLoginWithSettingsAction()
         }
+        if (e !is CancellationException) {
+            ApplicationManager.getApplication().messageBus.syncPublisher(SENSE_CODE_CLIENTS_TOPIC)
+                .onError(e.localizedMessage)
+        }
         throw e
     }
-
 
     protected val client = OkHttpClient.Builder().connectTimeout(5, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS).build()

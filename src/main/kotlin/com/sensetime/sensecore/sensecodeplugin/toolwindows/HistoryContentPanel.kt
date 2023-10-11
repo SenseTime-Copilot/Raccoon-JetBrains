@@ -23,6 +23,7 @@ class HistoryContentPanel(
 
     fun saveHistory(history: SenseCodeChatHistoryState.History) {
         historyListModel.add(history)
+        historyList.repaint()
     }
 
     private val historyListModel: HistoryListModel =
@@ -54,7 +55,13 @@ class HistoryContentPanel(
 
     init {
         layout = BorderLayout()
-        add(JBScrollPane(historyList), BorderLayout.CENTER)
+        add(
+            JBScrollPane(
+                historyList,
+                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
+            ), BorderLayout.CENTER
+        )
         historyListModel.addListDataListener(this, this)
     }
 
@@ -68,6 +75,7 @@ class HistoryContentPanel(
                 historyList.selectedIndex.takeIf { it in 0..historyListModel.items.lastIndex }?.let {
                     val history = historyListModel.items[it]
                     historyListModel.remove(it)
+                    historyList.repaint()
                     callback(history)
                 }
             }
