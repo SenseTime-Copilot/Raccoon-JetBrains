@@ -1,9 +1,0 @@
-{
-  "images": {
-    "expui": {
-      "toolwindow": {
-        "gptMentor.svg": "icons/toolWindow.svg"
-      }
-    }
-  }
-}
