@@ -14,7 +14,7 @@ data class AMSChoice(
     override val finishReason: String? = null
 ) : Choice {
     override val token: String?
-        get() = message?.content
+        get() = message?.content?.takeUnless { it.contains("<|text|>") or it.contains("<|endofblock|>") }
 }
 
 @Serializable
