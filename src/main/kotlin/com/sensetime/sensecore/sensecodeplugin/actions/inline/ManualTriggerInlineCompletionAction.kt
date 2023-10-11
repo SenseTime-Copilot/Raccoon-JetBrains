@@ -2,39 +2,162 @@ package com.sensetime.sensecore.sensecodeplugin.actions.inline
 
 import com.intellij.codeInsight.CodeInsightActionHandler
 import com.intellij.codeInsight.actions.BaseCodeInsightAction
+import com.intellij.ide.DataManager
+import com.intellij.openapi.Disposable
+import com.intellij.openapi.actionSystem.ActionGroup
+import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.refactoring.suggested.endOffset
+import com.sensetime.sensecore.sensecodeplugin.clients.CodeClientManager
+import com.sensetime.sensecore.sensecodeplugin.clients.SenseNovaClient
+import com.sensetime.sensecore.sensecodeplugin.clients.requests.CodeRequest
+import com.sensetime.sensecore.sensecodeplugin.clients.responses.CodeStreamResponse
 import com.sensetime.sensecore.sensecodeplugin.completions.CompletionPreview
-import com.sensetime.sensecore.sensecodeplugin.configuration.GptMentorSettingsState
-import com.sensetime.sensecore.sensecodeplugin.openapi.OpenApi
-import com.sensetime.sensecore.sensecodeplugin.openapi.RealOpenApi
-import com.sensetime.sensecore.sensecodeplugin.openapi.StreamingResponse
-import com.sensetime.sensecore.sensecodeplugin.openapi.request.ChatGptRequest
-import com.sensetime.sensecore.sensecodeplugin.openapi.request.chatGptRequest
-import com.sensetime.sensecore.sensecodeplugin.security.GptMentorCredentialsManager
-import io.ktor.client.*
+import com.sensetime.sensecore.sensecodeplugin.settings.SenseCodeSettingsState
+import com.sensetime.sensecore.sensecodeplugin.utils.SenseCodePlugin
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.collect
-import okhttp3.OkHttpClient
-import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.onCompletion
 
-class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), InlineCompletionAction {
-    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private var apiJob: Job? = null
-    private val openApi: OpenApi = RealOpenApi(
-        client = HttpClient(),
-        okHttpClient = OkHttpClient.Builder().connectTimeout(5, TimeUnit.SECONDS)
-            .connectTimeout(10, TimeUnit.SECONDS)
-            .readTimeout(10, TimeUnit.SECONDS)
-            .writeTimeout(10, TimeUnit.SECONDS)
-            .build(),
-        credentialsManager = GptMentorCredentialsManager,
-    )
+class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Disposable, InlineCompletionAction {
+    private var inlineCompletionJob: Job? = null
+        set(value) {
+            field?.cancel()
+            field = value
+        }
+
+    override fun dispose() {
+        inlineCompletionJob = null
+    }
+
+    private fun getMessages(caretOffset: Int, psiElement: PsiElement, maxLength: Int): List<CodeRequest.Message> {
+        val result: List<CodeRequest.Message> = listOfNotNull(
+            if (SenseNovaClient.CLIENT_NAME != CodeClientManager.getClientAndConfigPair().second.name) CodeRequest.Message(
+                "system",
+                ""
+            ) else null
+        )
+        return result + CodeRequest.Message(
+            "user",
+            getUserContent(psiElement, caretOffset - psiElement.textOffset, maxLength)
+        )
+    }
+
+    private fun inlineCompletion(editor: Editor, psiFile: PsiFile?) {
+        var caretOffset = editor.caretModel.offset
+        inlineCompletionJob = findPsiElementAt(psiFile, caretOffset)?.let { psiElement ->
+            if (!isWhiteSpacePsi(psiElement) && psiElement.text.length <= 16) {
+                caretOffset = psiElement.endOffset
+            }
+            val completionPreview =
+                CompletionPreview.createInstance(editor, caretOffset)
+
+            val settings = SenseCodeSettingsState.instance
+            val n = settings.candidates
+            val (client, config) = CodeClientManager.getClientAndConfigPair()
+            val model = config.models.getValue(config.inlineCompletionModelName)
+            val codeRequest = CodeRequest(
+                model.name,
+                getMessages(caretOffset, psiElement, model.maxInputTokens),
+                model.temperature,
+                n,
+                model.stop,
+                model.getMaxNewTokens(settings.completionPreference),
+                config.apiEndpoint
+            )
+
+            if (n <= 1) {
+                // stream
+                val responseFlow = client.requestStream(codeRequest)
+                CodeClientManager.clientCoroutineScope.launch {
+                    responseFlow.onCompletion {
+                        ApplicationManager.getApplication().invokeLater {
+                            completionPreview.done = true
+                        }
+                    }.catch {
+                        if (it !is CancellationException) {
+                            ApplicationManager.getApplication().invokeLater {
+                                completionPreview.showError(it.localizedMessage)
+                            }
+                        }
+                    }.collect { streamResponse ->
+                        ApplicationManager.getApplication().invokeLater {
+                            when (streamResponse) {
+                                CodeStreamResponse.Done -> completionPreview.done = true
+                                is CodeStreamResponse.Error -> completionPreview.showError(streamResponse.error)
+                                is CodeStreamResponse.TokenChoices -> completionPreview.appendCompletions(
+                                    listOf(
+                                        streamResponse.choices.firstOrNull()?.token ?: ""
+                                    )
+                                )
+
+                                else -> {}
+                            }
+                        }
+                    }
+                }
+            } else {
+                CodeClientManager.clientCoroutineScope.launch {
+                    try {
+                        client.request(codeRequest).run {
+                            ApplicationManager.getApplication().invokeLater {
+                                error?.takeIf { it.hasError() }?.let {
+                                    completionPreview.showError(it.getShowError())
+                                } ?: choices?.let { choices ->
+                                    completionPreview.appendCompletions(choices.map { it.token ?: "" })
+                                }
+                            }
+                        }
+                    } catch (e: Throwable) {
+                        ApplicationManager.getApplication().invokeLater {
+                            completionPreview.showError(e.localizedMessage)
+                        }
+                    } finally {
+                        ApplicationManager.getApplication().invokeLater {
+                            completionPreview.done = true
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun popupCodeTaskActionsGroup(editor: Editor) {
+        ApplicationManager.getApplication().invokeLater {
+            JBPopupFactory.getInstance().createActionGroupPopup(
+                SenseCodePlugin.NAME,
+                (ActionManager.getInstance().getAction(SenseCodePlugin.CODE_TASK_ACTIONS_GROUP) as ActionGroup),
+                DataManager.getInstance().getDataContext(editor.component),
+                JBPopupFactory.ActionSelectionAid.SPEEDSEARCH,
+                false
+            ).showInBestPositionFor(editor)
+        }
+    }
+
+    override fun getHandler(): CodeInsightActionHandler {
+        return CodeInsightActionHandler { project: Project?, editor: Editor, psiFile: PsiFile? ->
+            inlineCompletionJob = null
+            if (!SenseCodeSettingsState.instance.isAutoCompleteMode) {
+                EditorUtil.disposeWithEditor(editor, this)
+
+                val selectedText = editor.selectionModel.selectedText
+                if (selectedText.isNullOrBlank()) {
+                    inlineCompletion(editor, psiFile)
+                } else {
+                    popupCodeTaskActionsGroup(editor)
+                }
+            }
+        }
+    }
+
+    override fun isValidForLookup(): Boolean = true
 
     companion object {
         @JvmStatic
@@ -88,14 +211,19 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Inline
             }
 
             fun getContent(): String {
+                val promptTemplate =
+                    CodeClientManager.getClientAndConfigPair().second.run {
+                        models.getValue(
+                            inlineCompletionModelName
+                        ).inlineCompletionPromptTemplate
+                    }
                 return if (text.length > offset) {
-                    """<fim_prefix>Please do not provide any explanations at the end. Please complete the following code.
-
-${text.substring(0, offset)}<fim_suffix>${text.substring(offset)}<fim_middle>""".trimIndent()
+                    promptTemplate.getValue("middle").displayText.format(
+                        text.substring(0, offset),
+                        text.substring(offset)
+                    )
                 } else {
-                    """<fim_prefix>Please do not provide any explanations at the end. Please complete the following code.
-
-$text<fim_middle><fim_suffix>""".trimIndent()
+                    promptTemplate.getValue("end").displayText.format(text)
                 }
             }
         }
@@ -118,7 +246,8 @@ $text<fim_middle><fim_suffix>""".trimIndent()
                             appendPreOk =
                                 appendPreOk && (prePsiElement?.text?.let { userContent.tryAppendPre(it) } ?: false)
                             appendPostOk =
-                                appendPostOk && (nextPsiElement?.text?.let { userContent.tryAppendPost(it) } ?: false)
+                                appendPostOk && (nextPsiElement?.text?.let { userContent.tryAppendPost(it) }
+                                    ?: false)
                             if (!appendPreOk && !appendPostOk) {
                                 break
                             }
@@ -142,58 +271,4 @@ $text<fim_middle><fim_suffix>""".trimIndent()
             return userContent.getContent()
         }
     }
-
-    override fun getHandler(): CodeInsightActionHandler {
-        return CodeInsightActionHandler { _: Project?, editor: Editor, psiFile: PsiFile? ->
-            apiJob?.cancel()
-            var caretOffset = editor.caretModel.offset
-            apiJob = findPsiElementAt(psiFile, caretOffset)?.let { psiElement ->
-                if (!isWhiteSpacePsi(psiElement) && psiElement.text.length <= 16) {
-                    caretOffset = psiElement.endOffset
-                }
-                val completionPreview =
-                    CompletionPreview.createInstance(editor, caretOffset)
-                val state = GptMentorSettingsState.getInstance()
-                val request = chatGptRequest {
-                    this.temperature = state.temperature
-                    this.maxTokens = state.maxTokens
-                    this.model = state.model
-                    this.systemPrompt("")
-                    message {
-                        role = ChatGptRequest.Message.Role.USER
-                        content = getUserContent(psiElement, caretOffset - psiElement.textOffset, 2048)
-                    }
-                    stream = true
-                }
-                scope.launch {
-                    kotlin.runCatching {
-                        openApi.executeBasicActionStreaming(request)
-                            .collect { streamingResponse ->
-                                ApplicationManager.getApplication().invokeLater {
-                                    when (streamingResponse) {
-                                        is StreamingResponse.Data -> completionPreview.appendCompletions(
-                                            listOf(
-                                                streamingResponse.data
-                                            )
-                                        )
-
-                                        is StreamingResponse.Error -> {
-                                            completionPreview.showError(streamingResponse.error)
-                                        }
-
-                                        StreamingResponse.Done -> completionPreview.done = true
-                                    }
-                                }
-                            }
-                    }.onFailure {
-                        if (it !is CancellationException) {
-                            it.printStackTrace()
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    override fun isValidForLookup(): Boolean = true
 }

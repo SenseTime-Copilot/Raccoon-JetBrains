@@ -5,31 +5,39 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.impl.EditorImpl
-import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.refactoring.rename.inplace.InplaceRefactoring
 import com.sensetime.sensecore.sensecodeplugin.completions.render.CompletionInlays
+import com.sensetime.sensecore.sensecodeplugin.utils.SenseCodeNotification
 
 class CompletionPreview private constructor(
     tmpEditor: Editor,
     private val offset: Int
 ) : Disposable {
-    var done: Boolean = false
+    private var currentIndex: Int = 0
         set(value) {
-            field = value
-            if (value && completions?.getOrNull(currentIndex).isNullOrEmpty()) {
-                editor?.let {
-                    val popup = JBPopupFactory.getInstance().createMessage("Code completion is empty")
-//                    Disposer.register(this, popup)
-                    popup.showInBestPositionFor(it)
-                }
+            field = if (value < 0) {
+                completions?.lastIndex ?: 0
+            } else if (value > (completions?.lastIndex ?: 0)) {
+                0
+            } else {
+                value
             }
         }
-    private var currentIndex = 0
     private var editor: Editor? = null
     private val inlays: CompletionInlays
     private var completions: List<String>? = null
+    private val currentCompletion: String?
+        get() = completions?.getOrNull(currentIndex)
+
+    var done: Boolean = false
+        set(value) {
+            field = value
+            if (value && currentCompletion.isNullOrEmpty()) {
+                SenseCodeNotification.popupNoCompletionSuggestionMessage(editor)
+            }
+        }
 
     init {
         editor = tmpEditor
@@ -46,11 +54,7 @@ class CompletionPreview private constructor(
     }
 
     fun showError(message: String) {
-        editor?.let {
-            val popup = JBPopupFactory.getInstance().createMessage(message)
-//            Disposer.register(this, popup)
-            popup.showInBestPositionFor(it)
-        }
+        SenseCodeNotification.popupMessageInBestPositionForEditor(message, editor)
     }
 
     fun appendCompletions(suffixes: List<String>) {
@@ -58,6 +62,16 @@ class CompletionPreview private constructor(
             s + suffixes.getOrNull(index)
         } ?: suffixes
         showCompletion()
+    }
+
+    fun showPreviousCompletion(): String? {
+        currentIndex -= 1
+        return showCompletion()
+    }
+
+    fun showNextCompletion(): String? {
+        currentIndex += 1
+        return showCompletion()
     }
 
     private fun showCompletion(): String? {
@@ -69,7 +83,7 @@ class CompletionPreview private constructor(
             ) {
                 return null
             }
-            return completions?.getOrNull(currentIndex)?.let { completion ->
+            return currentCompletion.let { completion ->
                 try {
                     it.document.startGuardedBlockChecking()
                     inlays.render(it, completion, offset)
@@ -90,7 +104,7 @@ class CompletionPreview private constructor(
             val tmpEditor = editor
             cancel()
             tmpEditor?.let {
-                completions?.getOrNull(currentIndex)?.let { completion ->
+                currentCompletion?.let { completion ->
                     it.document.insertString(offset, completion)
                     it.caretModel.moveToOffset(offset + completion.length)
                 }
