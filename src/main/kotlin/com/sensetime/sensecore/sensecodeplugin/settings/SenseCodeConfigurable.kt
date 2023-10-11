@@ -51,7 +51,12 @@ class SenseCodeConfigurable : Configurable {
                 buttonsGroup {
                     row(SenseCodeBundle.message("settings.group.InlineCompletion.MaxCandidateNumber.label")) {
                         for (number in 1..3) {
-                            radioButton("$number", number)
+                            radioButton("$number", number).component.toolTipText = SenseCodeBundle.message(
+                                "settings.group.InlineCompletion.MaxCandidateNumber.tooltip",
+                                number
+                            ) + if (number > 1) SenseCodeBundle.message("settings.group.InlineCompletion.MaxCandidateNumber.monolithic") else SenseCodeBundle.message(
+                                "settings.group.InlineCompletion.MaxCandidateNumber.streaming"
+                            )
                         }
                     }
                 }.bind(SenseCodeSettingsState.instance::candidates)
