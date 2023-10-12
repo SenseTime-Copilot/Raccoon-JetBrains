@@ -6,6 +6,8 @@ import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.dsl.builder.bind
 import com.intellij.ui.dsl.builder.panel
+import com.sensetime.sensecore.sensecodeplugin.actions.Utils
+import com.sensetime.sensecore.sensecodeplugin.actions.inline.ManualTriggerInlineCompletionAction
 import com.sensetime.sensecore.sensecodeplugin.clients.CodeClientManager
 import com.sensetime.sensecore.sensecodeplugin.resources.SenseCodeBundle
 import com.sensetime.sensecore.sensecodeplugin.ui.common.UserLoginPanel
@@ -35,8 +37,10 @@ class SenseCodeConfigurable : Configurable {
                         radioButton(
                             SenseCodeBundle.message("settings.group.InlineCompletion.TriggerMode.button.Manual"),
                             false
-                        ).component.toolTipText =
-                            SenseCodeBundle.message("settings.group.InlineCompletion.TriggerMode.button.Manual.tooltip")
+                        ).component.toolTipText = SenseCodeBundle.message(
+                            "settings.group.InlineCompletion.TriggerMode.button.Manual.tooltip",
+                            Utils.getShortcutText(ManualTriggerInlineCompletionAction::class)
+                        )
                     }
                 }.bind(SenseCodeSettingsState.instance::isAutoCompleteMode)
 
@@ -46,12 +50,17 @@ class SenseCodeConfigurable : Configurable {
                             radioButton(SenseCodeBundle.message(value.key), value)
                         }
                     }
-                }.bind(SenseCodeSettingsState.instance::completionPreference)
+                }.bind(SenseCodeSettingsState.instance::inlineCompletionPreference)
 
                 buttonsGroup {
                     row(SenseCodeBundle.message("settings.group.InlineCompletion.MaxCandidateNumber.label")) {
                         for (number in 1..3) {
-                            radioButton("$number", number)
+                            radioButton("$number", number).component.toolTipText = SenseCodeBundle.message(
+                                "settings.group.InlineCompletion.MaxCandidateNumber.tooltip",
+                                number
+                            ) + if (number > 1) SenseCodeBundle.message("settings.group.InlineCompletion.MaxCandidateNumber.monolithic") else SenseCodeBundle.message(
+                                "settings.group.InlineCompletion.MaxCandidateNumber.streaming"
+                            )
                         }
                     }
                 }.bind(SenseCodeSettingsState.instance::candidates)

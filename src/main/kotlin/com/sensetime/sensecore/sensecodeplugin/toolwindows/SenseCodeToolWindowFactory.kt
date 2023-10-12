@@ -13,6 +13,7 @@ import com.sensetime.sensecore.sensecodeplugin.clients.responses.CodeStreamRespo
 import com.sensetime.sensecore.sensecodeplugin.messages.SENSE_CODE_TASKS_TOPIC
 import com.sensetime.sensecore.sensecodeplugin.messages.SenseCodeTasksListener
 import com.sensetime.sensecore.sensecodeplugin.resources.SenseCodeBundle
+import com.sensetime.sensecore.sensecodeplugin.settings.ModelConfig
 import com.sensetime.sensecore.sensecodeplugin.settings.SenseCodeSettingsState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.onCompletion
@@ -51,7 +52,7 @@ class SenseCodeToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
                     onFinally: () -> Unit
                 ) {
                     toolWindowJob?.cancel()
-                    val settings = SenseCodeSettingsState.instance
+                    val maxNewTokens: Int = SenseCodeSettingsState.instance.toolwindowMaxNewTokens
                     val (client, config) = CodeClientManager.getClientAndConfigPair()
                     val modelName = when (chatType) {
                         SenseCodeChatHistoryState.ChatType.FREE_CHAT -> config.freeChatModelName
@@ -65,7 +66,7 @@ class SenseCodeToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
                             model.temperature,
                             1,
                             model.stop,
-                            model.getMaxNewTokens(settings.completionPreference),
+                            if (maxNewTokens <= 0) model.getMaxNewTokens(ModelConfig.CompletionPreference.BEST_EFFORT) else maxNewTokens,
                             config.apiEndpoint
                         )
                     )
@@ -73,11 +74,15 @@ class SenseCodeToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
                     toolWindowJob = CodeClientManager.clientCoroutineScope.launch {
                         responseFlow.onCompletion { onFinally() }.collect { streamResponse ->
                             when (streamResponse) {
-                                CodeStreamResponse.Done -> chatContentPanel.setGenerateState(SenseCodeChatHistoryState.GenerateState.DONE)
+                                CodeStreamResponse.Done -> {
+                                    chatContentPanel.setGenerateState(SenseCodeChatHistoryState.GenerateState.DONE)
+                                    onFinally()
+                                }
 
                                 is CodeStreamResponse.Error -> {
                                     chatContentPanel.appendAssistantText(streamResponse.error)
                                     chatContentPanel.setGenerateState(SenseCodeChatHistoryState.GenerateState.ERROR)
+                                    onFinally()
                                 }
 
                                 is CodeStreamResponse.TokenChoices -> streamResponse.choices.firstOrNull()?.token?.takeIf { it.isNotEmpty() }

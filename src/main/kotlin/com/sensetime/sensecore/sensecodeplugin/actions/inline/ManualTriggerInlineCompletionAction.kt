@@ -69,7 +69,7 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
                 model.temperature,
                 n,
                 model.stop,
-                model.getMaxNewTokens(settings.completionPreference),
+                model.getMaxNewTokens(settings.inlineCompletionPreference),
                 config.apiEndpoint
             )
 

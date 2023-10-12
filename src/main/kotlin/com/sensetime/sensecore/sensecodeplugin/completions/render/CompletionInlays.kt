@@ -4,6 +4,8 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.Inlay
 import com.intellij.openapi.util.Disposer
+import java.awt.Point
+import java.awt.Rectangle
 
 class CompletionInlays(parent: Disposable) : Disposable {
     private var inlineInlay: Inlay<*>? = null
@@ -12,6 +14,13 @@ class CompletionInlays(parent: Disposable) : Disposable {
     init {
         Disposer.register(parent, this)
     }
+
+    val isEmpty: Boolean
+        get() = (null == inlineInlay) && (null == blockInlay)
+    private val bounds: Rectangle
+        get() = (inlineInlay?.bounds ?: Rectangle()).union(blockInlay?.bounds ?: Rectangle())
+
+    fun contains(point: Point): Boolean = bounds.contains(point)
 
     fun clear() {
         inlineInlay?.let { Disposer.dispose(it) }

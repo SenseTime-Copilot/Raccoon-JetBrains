@@ -19,7 +19,7 @@ data class SenseCodeSettingsState(
     var candidates: Int = 1
     var isAutoCompleteMode: Boolean = false
     var autoCompleteDelayMs: Int = 1000
-    var completionPreference: ModelConfig.CompletionPreference = ModelConfig.CompletionPreference.BALANCED
+    var inlineCompletionPreference: ModelConfig.CompletionPreference = ModelConfig.CompletionPreference.BALANCED
 
     var selectedClientName: String = SenseCoreClient.CLIENT_NAME
     var clientApiEndpointMap: Map<String, String> = mapOf(
@@ -35,6 +35,9 @@ data class SenseCodeSettingsState(
         get() = selectedClientName.let {
             clients.getValue(it).apply { apiEndpoint = clientApiEndpointMap.getValue(it) }
         }
+
+    // dev
+    var toolwindowMaxNewTokens: Int = -1
 
     fun restore() {
         loadState(SenseCodeSettingsState(SenseCodePlugin.version))

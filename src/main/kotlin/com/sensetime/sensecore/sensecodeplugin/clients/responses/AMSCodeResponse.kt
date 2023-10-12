@@ -18,12 +18,23 @@ data class AMSChoice(
 }
 
 @Serializable
-data class AMSError(
+data class AMSDetail(
+    @SerialName("@type")
     val type: String? = null,
-    val message: String? = null
+    val reason: String? = null,
+    val domain: String? = null,
+)
+
+@Serializable
+data class AMSError(
+    val code: Int? = null,
+    val type: String? = null,
+    val message: String? = null,
+    val details: List<AMSDetail>? = null
 ) : Error {
     override val error: String
         get() = listOfNotNull(
+            code?.takeIf { it != 0 }?.let { "code: \"$it\"" },
             type?.takeIf { it.isNotBlank() }?.let { "type: \"$it\"" },
             message?.takeIf { it.isNotBlank() }).joinToString()
 }

@@ -11,6 +11,7 @@ import java.util.*
 import com.sensetime.sensecore.sensecodeplugin.clients.models.PenroseModels
 import com.sensetime.sensecore.sensecodeplugin.clients.requests.AMSCodeRequest
 import com.sensetime.sensecore.sensecodeplugin.clients.responses.AMSCodeResponse
+import com.sensetime.sensecore.sensecodeplugin.clients.responses.AMSError
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
@@ -55,8 +56,12 @@ class SenseCoreClient : AkSkCodeClient() {
         return requestBuilder.post(amsRequestJson.toRequestBody())
     }
 
-    override fun toCodeResponse(body: String, stream: Boolean): CodeResponse =
-        SenseCodeClientJson.decodeFromString(AMSCodeResponse.serializer(), body)
+    override fun toCodeResponse(body: String, stream: Boolean): CodeResponse = kotlin.runCatching {
+        SenseCodeClientJson.decodeFromString(AMSError.serializer(), body).takeIf { it.hasError() }?.let {
+            AMSCodeResponse(error = it)
+        }
+    }.getOrNull() ?: SenseCodeClientJson.decodeFromString(AMSCodeResponse.serializer(), body)
+
 
     companion object {
         const val CLIENT_NAME = "sensecode"
