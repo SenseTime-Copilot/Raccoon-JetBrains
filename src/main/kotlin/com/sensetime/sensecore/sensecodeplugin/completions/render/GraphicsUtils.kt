@@ -13,24 +13,25 @@ object GraphicsUtils {
         return editor.colorsScheme.getFont(EditorFontType.ITALIC)
     }
 
-    val niceContrastColor: Color by lazy {
-        val averageBrightness = (getBrightness(JBColor.background()) + getBrightness(JBColor.foreground())) / 2.0
-        var currentResult: Color = JBColor.LIGHT_GRAY
-        var bestResult = currentResult
-        var distance = Double.MAX_VALUE
-        var currentBrightness = getBrightness(currentResult)
-        val minBrightness = getBrightness(JBColor.DARK_GRAY)
-
-        while (currentBrightness > minBrightness) {
-            if (abs(currentBrightness - averageBrightness) < distance) {
-                distance = abs(currentBrightness - averageBrightness)
-                bestResult = currentResult
-            }
-            currentResult = currentResult.darker()
-            currentBrightness = getBrightness(currentResult)
-        }
-        bestResult
-    }
+    val niceContrastColor: Color = JBColor.GRAY
+//    by lazy {
+//        val averageBrightness = (getBrightness(JBColor.background()) + getBrightness(JBColor.foreground())) / 2.0
+//        var currentResult: Color = JBColor.LIGHT_GRAY
+//        var bestResult = currentResult
+//        var distance = Double.MAX_VALUE
+//        var currentBrightness = getBrightness(currentResult)
+//        val minBrightness = getBrightness(JBColor.DARK_GRAY)
+//
+//        while (currentBrightness > minBrightness) {
+//            if (abs(currentBrightness - averageBrightness) < distance) {
+//                distance = abs(currentBrightness - averageBrightness)
+//                bestResult = currentResult
+//            }
+//            currentResult = currentResult.darker()
+//            currentBrightness = getBrightness(currentResult)
+//        }
+//        bestResult
+//    }
 
     private fun getBrightness(color: Color): Double {
         return sqrt(
