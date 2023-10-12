@@ -10,6 +10,7 @@ import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.sensetime.sensecore.sensecodeplugin.resources.SenseCodeBundle
 import com.sensetime.sensecore.sensecodeplugin.settings.SenseCodeConfigurable
+import com.sensetime.sensecore.sensecodeplugin.settings.SenseCodeSettingsState
 
 object SenseCodeNotification {
     @JvmStatic
@@ -34,19 +35,26 @@ object SenseCodeNotification {
         )
     }
 
+    private var lastErrorMessage: String = ""
+
     @JvmStatic
     fun popupMessageInBestPositionForEditor(message: String, editor: Editor?) {
-        editor?.let {
-            JBPopupFactory.getInstance().createMessage(message).showInBestPositionFor(it)
+        if (!SenseCodeSettingsState.instance.isAutoCompleteMode || (message != lastErrorMessage)) {
+            editor?.let {
+                JBPopupFactory.getInstance().createMessage(message).showInBestPositionFor(it)
+            }
         }
+        lastErrorMessage = message
     }
 
     @JvmStatic
     fun popupNoCompletionSuggestionMessage(editor: Editor?) {
-        popupMessageInBestPositionForEditor(
-            SenseCodeBundle.message("completions.inline.warning.noCompletionSuggestion"),
-            editor
-        )
+        if (!SenseCodeSettingsState.instance.isAutoCompleteMode) {
+            popupMessageInBestPositionForEditor(
+                SenseCodeBundle.message("completions.inline.warning.noCompletionSuggestion"),
+                editor
+            )
+        }
     }
 
     @JvmStatic

@@ -1,6 +1,8 @@
 package com.sensetime.sensecore.sensecodeplugin.completions
 
+import com.intellij.codeInsight.lookup.LookupManager
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
@@ -8,13 +10,16 @@ import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.refactoring.rename.inplace.InplaceRefactoring
+import com.intellij.util.messages.SimpleMessageBusConnection
 import com.sensetime.sensecore.sensecodeplugin.completions.render.CompletionInlays
+import com.sensetime.sensecore.sensecodeplugin.messages.SENSE_CODE_EDITOR_CHANGED_TOPIC
+import com.sensetime.sensecore.sensecodeplugin.messages.SenseCodeEditorChangedListener
 import com.sensetime.sensecore.sensecodeplugin.utils.SenseCodeNotification
 
 class CompletionPreview private constructor(
     tmpEditor: Editor,
     private val offset: Int
-) : Disposable {
+) : SenseCodeEditorChangedListener, Disposable {
     private var currentIndex: Int = 0
         set(value) {
             field = if (value < 0) {
@@ -45,6 +50,11 @@ class CompletionPreview private constructor(
                 SenseCodeNotification.popupNoCompletionSuggestionMessage(editor)
             }
         }
+    private var editorChangedMessageBusConnection: SimpleMessageBusConnection? = null
+        set(value) {
+            field?.disconnect()
+            field = value
+        }
 
     init {
         editor = tmpEditor
@@ -53,11 +63,22 @@ class CompletionPreview private constructor(
         tmpEditor.caretModel.addCaretListener(EditorCaretListener(), this)
         (tmpEditor as? EditorEx)?.addFocusListener(EditorFocusChangeListener(), this)
         tmpEditor.putUserData(COMPLETION_PREVIEW, this)
+
+        editorChangedMessageBusConnection = ApplicationManager.getApplication().messageBus.connect().also {
+            it.subscribe(SENSE_CODE_EDITOR_CHANGED_TOPIC, this)
+        }
     }
 
     override fun dispose() {
         editor?.putUserData(COMPLETION_PREVIEW, null)
+        editorChangedMessageBusConnection = null
         editor = null
+    }
+
+    override fun onEditorChanged(editor: Editor) {
+        if (editor === this.editor) {
+            cancel()
+        }
     }
 
     fun showError(message: String) {
@@ -86,7 +107,7 @@ class CompletionPreview private constructor(
         return editor?.let {
             if ((it !is EditorImpl) || it.selectionModel.hasSelection() || (InplaceRefactoring.getActiveInplaceRenamer(
                     it
-                ) != null)
+                ) != null) || (null != LookupManager.getActiveLookup(editor))
             ) {
                 return null
             }

@@ -43,6 +43,14 @@
 
 
         <!--        Inline Completion-->
+        <backgroundPostStartupActivity
+                implementation="com.sensetime.sensecore.sensecodeplugin.completions.auto.AutoCompletionServer$Initializer"/>
+        <editorFactoryDocumentListener
+                implementation="com.sensetime.sensecore.sensecodeplugin.completions.auto.EditorChangeDetector"/>
+        <editorFactoryMouseListener
+                implementation="com.sensetime.sensecore.sensecodeplugin.completions.auto.EditorChangeDetector"/>
+        <typedHandler implementation="com.sensetime.sensecore.sensecodeplugin.completions.auto.UserTypedHandler"/>
+
         <actionPromoter implementation="com.sensetime.sensecore.sensecodeplugin.actions.inline.InlineActionsPromoter"/>
         <editorActionHandler action="EditorEscape" order="before hide-hints"
                              id="com.sensetime.sensecore.sensecodeplugin.actions.inline.EscapeEditorActionHandler"
@@ -117,8 +125,4 @@
             <keyboard-shortcut first-keystroke="TAB" keymap="$default"/>
         </action>
     </actions>
-    <!--    <extensions defaultExtensionNs="com.intellij">-->
-    <!--        <editorFactoryDocumentListener-->
-    <!--                implementation="com.sensetime.sensecore.sensecodeplugin.completions.CompletionDocumentListener"/>-->
-    <!--    </extensions>-->
 </idea-plugin>
