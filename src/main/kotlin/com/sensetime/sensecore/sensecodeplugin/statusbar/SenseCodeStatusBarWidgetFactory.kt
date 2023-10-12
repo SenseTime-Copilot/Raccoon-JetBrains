@@ -52,7 +52,8 @@ class SenseCodeStatusBarWidgetFactory : StatusBarWidgetFactory {
                         ApplicationManager.getApplication().invokeLater {
                             isRunning = false
                             currentTooltipText = usage?.getShowString()
-                            currentIcon = SenseCodeIcons.STATUS_BAR_SUCCESS
+                            currentIcon =
+                                if (null != usage?.completion?.takeIf { number -> number <= 1 }) SenseCodeIcons.STATUS_BAR_EMPTY else SenseCodeIcons.STATUS_BAR_SUCCESS
                             myStatusBar?.updateWidget(SenseCodePlugin.STATUS_BAR_ID)
                         }
                     }

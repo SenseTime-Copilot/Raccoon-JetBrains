@@ -21,6 +21,9 @@ object SenseCodeIcons {
     val STATUS_BAR_SUCCESS = IconLoader.getIcon("$STATUS_BAR_DIR/success", SenseCodeIcons::class.java)
 
     @JvmField
+    val STATUS_BAR_EMPTY = IconLoader.getIcon("$STATUS_BAR_DIR/empty", SenseCodeIcons::class.java)
+
+    @JvmField
     val STATUS_BAR_ERROR = IconLoader.getIcon("$STATUS_BAR_DIR/error", SenseCodeIcons::class.java)
 
     @JvmField
