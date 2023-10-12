@@ -74,11 +74,15 @@ class SenseCodeToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
                     toolWindowJob = CodeClientManager.clientCoroutineScope.launch {
                         responseFlow.onCompletion { onFinally() }.collect { streamResponse ->
                             when (streamResponse) {
-                                CodeStreamResponse.Done -> chatContentPanel.setGenerateState(SenseCodeChatHistoryState.GenerateState.DONE)
+                                CodeStreamResponse.Done -> {
+                                    chatContentPanel.setGenerateState(SenseCodeChatHistoryState.GenerateState.DONE)
+                                    onFinally()
+                                }
 
                                 is CodeStreamResponse.Error -> {
                                     chatContentPanel.appendAssistantText(streamResponse.error)
                                     chatContentPanel.setGenerateState(SenseCodeChatHistoryState.GenerateState.ERROR)
+                                    onFinally()
                                 }
 
                                 is CodeStreamResponse.TokenChoices -> streamResponse.choices.firstOrNull()?.token?.takeIf { it.isNotEmpty() }
