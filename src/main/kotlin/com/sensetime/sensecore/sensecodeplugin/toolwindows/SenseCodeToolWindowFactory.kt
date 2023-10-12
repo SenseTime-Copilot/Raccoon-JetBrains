@@ -52,6 +52,7 @@ class SenseCodeToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
                     onFinally: () -> Unit
                 ) {
                     toolWindowJob?.cancel()
+                    val maxNewTokens: Int = SenseCodeSettingsState.instance.toolwindowMaxNewTokens
                     val (client, config) = CodeClientManager.getClientAndConfigPair()
                     val modelName = when (chatType) {
                         SenseCodeChatHistoryState.ChatType.FREE_CHAT -> config.freeChatModelName
@@ -65,7 +66,7 @@ class SenseCodeToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
                             model.temperature,
                             1,
                             model.stop,
-                            model.getMaxNewTokens(ModelConfig.CompletionPreference.BEST_EFFORT),
+                            if (maxNewTokens <= 0) model.getMaxNewTokens(ModelConfig.CompletionPreference.BEST_EFFORT) else maxNewTokens,
                             config.apiEndpoint
                         )
                     )

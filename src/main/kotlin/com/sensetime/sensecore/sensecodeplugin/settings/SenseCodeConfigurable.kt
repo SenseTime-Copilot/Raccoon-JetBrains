@@ -50,7 +50,7 @@ class SenseCodeConfigurable : Configurable {
                             radioButton(SenseCodeBundle.message(value.key), value)
                         }
                     }
-                }.bind(SenseCodeSettingsState.instance::completionPreference)
+                }.bind(SenseCodeSettingsState.instance::inlineCompletionPreference)
 
                 buttonsGroup {
                     row(SenseCodeBundle.message("settings.group.InlineCompletion.MaxCandidateNumber.label")) {
