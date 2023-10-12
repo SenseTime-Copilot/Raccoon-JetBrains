@@ -64,11 +64,11 @@ class CompletionPreview private constructor(
         SenseCodeNotification.popupMessageInBestPositionForEditor(message, editor)
     }
 
-    fun appendCompletions(suffixes: List<String>) {
+    fun appendCompletions(suffixes: List<String>): String? {
         completions = completions?.mapIndexed { index: Int, s: String ->
             s + suffixes.getOrNull(index)
         } ?: suffixes
-        showCompletion()
+        return showCompletion()
     }
 
     fun showPreviousCompletion(): String? {

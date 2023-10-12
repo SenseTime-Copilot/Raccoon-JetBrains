@@ -92,11 +92,16 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
                             when (streamResponse) {
                                 CodeStreamResponse.Done -> completionPreview.done = true
                                 is CodeStreamResponse.Error -> completionPreview.showError(streamResponse.error)
-                                is CodeStreamResponse.TokenChoices -> completionPreview.appendCompletions(
-                                    listOf(
-                                        streamResponse.choices.firstOrNull()?.token ?: ""
-                                    )
-                                )
+                                is CodeStreamResponse.TokenChoices -> {
+                                    if (null == completionPreview.appendCompletions(
+                                            listOf(
+                                                streamResponse.choices.firstOrNull()?.token ?: ""
+                                            )
+                                        )
+                                    ) {
+                                        cancel()
+                                    }
+                                }
 
                                 else -> {}
                             }
