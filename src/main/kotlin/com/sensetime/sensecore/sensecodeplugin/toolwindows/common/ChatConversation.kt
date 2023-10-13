@@ -1,6 +1,7 @@
 package com.sensetime.sensecore.sensecodeplugin.toolwindows.common
 
 import com.sensetime.sensecore.sensecodeplugin.clients.requests.CodeRequest
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 
@@ -22,8 +23,12 @@ data class ChatConversation(
     @Serializable
     data class Message(
         val content: String,
+        @SerialName("_display_display")
+        val _display: String? = null
         val timestampMs: Long = getCurrentTimestampMs()
     )
+
+    fun toPromptConversation(): ChatConversation = ChatConversation(name, user)
 
     companion object {
         fun getCurrentTimestampMs() = System.currentTimeMillis()

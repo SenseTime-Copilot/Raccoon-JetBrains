@@ -1,6 +1,7 @@
 package com.sensetime.sensecore.sensecodeplugin.toolwindows
 
 import com.intellij.markdown.utils.convertMarkdownToHtml
+import com.sensetime.sensecore.sensecodeplugin.toolwindows.common.Utils
 import java.awt.BorderLayout
 import javax.swing.*
 

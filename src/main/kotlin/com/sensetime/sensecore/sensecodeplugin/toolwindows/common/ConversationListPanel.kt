@@ -14,12 +14,7 @@ open class ConversationListPanel() : JPanel(BorderLayout()), ListDataListener, D
     class ConversationListModel(items: List<ChatConversation>) : CollectionListModel<ChatConversation>(items)
 
     private val conversationListBox = Box.createVerticalBox()
-    private val conversationListModel: ConversationListModel = ConversationListModel(emptyList())
-    var conversations: List<ChatConversation>
-        get() = conversationListModel.items
-        set(value) {
-            conversationListModel.replaceAll(value)
-        }
+    val conversationListModel: ConversationListModel = ConversationListModel(emptyList())
     val lastConversationPanel: ConversationPanel?
         get() = conversationListBox.components.lastOrNull() as? ConversationPanel
 
@@ -27,7 +22,7 @@ open class ConversationListPanel() : JPanel(BorderLayout()), ListDataListener, D
         addConversations(0, conversations)
         add(conversationListBox, BorderLayout.CENTER)
 
-        this.conversations = conversations
+        conversationListModel.replaceAll(conversations)
         conversationListModel.addListDataListener(this, this)
 
         Disposer.register(parent, this)

@@ -29,8 +29,8 @@ object PenroseModels {
         systemPrompt: String? = null,
         custom: String = ""
     ): ModelConfig.PromptTemplate = ModelConfig.PromptTemplate(
-        "### $taskType\n${custom}\n\n### Code:\n%s\n",
         "\n### Instruction:\nTask type: ${taskType}. ${SenseCodeBundle.message("completions.task.prompt.penrose.explanation")}.${custom}\n\n### Input:\n%s\n",
+        "### $taskType\n${custom}\n\n### Code:\n%s\n",
         systemPrompt
     )
 

@@ -7,6 +7,7 @@ import com.intellij.openapi.observable.util.addListDataListener
 import com.intellij.ui.CollectionListModel
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
+import com.sensetime.sensecore.sensecodeplugin.toolwindows.common.Utils
 import java.awt.BorderLayout
 import java.awt.event.*
 import javax.swing.*
@@ -33,7 +34,8 @@ class HistoryContentPanel(
             Box.createVerticalBox().apply {
                 value.conversations.firstOrNull()?.let {
                     add(JSeparator())
-                    add(Utils.createMessagePanel(
+                    add(
+                        Utils.createMessagePanel(
                         Utils.createRoleBox(
                             true,
                             it.user.datetime,

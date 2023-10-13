@@ -15,6 +15,7 @@ import com.sensetime.sensecore.sensecodeplugin.messages.SenseCodeTasksListener
 import com.sensetime.sensecore.sensecodeplugin.resources.SenseCodeBundle
 import com.sensetime.sensecore.sensecodeplugin.settings.ModelConfig
 import com.sensetime.sensecore.sensecodeplugin.settings.SenseCodeSettingsState
+import com.sensetime.sensecore.sensecodeplugin.toolwindows.common.Utils
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.launch
