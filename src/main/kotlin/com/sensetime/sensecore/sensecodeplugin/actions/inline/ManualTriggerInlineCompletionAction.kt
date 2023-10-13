@@ -148,7 +148,6 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
 
     override fun getHandler(): CodeInsightActionHandler {
         return CodeInsightActionHandler { _: Project?, editor: Editor, psiFile: PsiFile? ->
-            inlineCompletionJob = null
             if (!SenseCodeSettingsState.instance.isAutoCompleteMode || ((null == CompletionPreview.getInstance(editor)) && (editor.contentComponent.isFocusOwner))) {
                 EditorUtil.disposeWithEditor(editor, this)
 

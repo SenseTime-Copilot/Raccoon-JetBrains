@@ -34,7 +34,7 @@
         <applicationService
                 serviceImplementation="com.sensetime.sensecore.sensecodeplugin.settings.SenseCodeSettingsState"/>
         <applicationService
-                serviceImplementation="com.sensetime.sensecore.sensecodeplugin.toolwindows.SenseCodeChatHistoryState"/>
+                serviceImplementation="com.sensetime.sensecore.sensecodeplugin.toolwindows.history.SenseCodeChatHistoryState"/>
 
 
         <!--        Local Http Server-->
