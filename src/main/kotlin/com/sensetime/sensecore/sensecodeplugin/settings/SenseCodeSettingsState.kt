@@ -8,6 +8,7 @@ import com.intellij.util.xmlb.XmlSerializerUtil
 import com.sensetime.sensecore.sensecodeplugin.clients.SenseCoreClient
 import com.sensetime.sensecore.sensecodeplugin.clients.SenseNovaClient
 import com.sensetime.sensecore.sensecodeplugin.utils.SenseCodePlugin
+import kotlin.math.max
 
 @State(
     name = "com.sensetime.sensecore.sensecodeplugin.settings.SenseCodeSettingsState",
@@ -19,6 +20,9 @@ data class SenseCodeSettingsState(
     var candidates: Int = 1
     var isAutoCompleteMode: Boolean = false
     var autoCompleteDelayMs: Int = 1000
+        set(value) {
+            field = max(1000, value)
+        }
     var inlineCompletionPreference: ModelConfig.CompletionPreference = ModelConfig.CompletionPreference.BALANCED
 
     var selectedClientName: String = SenseCoreClient.CLIENT_NAME

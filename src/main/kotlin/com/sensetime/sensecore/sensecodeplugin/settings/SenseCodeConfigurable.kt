@@ -4,8 +4,11 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.util.Disposer
+import com.intellij.ui.components.JBRadioButton
+import com.intellij.ui.dsl.builder.Cell
 import com.intellij.ui.dsl.builder.bind
 import com.intellij.ui.dsl.builder.panel
+import com.intellij.ui.dsl.builder.selected
 import com.sensetime.sensecore.sensecodeplugin.actions.Utils
 import com.sensetime.sensecore.sensecodeplugin.actions.inline.ManualTriggerInlineCompletionAction
 import com.sensetime.sensecore.sensecodeplugin.clients.CodeClientManager
@@ -27,13 +30,9 @@ class SenseCodeConfigurable : Configurable {
             }
 
             group(SenseCodeBundle.message("settings.group.InlineCompletion.title")) {
+                var autoCompleteButton: Cell<JBRadioButton>? = null
                 buttonsGroup {
                     row(SenseCodeBundle.message("settings.group.InlineCompletion.TriggerMode.label")) {
-                        radioButton(
-                            SenseCodeBundle.message("settings.group.InlineCompletion.TriggerMode.button.Auto"),
-                            true
-                        ).component.toolTipText =
-                            SenseCodeBundle.message("settings.group.InlineCompletion.TriggerMode.button.Auto.tooltip")
                         radioButton(
                             SenseCodeBundle.message("settings.group.InlineCompletion.TriggerMode.button.Manual"),
                             false
@@ -41,8 +40,30 @@ class SenseCodeConfigurable : Configurable {
                             "settings.group.InlineCompletion.TriggerMode.button.Manual.tooltip",
                             Utils.getShortcutText(ManualTriggerInlineCompletionAction::class)
                         )
+                        autoCompleteButton = radioButton(
+                            SenseCodeBundle.message("settings.group.InlineCompletion.TriggerMode.button.Auto"),
+                            true
+                        ).apply {
+                            component.toolTipText =
+                                SenseCodeBundle.message("settings.group.InlineCompletion.TriggerMode.button.Auto.tooltip")
+                        }
                     }
                 }.bind(SenseCodeSettingsState.instance::isAutoCompleteMode)
+
+                indent {
+                    buttonsGroup {
+                        row {
+                            radioButton(
+                                SenseCodeBundle.message("settings.group.InlineCompletion.TriggerMode.button.Auto.ShortDelay"),
+                                1000
+                            )
+                            radioButton(
+                                SenseCodeBundle.message("settings.group.InlineCompletion.TriggerMode.button.Auto.LongDelay"),
+                                3000
+                            )
+                        }
+                    }.bind(SenseCodeSettingsState.instance::autoCompleteDelayMs).visibleIf(autoCompleteButton!!.selected)
+                }
 
                 buttonsGroup {
                     row(SenseCodeBundle.message("settings.group.InlineCompletion.CompletionPreference.label")) {

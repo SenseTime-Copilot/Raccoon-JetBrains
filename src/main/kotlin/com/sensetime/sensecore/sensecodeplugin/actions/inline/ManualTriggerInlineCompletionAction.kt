@@ -92,11 +92,16 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
                             when (streamResponse) {
                                 CodeStreamResponse.Done -> completionPreview.done = true
                                 is CodeStreamResponse.Error -> completionPreview.showError(streamResponse.error)
-                                is CodeStreamResponse.TokenChoices -> completionPreview.appendCompletions(
-                                    listOf(
-                                        streamResponse.choices.firstOrNull()?.token ?: ""
-                                    )
-                                )
+                                is CodeStreamResponse.TokenChoices -> {
+                                    if (null == completionPreview.appendCompletions(
+                                            listOf(
+                                                streamResponse.choices.firstOrNull()?.token ?: ""
+                                            )
+                                        )
+                                    ) {
+                                        cancel()
+                                    }
+                                }
 
                                 else -> {}
                             }
@@ -142,9 +147,9 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
     }
 
     override fun getHandler(): CodeInsightActionHandler {
-        return CodeInsightActionHandler { project: Project?, editor: Editor, psiFile: PsiFile? ->
+        return CodeInsightActionHandler { _: Project?, editor: Editor, psiFile: PsiFile? ->
             inlineCompletionJob = null
-            if (!SenseCodeSettingsState.instance.isAutoCompleteMode) {
+            if (!SenseCodeSettingsState.instance.isAutoCompleteMode || ((null == CompletionPreview.getInstance(editor)) && (editor.contentComponent.isFocusOwner))) {
                 EditorUtil.disposeWithEditor(editor, this)
 
                 val selectedText = editor.selectionModel.selectedText
