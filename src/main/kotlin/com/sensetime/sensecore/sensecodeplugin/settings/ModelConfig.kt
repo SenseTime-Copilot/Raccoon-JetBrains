@@ -19,8 +19,26 @@ data class ModelConfig(
         BEST_EFFORT("settings.CompletionPreference.BestEffort")
     }
 
-    data class PromptTemplate(val prompt: String, val _display: String? = null, val system: String? = null) {
-        val display: String = _display ?: prompt
+    data class PromptTemplate(
+        val prompt: String,
+        val display: String? = null,
+        val system: String? = null
+    ) {
+        companion object {
+            @JvmStatic
+            private fun getContent(template: String, args: Map<String, String>?): String = args?.run {
+                keys.fold(template) { preContent, currentArgName ->
+                    preContent.replace(
+                        "{$currentArgName}",
+                        getValue(currentArgName)
+                    )
+                }
+            } ?: template
+        }
+
+        fun getPromptContent(args: Map<String, String>? = null): String = getContent(prompt, args)
+        fun getDisplayText(args: Map<String, String>? = null): String = getContent(display ?: prompt, args)
+        fun getSystemContent(args: Map<String, String>? = null): String? = system?.let { getContent(it, args) }
     }
 
     fun getMaxNewTokens(completionPreference: CompletionPreference): Int =

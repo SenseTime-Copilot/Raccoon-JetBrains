@@ -3,6 +3,7 @@ package com.sensetime.sensecore.sensecodeplugin.toolwindows.common
 import com.sensetime.sensecore.sensecodeplugin.clients.requests.CodeRequest
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlinx.serialization.builtins.ListSerializer
 
 @Serializable
@@ -22,11 +23,19 @@ data class ChatConversation(
 
     @Serializable
     data class Message(
-        val content: String,
-        @SerialName("_display_display")
-        val _display: String? = null
+        val args:Map<String, String>,
         val timestampMs: Long = getCurrentTimestampMs()
-    )
+    ) {
+        companion object {
+            const val RAW = "raw"
+            const val CODE = "code"
+            fun makeMessage(raw:String, code:String? = null, args:Map<String, String>?=null):Message = Message()
+        }
+        val raw:String?
+            get() = args[RAW]
+        val code:String?
+            get() = args[CODE]
+    }
 
     fun toPromptConversation(): ChatConversation = ChatConversation(name, user)
 
