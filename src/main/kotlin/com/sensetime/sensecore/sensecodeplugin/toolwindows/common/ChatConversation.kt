@@ -1,9 +1,8 @@
 package com.sensetime.sensecore.sensecodeplugin.toolwindows.common
 
 import com.sensetime.sensecore.sensecodeplugin.clients.requests.CodeRequest
-import kotlinx.serialization.SerialName
+import com.sensetime.sensecore.sensecodeplugin.settings.ModelConfig
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 import kotlinx.serialization.builtins.ListSerializer
 
 @Serializable
@@ -23,17 +22,27 @@ data class ChatConversation(
 
     @Serializable
     data class Message(
-        val args:Map<String, String>,
-        val timestampMs: Long = getCurrentTimestampMs()
+        val timestampMs: Long,
+        val args: Map<String, String>
     ) {
         companion object {
             const val RAW = "raw"
             const val CODE = "code"
-            fun makeMessage(raw:String, code:String? = null, args:Map<String, String>?=null):Message = Message()
+            fun makeMessage(
+                raw: String,
+                code: String? = null,
+                args: Map<String, String>? = null,
+                timestampMs: Long = getCurrentTimestampMs()
+            ): Message = Message(timestampMs, buildMap {
+                args?.let { putAll(it) }
+                put(RAW, raw)
+                code?.let { put(CODE, it) }
+            })
         }
-        val raw:String?
+
+        val raw: String?
             get() = args[RAW]
-        val code:String?
+        val code: String?
             get() = args[CODE]
     }
 
@@ -51,19 +60,23 @@ fun String.toChatConversations(): List<ChatConversation> =
     SenseCodeChatJson.decodeFromString(ListSerializer(ChatConversation.serializer()), this)
 
 fun List<ChatConversation>.toCodeRequestMessage(
-    userRole: String,
-    assistantRole: String,
-    systemRole: String = "system",
-    systemPrompt: String? = null
-): List<CodeRequest.Message> =
-    listOfNotNull(systemPrompt?.let { CodeRequest.Message(systemRole, it) }) + flatMap { conversation ->
+    promptTemplate: ModelConfig.PromptTemplate
+): List<CodeRequest.Message> = promptTemplate.run {
+    listOfNotNull(getSystemPromptContent()?.let { CodeRequest.Message(systemRole, it) }) + flatMap { conversation ->
         when (conversation.state) {
-            ChatConversation.State.PROMPT -> listOf(CodeRequest.Message(userRole, conversation.user.content))
+            ChatConversation.State.PROMPT -> listOf(
+                CodeRequest.Message(
+                    userRole,
+                    getUserPromptContent(conversation.user.args)
+                )
+            )
+
             ChatConversation.State.DONE -> listOf(
-                CodeRequest.Message(userRole, conversation.user.content),
-                CodeRequest.Message(assistantRole, conversation.assistant?.content ?: "")
+                CodeRequest.Message(userRole, getUserPromptContent(conversation.user.args)),
+                CodeRequest.Message(assistantRole, getAssistantTextContent(conversation.assistant!!.args))
             )
 
             else -> emptyList()
         }
     }
+}
