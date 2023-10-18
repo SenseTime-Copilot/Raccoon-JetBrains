@@ -49,39 +49,7 @@ class ConversationPanel : JPanel(BorderLayout()), Disposable {
     private val deleteButton: JButton = ButtonUtils.createIconButton(AllIcons.Actions.DeleteTag)
     var assistantTextPane: JTextPane? = null
         private set
-
-    var promptTemplate: ModelConfig.PromptTemplate? = null
-    var conversation: ChatConversation? = null
-        set(value) {
-            add(Box.createVerticalBox().apply {
-                value?.let {
-                    val prompt = CodeClientManager.getClientAndConfigPair().second.getModelConfigByType(it.type)
-                        .getPromptTemplateByType(it.type)
-                    add(JSeparator())
-                    add(createRoleBox(true, it.name, it.user.timestampMs, deleteButton))
-                    add(
-                        createContentTextPane(
-                            true,
-                            ChatConversation.State.DONE,
-                            prompt.getUserPromptDisplay(it.user.args)
-                        )
-                    )
-                    assistantTextPane = it.assistant?.let { assistantMessage ->
-                        add(createRoleBox(false, SenseCodePlugin.NAME, assistantMessage.timestampMs))
-                        createContentTextPane(
-                            false,
-                            it.state,
-                            prompt.getAssistantTextDisplay(assistantMessage.args)
-                        ).also { assistantPane -> add(assistantPane) }
-                    }
-                    add(JSeparator())
-                    promptTemplate = prompt
-                }
-            }, BorderLayout.CENTER)
-            isVisible = (null != value)
-            field = value
-        }
-
+    private var promptTemplate: ModelConfig.PromptTemplate? = null
     var eventListener: EventListener? = null
         set(value) {
             if (field !== value) {
@@ -98,9 +66,33 @@ class ConversationPanel : JPanel(BorderLayout()), Disposable {
         conversation: ChatConversation? = null,
         eventListener: EventListener? = null
     ): ConversationPanel = apply {
-        this.eventListener = eventListener
-        this.conversation = conversation
+        add(Box.createVerticalBox().apply {
+            conversation?.let {
+                val prompt = CodeClientManager.getClientAndConfigPair().second.getModelConfigByType(it.type)
+                    .getPromptTemplateByType(it.type)
+                add(JSeparator())
+                add(createRoleBox(true, it.name, it.user.timestampMs, deleteButton))
+                add(
+                    createContentTextPane(
+                        true,
+                        ChatConversation.State.DONE,
+                        prompt.getUserPromptDisplay(it.user.args)
+                    )
+                )
+                assistantTextPane = it.assistant?.let { assistantMessage ->
+                    add(createRoleBox(false, SenseCodePlugin.NAME, assistantMessage.timestampMs))
+                    createContentTextPane(
+                        false,
+                        it.state,
+                        prompt.getAssistantTextDisplay(assistantMessage.args)
+                    ).also { assistantPane -> add(assistantPane) }
+                }
+                add(JSeparator())
+                promptTemplate = prompt
+            }
+        }, BorderLayout.CENTER)
 
+        this.eventListener = eventListener
         addMouseListener(this@ConversationPanel, object : MouseAdapter() {
             override fun mouseClicked(e: MouseEvent?) {
                 e?.takeIf { 2 == it.clickCount }?.let {
@@ -108,12 +100,12 @@ class ConversationPanel : JPanel(BorderLayout()), Disposable {
                 }
             }
         })
+
         Disposer.register(parent, this)
     }
 
     override fun dispose() {
         assistantTextPane = null
-        conversation = null
         eventListener = null
         promptTemplate = null
     }

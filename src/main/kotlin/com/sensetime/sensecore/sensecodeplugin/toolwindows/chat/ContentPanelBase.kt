@@ -81,8 +81,6 @@ abstract class ContentPanelBase : JPanel(BorderLayout()), ListDataListener, Disp
             }
         }
 
-    private var lastAssistantText: String = ""
-    private var lastAssistantState: ChatConversation.State? = null
     protected abstract val lastStateProp: KMutableProperty0<ChatHistory>
 
     override fun dispose() {
@@ -90,9 +88,6 @@ abstract class ContentPanelBase : JPanel(BorderLayout()), ListDataListener, Disp
         submitButton.removeActionListener(this::onSubmitButtonClick)
 
         eventListener = null
-        lastAssistantText = ""
-        lastAssistantState = null
-
         lastStateProp.set(ChatHistory(type, userPromptTextArea.text, conversationListPanel.conversationListModel.items))
     }
 
@@ -188,9 +183,6 @@ abstract class ContentPanelBase : JPanel(BorderLayout()), ListDataListener, Disp
                 stopSubmitButton.isVisible = true
                 userPromptTextArea.isEditable = false
 
-                lastAssistantText = ""
-                lastAssistantState = ChatConversation.State.GENERATING
-
                 if (isRegenerate) {
                     setElementAt(items.last().toPromptConversation(), items.lastIndex)
                 }
@@ -207,23 +199,16 @@ abstract class ContentPanelBase : JPanel(BorderLayout()), ListDataListener, Disp
         stopSubmitButton.isVisible = false
         userPromptTextArea.isEditable = true
 
-        lastAssistantState?.let { state ->
-            conversationListPanel.conversationListModel.takeUnless { it.isEmpty }?.run {
-                items.last().let { last ->
-                    setElementAt(
-                        ChatConversation(
-                            last.name,
-                            last.type,
-                            last.user,
-                            ChatConversation.Message.makeMessage(lastAssistantText),
-                            if (ChatConversation.State.GENERATING == state) ChatConversation.State.STOPPED else state
-                        ), items.lastIndex
-                    )
-                }
+        conversationListPanel.lastConversation?.takeIf { ChatConversation.State.PROMPT == it.state }?.let {
+            if (it.assistant?.raw.isNullOrBlank()) {
+                appendAssistantTextAndSetGenerateState(
+                    SenseCodeBundle.message("toolwindows.content.chat.assistant.empty.stopped"),
+                    ChatConversation.State.STOPPED
+                )
+            } else {
+                setGenerateState(ChatConversation.State.STOPPED)
             }
         }
-        lastAssistantState = null
-        lastAssistantText = ""
     }
 
     private fun onSubmitButtonClick(e: ActionEvent?) {
@@ -246,15 +231,15 @@ abstract class ContentPanelBase : JPanel(BorderLayout()), ListDataListener, Disp
         }
 
     fun appendAssistantText(text: String) {
-        ApplicationManager.getApplication().invokeLater {
-            lastAssistantText += text
-            conversationListPanel.lastConversationPanel?.assistantTextPane?.updateMarkDownText(lastAssistantText)
+        conversationListPanel.lastConversation?.assistant?.run {
+            raw += text
+            conversationListPanel.lastConversationPanel?.assistantTextPane?.updateMarkDownText(raw)
         }
     }
 
     fun setGenerateState(generateState: ChatConversation.State) {
-        ApplicationManager.getApplication().invokeLater {
-            lastAssistantState = generateState
+        conversationListPanel.lastConversation?.run {
+            state = generateState
             conversationListPanel.lastConversationPanel?.assistantTextPane?.updateStyle(
                 ConversationPanel.updateAssistantAttributeSet(
                     generateState
@@ -264,13 +249,18 @@ abstract class ContentPanelBase : JPanel(BorderLayout()), ListDataListener, Disp
     }
 
     fun appendAssistantTextAndSetGenerateState(text: String, generateState: ChatConversation.State) {
-        ApplicationManager.getApplication().invokeLater {
-            lastAssistantText += text
-            lastAssistantState = generateState
-            conversationListPanel.lastConversationPanel?.assistantTextPane?.updateMarkDownTextAndStyle(
-                lastAssistantText,
-                ConversationPanel.updateAssistantAttributeSet(generateState)
-            )
+        conversationListPanel.lastConversation?.run {
+            state = generateState
+            val attr = ConversationPanel.updateAssistantAttributeSet(generateState)
+            if (null == assistant) {
+                conversationListPanel.lastConversationPanel?.assistantTextPane?.updateStyle(attr)
+            } else {
+                assistant.raw += text
+                conversationListPanel.lastConversationPanel?.assistantTextPane?.updateMarkDownTextAndStyle(
+                    assistant.raw,
+                    attr
+                )
+            }
         }
     }
 

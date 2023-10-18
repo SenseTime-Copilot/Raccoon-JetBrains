@@ -20,6 +20,8 @@ open class ConversationListPanel : JPanel(BorderLayout()), ListDataListener, Dis
 
     private val conversationListBox = Box.createVerticalBox()
     val conversationListModel: ConversationListModel = ConversationListModel(emptyList())
+    val lastConversation: ChatConversation?
+        get() = conversationListModel.items.lastOrNull()
     val lastConversationPanel: ConversationPanel?
         get() = conversationListBox.components.lastOrNull() as? ConversationPanel
     var eventListener: EventListener? = null
@@ -29,13 +31,12 @@ open class ConversationListPanel : JPanel(BorderLayout()), ListDataListener, Dis
         conversations: List<ChatConversation>,
         eventListener: EventListener? = null
     ): ConversationListPanel {
-        addConversations(0, conversations)
-        add(conversationListBox, BorderLayout.CENTER)
-
-        conversationListModel.replaceAll(conversations)
         conversationListModel.addListDataListener(this, this)
+        conversationListModel.replaceAll(conversations)
 
+        add(conversationListBox, BorderLayout.CENTER)
         this.eventListener = eventListener
+
         Disposer.register(parent, this)
         return this
     }
@@ -44,53 +45,48 @@ open class ConversationListPanel : JPanel(BorderLayout()), ListDataListener, Dis
         eventListener = null
     }
 
-    private fun addConversations(index: Int, conversations: List<ChatConversation>) {
-        conversations.forEachIndexed { i, conversation ->
-            val dstIndex = index + i
-            conversationListBox.add(
-                ConversationPanel().build(
-                    this,
-                    conversation,
-                    object : ConversationPanel.EventListener {
-                        override fun onDelete(e: ActionEvent?) {
-                            conversationListModel.remove(dstIndex)
-                        }
+    private fun addConversation(index: Int) {
+        conversationListBox.add(
+            ConversationPanel().build(
+                this, conversationListModel.items[index],
+                object : ConversationPanel.EventListener {
+                    override fun onDelete(e: ActionEvent?) {
+                        conversationListModel.remove(index)
+                    }
 
-                        override fun onMouseDoubleClicked(e: MouseEvent?) {
-                            eventListener?.onMouseDoubleClicked(e, dstIndex)
-                        }
-                    }), dstIndex
-            )
-        }
+                    override fun onMouseDoubleClicked(e: MouseEvent?) {
+                        eventListener?.onMouseDoubleClicked(e, index)
+                    }
+                }), index
+        )
     }
 
-    private fun removeConversations(index0: Int, index1: Int) {
-        for (i in index0..index1) {
-            conversationListBox.remove(i)
-        }
-    }
-
-    private fun replaceConversations(index: Int, conversations: List<ChatConversation>) {
-        conversations.forEachIndexed { i, conversation ->
-            (conversationListBox.components[index + i] as ConversationPanel).conversation = conversation
-        }
+    private fun removeConversation(index: Int) {
+        conversationListBox.remove(index)
     }
 
     override fun intervalAdded(e: ListDataEvent?) {
         e?.run {
-            addConversations(index0, conversationListModel.items.subList(index0, index1 + 1))
+            for (i in index0..index1) {
+                addConversation(i)
+            }
         }
     }
 
     override fun intervalRemoved(e: ListDataEvent?) {
         e?.run {
-            removeConversations(index0, index1)
+            for (i in index0..index1) {
+                removeConversation(index0)
+            }
         }
     }
 
     override fun contentsChanged(e: ListDataEvent?) {
         e?.run {
-            replaceConversations(index0, conversationListModel.items.subList(index0, index1 + 1))
+            for (i in index0..index1) {
+                removeConversation(i)
+                addConversation(i)
+            }
         }
     }
 }

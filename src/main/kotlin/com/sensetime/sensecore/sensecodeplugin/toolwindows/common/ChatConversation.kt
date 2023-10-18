@@ -11,12 +11,12 @@ data class ChatConversation(
     val name: String,
     val type: String,
     val user: Message,
-    val assistant: Message? = null,
-    val state: State = State.PROMPT
+    val assistant: Message? = Message.makeMessage(""),
+    var state: State = State.PROMPT
 ) {
     enum class State(val code: String) {
         PROMPT("prompt"),
-        GENERATING("generating"),
+        HISTORY("history"),
         DONE("done"),
         STOPPED("stopped"),
         ERROR("error")
@@ -25,7 +25,7 @@ data class ChatConversation(
     @Serializable
     data class Message(
         val timestampMs: Long,
-        val args: Map<String, String>
+        val args: MutableMap<String, String>
     ) {
         companion object {
             const val RAW = "raw"
@@ -39,18 +39,22 @@ data class ChatConversation(
                 args?.let { putAll(it) }
                 put(RAW, raw)
                 code?.let { put(CODE, it) }
-            })
+            }.toMutableMap())
         }
 
-        val raw: String?
-            get() = args[RAW]
+        var raw: String
+            get() = args.getOrDefault(RAW, "")
+            set(value) {
+                args[RAW] = value
+            }
         val code: String?
             get() = args[CODE]
 
-        fun hasData(): Boolean = !(raw.isNullOrBlank() && code.isNullOrBlank())
+        fun hasData(): Boolean = !(raw.isBlank() && code.isNullOrBlank())
     }
 
     fun toPromptConversation(): ChatConversation = ChatConversation(name, type, user)
+    fun toHistoryConversation(): ChatConversation = ChatConversation(name, type, user, null, State.HISTORY)
 
     companion object {
         fun getCurrentTimestampMs() = System.currentTimeMillis()

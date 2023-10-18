@@ -67,29 +67,32 @@ class SenseCodeToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
         )
 
         return CodeClientManager.clientCoroutineScope.launch {
-            responseFlow.onCompletion { onFinally() }.collect { streamResponse ->
-                when (streamResponse) {
-                    CodeStreamResponse.Done -> {
-                        contentPanel.setGenerateState(ChatConversation.State.DONE)
-                        onFinally()
-                    }
+            responseFlow.onCompletion { ApplicationManager.getApplication().invokeLater { onFinally() } }
+                .collect { streamResponse ->
+                    ApplicationManager.getApplication().invokeLater {
+                        when (streamResponse) {
+                            CodeStreamResponse.Done -> {
+                                contentPanel.setGenerateState(ChatConversation.State.DONE)
+                                onFinally()
+                            }
 
-                    is CodeStreamResponse.Error -> {
-                        contentPanel.appendAssistantTextAndSetGenerateState(
-                            streamResponse.error,
-                            ChatConversation.State.ERROR
-                        )
-                        onFinally()
-                    }
+                            is CodeStreamResponse.Error -> {
+                                contentPanel.appendAssistantTextAndSetGenerateState(
+                                    streamResponse.error,
+                                    ChatConversation.State.ERROR
+                                )
+                                onFinally()
+                            }
 
-                    is CodeStreamResponse.TokenChoices -> streamResponse.choices.firstOrNull()?.token?.takeIf { it.isNotEmpty() }
-                        ?.let {
-                            contentPanel.appendAssistantText(it)
+                            is CodeStreamResponse.TokenChoices -> streamResponse.choices.firstOrNull()?.token?.takeIf { it.isNotEmpty() }
+                                ?.let {
+                                    contentPanel.appendAssistantText(it)
+                                }
+
+                            else -> {}
                         }
-
-                    else -> {}
+                    }
                 }
-            }
         }
     }
 

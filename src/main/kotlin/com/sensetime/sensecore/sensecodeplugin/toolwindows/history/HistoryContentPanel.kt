@@ -11,7 +11,7 @@ import javax.swing.event.ListDataEvent
 import javax.swing.event.ListDataListener
 
 fun ChatHistory.toDisplayConversation(): ChatConversation? =
-    takeIf { it.hasData() }?.let { it.conversations.firstOrNull()?.toPromptConversation() }
+    takeIf { it.hasData() }?.let { it.conversations.firstOrNull()?.toHistoryConversation() }
 
 fun List<ChatHistory>.toDisplayConversations(): List<ChatConversation> = mapNotNull { it.toDisplayConversation() }
 
