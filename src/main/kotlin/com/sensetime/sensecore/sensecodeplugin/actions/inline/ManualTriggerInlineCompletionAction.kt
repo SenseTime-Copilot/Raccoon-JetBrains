@@ -16,10 +16,10 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.refactoring.suggested.endOffset
 import com.sensetime.sensecore.sensecodeplugin.clients.CodeClientManager
-import com.sensetime.sensecore.sensecodeplugin.clients.SenseNovaClient
 import com.sensetime.sensecore.sensecodeplugin.clients.requests.CodeRequest
 import com.sensetime.sensecore.sensecodeplugin.clients.responses.CodeStreamResponse
 import com.sensetime.sensecore.sensecodeplugin.completions.CompletionPreview
+import com.sensetime.sensecore.sensecodeplugin.settings.ClientConfig
 import com.sensetime.sensecore.sensecodeplugin.settings.SenseCodeSettingsState
 import com.sensetime.sensecore.sensecodeplugin.utils.SenseCodePlugin
 import kotlinx.coroutines.*
@@ -37,19 +37,6 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
         inlineCompletionJob = null
     }
 
-    private fun getMessages(caretOffset: Int, psiElement: PsiElement, maxLength: Int): List<CodeRequest.Message> {
-        val result: List<CodeRequest.Message> = listOfNotNull(
-            if (SenseNovaClient.CLIENT_NAME != CodeClientManager.getClientAndConfigPair().second.name) CodeRequest.Message(
-                "system",
-                ""
-            ) else null
-        )
-        return result + CodeRequest.Message(
-            "user",
-            getUserContent(psiElement, caretOffset - psiElement.textOffset, maxLength)
-        )
-    }
-
     private fun inlineCompletion(editor: Editor, psiFile: PsiFile?) {
         var caretOffset = editor.caretModel.offset
         inlineCompletionJob = findPsiElementAt(psiFile, caretOffset)?.let { psiElement ->
@@ -61,16 +48,26 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
 
             val settings = SenseCodeSettingsState.instance
             val n = settings.candidates
-            val (client, config) = CodeClientManager.getClientAndConfigPair()
-            val model = config.models.getValue(config.inlineCompletionModelName)
+            val (client, clientConfig) = CodeClientManager.getClientAndConfigPair()
+            val modelConfig = clientConfig.getModelConfigByType(ClientConfig.INLINE_MIDDLE)
+            val promptTemplate = modelConfig.getPromptTemplateByType(ClientConfig.INLINE_MIDDLE)
             val codeRequest = CodeRequest(
-                model.name,
-                getMessages(caretOffset, psiElement, model.maxInputTokens),
-                model.temperature,
+                modelConfig.name,
+                listOfNotNull(
+                    promptTemplate.getSystemPromptContent()
+                        ?.let { CodeRequest.Message(promptTemplate.systemRole, it) }) + CodeRequest.Message(
+                    promptTemplate.userRole,
+                    getUserContent(
+                        psiElement,
+                        caretOffset - psiElement.textOffset,
+                        modelConfig.maxInputTokens
+                    ).getContent(clientConfig)
+                ),
+                modelConfig.temperature,
                 n,
-                model.stop,
-                model.getMaxNewTokens(settings.inlineCompletionPreference),
-                config.apiEndpoint
+                modelConfig.stop,
+                modelConfig.getMaxNewTokens(settings.inlineCompletionPreference),
+                clientConfig.apiEndpoint
             )
 
             if (n <= 1) {
@@ -214,26 +211,27 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
                 return true
             }
 
-            fun getContent(): String {
-                val promptTemplate =
-                    CodeClientManager.getClientAndConfigPair().second.run {
-                        models.getValue(
-                            inlineCompletionModelName
-                        ).inlineCompletionPromptTemplate
-                    }
+            fun getContent(clientConfig: ClientConfig): String {
                 return if (text.length > offset) {
-                    promptTemplate.getValue("middle").displayText.format(
-                        text.substring(0, offset),
-                        text.substring(offset)
-                    )
+                    ClientConfig.INLINE_MIDDLE.let { type ->
+                        clientConfig.getModelConfigByType(type).getPromptTemplateByType(type).getUserPromptContent(
+                            mapOf(
+                                "prefix" to text.substring(0, offset),
+                                "suffix" to text.substring(offset)
+                            )
+                        )
+                    }
                 } else {
-                    promptTemplate.getValue("end").displayText.format(text)
+                    ClientConfig.INLINE_END.let { type ->
+                        clientConfig.getModelConfigByType(type).getPromptTemplateByType(type)
+                            .getUserPromptContent(mapOf("prefix" to text))
+                    }
                 }
             }
         }
 
         @JvmStatic
-        private fun getUserContent(psiElement: PsiElement, caretOffsetInElement: Int, maxLength: Int): String {
+        private fun getUserContent(psiElement: PsiElement, caretOffsetInElement: Int, maxLength: Int): UserContent {
             var userContent = UserContent(psiElement.text, caretOffsetInElement, maxLength)
             if (userContent.cutByMaxLength()) {
                 var curPsiElement = psiElement
@@ -272,7 +270,7 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
                     curPsiElement = curPsiElement.parent
                 }
             }
-            return userContent.getContent()
+            return userContent
         }
     }
 }

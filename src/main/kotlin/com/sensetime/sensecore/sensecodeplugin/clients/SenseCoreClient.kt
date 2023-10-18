@@ -12,6 +12,7 @@ import com.sensetime.sensecore.sensecodeplugin.clients.models.PenroseModels
 import com.sensetime.sensecore.sensecodeplugin.clients.requests.AMSCodeRequest
 import com.sensetime.sensecore.sensecodeplugin.clients.responses.AMSCodeResponse
 import com.sensetime.sensecore.sensecodeplugin.clients.responses.AMSError
+import com.sensetime.sensecore.sensecodeplugin.settings.ModelConfig
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
@@ -67,20 +68,18 @@ class SenseCoreClient : AkSkCodeClient() {
         const val CLIENT_NAME = "sensecode"
         const val API_ENDPOINT = "https://ams.sensecoreapi.cn/studio/ams/data/v1/chat/completions"
 
-        private const val SYSTEM_PROMPT_TEMPLATE = ""
+        private val SYSTEM_PROMPT_TEMPLATE = ModelConfig.DisplayText("")
         private const val PENROSE_MODEL_S = "penrose-411"
         private const val PENROSE_MODEL_L = "penrose-l"
 
         @JvmStatic
         fun getDefaultClientConfig(): ClientConfig = ClientConfig(
-            CLIENT_NAME,
-            ::SenseCoreClient,
-            PENROSE_MODEL_S, PENROSE_MODEL_L, PENROSE_MODEL_S, PENROSE_MODEL_S,
-            API_ENDPOINT,
+            CLIENT_NAME, ::SenseCoreClient, API_ENDPOINT,
             mapOf(
                 PENROSE_MODEL_S to PenroseModels.makeModelSConfig(PENROSE_MODEL_S, SYSTEM_PROMPT_TEMPLATE),
                 PENROSE_MODEL_L to PenroseModels.makeModelLConfig(PENROSE_MODEL_L, SYSTEM_PROMPT_TEMPLATE)
-            )
+            ),
+            mapOf(ClientConfig.FREE_CHAT to PENROSE_MODEL_L), PENROSE_MODEL_S
         )
     }
 }

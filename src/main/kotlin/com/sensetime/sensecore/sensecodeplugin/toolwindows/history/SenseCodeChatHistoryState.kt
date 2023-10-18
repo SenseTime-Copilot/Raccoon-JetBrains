@@ -5,7 +5,6 @@ import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.util.xmlb.XmlSerializerUtil
-import com.sensetime.sensecore.sensecodeplugin.toolwindows.common.*
 import com.sensetime.sensecore.sensecodeplugin.utils.SenseCodePlugin
 
 @State(
@@ -22,11 +21,17 @@ data class SenseCodeChatHistoryState(
             historiesJsonString = value.toJsonString()
         }
 
-    var lastFreeChatConversationsString: String = "[]"
-    var lastFreeChatConversations: List<ChatConversation>
-        get() = lastFreeChatConversationsString.toChatConversations()
+    var lastChatHistoryString: String = """{"chatType": "FREE_CHAT"}"""
+    var lastChatHistory: ChatHistory
+        get() = lastChatHistoryString.toChatHistory()
         set(value) {
-            lastFreeChatConversationsString = value.toJsonString()
+            lastChatHistoryString = value.toJsonString()
+        }
+    var lastTaskHistoryString: String = """{"chatType": "CODE_TASK"}"""
+    var lastTaskHistory: ChatHistory
+        get() = lastTaskHistoryString.toChatHistory()
+        set(value) {
+            lastTaskHistoryString = value.toJsonString()
         }
 
     override fun getState(): SenseCodeChatHistoryState {

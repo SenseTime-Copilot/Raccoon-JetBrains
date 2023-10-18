@@ -8,31 +8,29 @@ import com.intellij.openapi.editor.Editor
 import com.sensetime.sensecore.sensecodeplugin.clients.CodeClientManager
 import com.sensetime.sensecore.sensecodeplugin.messages.SENSE_CODE_TASKS_TOPIC
 import com.sensetime.sensecore.sensecodeplugin.settings.ModelConfig
+import com.sensetime.sensecore.sensecodeplugin.toolwindows.common.ChatConversation
 import com.sensetime.sensecore.sensecodeplugin.utils.SenseCodeNotification
 import kotlin.reflect.KClass
 
 abstract class CodeTaskActionBase : AnAction() {
+    open val raw: String = ""
+    open val customArgs: Map<String, String>? = null
     private val key: String = getActionKey(this::class)
+    private val actionsModelConfig: ModelConfig
+        get() = CodeClientManager.getClientAndConfigPair().second.getModelConfigByType(key)
+
     override fun actionPerformed(e: AnActionEvent) {
         getEditorSelectedText(e.getData(CommonDataKeys.EDITOR))?.let { code ->
-            promptTemplate?.let { promptTemplate ->
-                val taskPromptPair = getTaskPromptPair(code, promptTemplate)
-                ApplicationManager.getApplication().messageBus.syncPublisher(SENSE_CODE_TASKS_TOPIC)
-                    .onNewTask(taskPromptPair.first, taskPromptPair.second)
-            }
+            sendNewTaskMessage(ChatConversation.Message.makeMessage(raw, code, customArgs))
         }
     }
 
-    private val actionsModelConfig: ModelConfig?
-        get() = CodeClientManager.getClientAndConfigPair().second.run { models[actionsModelName] }
-    protected val promptTemplate: ModelConfig.PromptTemplate?
-        get() = actionsModelConfig?.codeTaskActions?.get(key)
+    protected fun sendNewTaskMessage(userMessage: ChatConversation.Message) {
+        ApplicationManager.getApplication().messageBus.syncPublisher(SENSE_CODE_TASKS_TOPIC).onNewTask(key, userMessage)
+    }
 
     protected fun getEditorSelectedText(editor: Editor?) =
-        actionsModelConfig?.run { SenseCodeNotification.checkEditorSelectedText(maxInputTokens, editor) }
-
-    private fun getTaskPromptPair(code: String, promptTemplate: ModelConfig.PromptTemplate): Pair<String, String?> =
-        Pair(promptTemplate.displayText.format(code), promptTemplate.prompt?.format(code))
+        SenseCodeNotification.checkEditorSelectedText(actionsModelConfig.maxInputTokens, editor)
 
     companion object {
         @JvmStatic

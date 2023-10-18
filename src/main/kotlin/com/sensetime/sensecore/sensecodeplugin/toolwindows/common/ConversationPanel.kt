@@ -4,17 +4,22 @@ import com.intellij.icons.AllIcons
 import com.intellij.ide.BrowserUtil
 import com.intellij.markdown.utils.convertMarkdownToHtml
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.observable.util.addMouseListener
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.JBColor
 import com.intellij.util.ui.JBFont
 import com.intellij.util.ui.JBUI
+import com.sensetime.sensecore.sensecodeplugin.clients.CodeClientManager
 import com.sensetime.sensecore.sensecodeplugin.resources.SenseCodeIcons
+import com.sensetime.sensecore.sensecodeplugin.settings.ModelConfig
 import com.sensetime.sensecore.sensecodeplugin.ui.common.ButtonUtils
 import com.sensetime.sensecore.sensecodeplugin.utils.SenseCodePlugin
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Component
 import java.awt.event.ActionEvent
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.swing.*
@@ -31,33 +36,46 @@ fun JTextPane.updateStyle(styleAttrs: SimpleAttributeSet): JTextPane = apply {
 }
 
 fun JTextPane.updateMarkDownTextAndStyle(markdownText: String, styleAttrs: SimpleAttributeSet): JTextPane = apply {
-    text = convertMarkdownToHtml(markdownText)
-    styledDocument.setParagraphAttributes(0, styledDocument.length, styleAttrs, false)
+    updateMarkDownText(markdownText)
+    updateStyle(styleAttrs)
 }
 
 class ConversationPanel : JPanel(BorderLayout()), Disposable {
     interface EventListener {
         fun onDelete(e: ActionEvent?)
+        fun onMouseDoubleClicked(e: MouseEvent?) {}
     }
 
     private val deleteButton: JButton = ButtonUtils.createIconButton(AllIcons.Actions.DeleteTag)
-    var assistantJTextPane: JTextPane? = null
+    var assistantTextPane: JTextPane? = null
         private set
 
+    var promptTemplate: ModelConfig.PromptTemplate? = null
     var conversation: ChatConversation? = null
         set(value) {
             add(Box.createVerticalBox().apply {
                 value?.let {
+                    val prompt = CodeClientManager.getClientAndConfigPair().second.getModelConfigByType(it.type)
+                        .getPromptTemplateByType(it.type)
                     add(JSeparator())
                     add(createRoleBox(true, it.name, it.user.timestampMs, deleteButton))
-                    add(createContentTextPane(true, ChatConversation.State.DONE, it.user.content))
-                    assistantJTextPane = it.assistant?.let { assistantMessage ->
+                    add(
+                        createContentTextPane(
+                            true,
+                            ChatConversation.State.DONE,
+                            prompt.getUserPromptDisplay(it.user.args)
+                        )
+                    )
+                    assistantTextPane = it.assistant?.let { assistantMessage ->
                         add(createRoleBox(false, SenseCodePlugin.NAME, assistantMessage.timestampMs))
-                        createContentTextPane(false, it.state, assistantMessage.content).also { assistantPane ->
-                            add(assistantPane)
-                        }
+                        createContentTextPane(
+                            false,
+                            it.state,
+                            prompt.getAssistantTextDisplay(assistantMessage.args)
+                        ).also { assistantPane -> add(assistantPane) }
                     }
                     add(JSeparator())
+                    promptTemplate = prompt
                 }
             }, BorderLayout.CENTER)
             isVisible = (null != value)
@@ -82,13 +100,22 @@ class ConversationPanel : JPanel(BorderLayout()), Disposable {
     ): ConversationPanel = apply {
         this.eventListener = eventListener
         this.conversation = conversation
+
+        addMouseListener(this@ConversationPanel, object : MouseAdapter() {
+            override fun mouseClicked(e: MouseEvent?) {
+                e?.takeIf { 2 == it.clickCount }?.let {
+                    this@ConversationPanel.eventListener?.onMouseDoubleClicked(e)
+                }
+            }
+        })
         Disposer.register(parent, this)
     }
 
     override fun dispose() {
-        assistantJTextPane = null
+        assistantTextPane = null
         conversation = null
         eventListener = null
+        promptTemplate = null
     }
 
     companion object {

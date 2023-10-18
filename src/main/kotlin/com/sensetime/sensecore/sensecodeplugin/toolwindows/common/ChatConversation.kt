@@ -1,5 +1,6 @@
 package com.sensetime.sensecore.sensecodeplugin.toolwindows.common
 
+import com.sensetime.sensecore.sensecodeplugin.clients.CodeClientManager
 import com.sensetime.sensecore.sensecodeplugin.clients.requests.CodeRequest
 import com.sensetime.sensecore.sensecodeplugin.settings.ModelConfig
 import kotlinx.serialization.Serializable
@@ -8,6 +9,7 @@ import kotlinx.serialization.builtins.ListSerializer
 @Serializable
 data class ChatConversation(
     val name: String,
+    val type: String,
     val user: Message,
     val assistant: Message? = null,
     val state: State = State.PROMPT
@@ -44,9 +46,11 @@ data class ChatConversation(
             get() = args[RAW]
         val code: String?
             get() = args[CODE]
+
+        fun hasData(): Boolean = !(raw.isNullOrBlank() && code.isNullOrBlank())
     }
 
-    fun toPromptConversation(): ChatConversation = ChatConversation(name, user)
+    fun toPromptConversation(): ChatConversation = ChatConversation(name, type, user)
 
     companion object {
         fun getCurrentTimestampMs() = System.currentTimeMillis()
@@ -59,24 +63,34 @@ fun List<ChatConversation>.toJsonString() =
 fun String.toChatConversations(): List<ChatConversation> =
     SenseCodeChatJson.decodeFromString(ListSerializer(ChatConversation.serializer()), this)
 
-fun List<ChatConversation>.toCodeRequestMessage(
-    promptTemplate: ModelConfig.PromptTemplate
-): List<CodeRequest.Message> = promptTemplate.run {
-    listOfNotNull(getSystemPromptContent()?.let { CodeRequest.Message(systemRole, it) }) + flatMap { conversation ->
+fun List<ChatConversation>.toCodeRequestMessage(): List<CodeRequest.Message> {
+    var firstPrompt: ModelConfig.PromptTemplate? = null
+    val messages = flatMap { conversation ->
+        val prompt = CodeClientManager.getClientAndConfigPair().second.getModelConfigByType(conversation.type)
+            .getPromptTemplateByType(conversation.type)
+        if (null == firstPrompt) {
+            firstPrompt = prompt
+        }
         when (conversation.state) {
             ChatConversation.State.PROMPT -> listOf(
                 CodeRequest.Message(
-                    userRole,
-                    getUserPromptContent(conversation.user.args)
+                    prompt.userRole,
+                    prompt.getUserPromptContent(conversation.user.args)
                 )
             )
 
             ChatConversation.State.DONE -> listOf(
-                CodeRequest.Message(userRole, getUserPromptContent(conversation.user.args)),
-                CodeRequest.Message(assistantRole, getAssistantTextContent(conversation.assistant!!.args))
+                CodeRequest.Message(prompt.userRole, prompt.getUserPromptContent(conversation.user.args)),
+                CodeRequest.Message(prompt.assistantRole, prompt.getAssistantTextContent(conversation.assistant!!.args))
             )
 
             else -> emptyList()
         }
     }
+    if (messages.isEmpty()) {
+        return messages
+    }
+    return listOfNotNull(firstPrompt?.let { prompt ->
+        prompt.getSystemPromptContent()?.let { CodeRequest.Message(prompt.systemRole, it) }
+    }) + messages
 }

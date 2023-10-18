@@ -163,14 +163,9 @@ class SenseNovaClient : AkSkAndLoginCodeClient() {
 
         @JvmStatic
         fun getDefaultClientConfig(): ClientConfig = ClientConfig(
-            CLIENT_NAME,
-            ::SenseNovaClient,
-            PTC_CODE_S_MODEL_NAME,
-            PTC_CODE_S_MODEL_NAME,
-            PTC_CODE_S_MODEL_NAME,
-            PTC_CODE_S_MODEL_NAME,
-            API_ENDPOINT,
-            mapOf(PTC_CODE_S_MODEL_NAME to PenroseModels.makeModelSConfig(PTC_CODE_S_MODEL_NAME))
+            CLIENT_NAME, ::SenseNovaClient, API_ENDPOINT,
+            mapOf(PTC_CODE_S_MODEL_NAME to PenroseModels.makeModelSConfig(PTC_CODE_S_MODEL_NAME)),
+            emptyMap(), PTC_CODE_S_MODEL_NAME
         )
 
         @JvmStatic

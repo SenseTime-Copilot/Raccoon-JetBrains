@@ -11,10 +11,8 @@ data class ModelConfig(
     val stop: String,
     val maxInputTokens: Int,
     val tokenLimit: Int,
-    val codeTaskActions: Map<String, PromptTemplate>,
-    val freeChatPromptTemplate: PromptTemplate,
-    val customPromptTemplate: Map<String, PromptTemplate>,
-    val inlineCompletionPromptTemplate: Map<String, PromptTemplate>,
+    val promptTemplates: Map<String, PromptTemplate>,
+    private val defaultPromptTemplate: PromptTemplate,
     val completionPreferenceMap: Map<CompletionPreference, Int>,
     val maxNewTokens: Int? = null
 ) {
@@ -39,9 +37,9 @@ data class ModelConfig(
         val userRole: String,
         val userPrompt: DisplayText,
         val assistantRole: String,
-        val assistantText: DisplayText = DisplayText("{$RAW}"),
-        val systemRole: String = "system",
-        val systemPrompt: DisplayText? = null
+        val assistantText: DisplayText,
+        val systemRole: String,
+        val systemPrompt: DisplayText?
     ) {
         fun getUserPromptContent(args: Map<String, String>? = null): String = getContent(userPrompt.text, args)
         fun getUserPromptDisplay(args: Map<String, String>? = null): String = getContent(userPrompt.display, args)
@@ -66,6 +64,9 @@ data class ModelConfig(
             } ?: template
         }
     }
+
+    fun getPromptTemplateByType(type: String): PromptTemplate =
+        promptTemplates.getOrDefault(type, defaultPromptTemplate)
 
     fun getMaxNewTokens(completionPreference: CompletionPreference): Int =
         maxNewTokens ?: completionPreferenceMap.getValue(completionPreference)
