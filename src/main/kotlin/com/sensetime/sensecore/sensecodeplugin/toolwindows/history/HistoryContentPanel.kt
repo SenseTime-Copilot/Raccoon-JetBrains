@@ -3,8 +3,11 @@ package com.sensetime.sensecore.sensecodeplugin.toolwindows.history
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.observable.util.addListDataListener
 import com.intellij.ui.components.JBScrollPane
+import com.sensetime.sensecore.sensecodeplugin.resources.SenseCodeBundle
 import com.sensetime.sensecore.sensecodeplugin.toolwindows.common.*
+import com.sensetime.sensecore.sensecodeplugin.ui.common.ButtonUtils
 import java.awt.BorderLayout
+import java.awt.event.ActionEvent
 import java.awt.event.MouseEvent
 import javax.swing.*
 import javax.swing.event.ListDataEvent
@@ -30,8 +33,12 @@ class HistoryContentPanel : JPanel(BorderLayout()), ListDataListener, Disposable
         }
     private val conversationListPanel: ConversationListPanel = ConversationListPanel()
     private var eventListener: EventListener? = null
+    private val clearButton: JButton =
+        ButtonUtils.createActionLinkBiggerOn1(SenseCodeBundle.message("toolwindows.content.history.button.clear"))
+            .apply { addActionListener(this@HistoryContentPanel::onClear) }
 
     override fun dispose() {
+        clearButton.removeActionListener(this::onClear)
         eventListener = null
     }
 
@@ -45,6 +52,11 @@ class HistoryContentPanel : JPanel(BorderLayout()), ListDataListener, Disposable
                 ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
             ), BorderLayout.CENTER
         )
+        add(Box.createHorizontalBox().apply {
+            add(clearButton)
+            add(Box.createHorizontalGlue())
+            border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        }, BorderLayout.SOUTH)
         this.eventListener = eventListener
         conversationListPanel.build(
             this,
@@ -67,6 +79,10 @@ class HistoryContentPanel : JPanel(BorderLayout()), ListDataListener, Disposable
             histories += it
             conversationListPanel.conversationListModel.add(it.toDisplayConversation())
         }
+    }
+
+    private fun onClear(e: ActionEvent?) {
+        conversationListPanel.conversationListModel.removeAll()
     }
 
     override fun intervalAdded(e: ListDataEvent?) {}
