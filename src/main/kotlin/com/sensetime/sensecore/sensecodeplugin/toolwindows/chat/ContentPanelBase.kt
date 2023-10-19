@@ -43,7 +43,9 @@ abstract class ContentPanelBase : JPanel(BorderLayout()), ListDataListener, Disp
 
     private val gotoHelpContentButton: JButton =
         ButtonUtils.createActionLinkBiggerOn1(SenseCodeBundle.message("toolwindows.content.chat.assistant.gotoHelp"))
-    protected open val newChatButton: JButton? = null
+    private val newChatButton: JButton =
+        ButtonUtils.createActionLinkBiggerOn1(SenseCodeBundle.message("toolwindows.content.chat.button.newChat"))
+            .apply { addActionListener(this@ContentPanelBase::onNewChat) }
     private val regenerateButton: JButton =
         ButtonUtils.createActionLinkBiggerOn1(SenseCodeBundle.message("toolwindows.content.chat.button.regenerate"))
             .apply { addActionListener(this@ContentPanelBase::onRegenerate) }
@@ -94,6 +96,7 @@ abstract class ContentPanelBase : JPanel(BorderLayout()), ListDataListener, Disp
     }
 
     override fun dispose() {
+        newChatButton.removeActionListener(this::onNewChat)
         regenerateButton.removeActionListener(this::onRegenerate)
         submitButton.removeActionListener(this::onSubmitButtonClick)
 
@@ -140,7 +143,7 @@ abstract class ContentPanelBase : JPanel(BorderLayout()), ListDataListener, Disp
         )
         add(JPanel(BorderLayout()).apply {
             add(Box.createHorizontalBox().apply {
-                newChatButton?.let { add(it) }
+                add(newChatButton)
                 add(Box.createHorizontalGlue())
                 add(regenerateButton)
                 add(stopRegenerateButton)
@@ -159,6 +162,10 @@ abstract class ContentPanelBase : JPanel(BorderLayout()), ListDataListener, Disp
         updateRegenerateButtonVisible()
         conversationListPanel.conversationListModel.addListDataListener(this, this)
         return this
+    }
+
+    private fun onNewChat(e: ActionEvent?) {
+        loadFromHistory()
     }
 
     fun loadFromHistory(userPromptText: String = "", conversations: List<ChatConversation>? = null) {
@@ -185,7 +192,7 @@ abstract class ContentPanelBase : JPanel(BorderLayout()), ListDataListener, Disp
     protected fun startGenerate(e: ActionEvent? = null, isRegenerate: Boolean = false) {
         eventListener?.let { listener ->
             conversationListPanel.conversationListModel.takeUnless { it.isEmpty }?.run {
-                newChatButton?.isVisible = false
+                newChatButton.isVisible = false
                 regenerateButton.isVisible = false
                 stopRegenerateButton.isVisible = true
                 submitButton.isVisible = false
@@ -204,7 +211,7 @@ abstract class ContentPanelBase : JPanel(BorderLayout()), ListDataListener, Disp
         if (stopRegenerateButton.isVisible) {
             updateLastHistoryState()
         }
-        newChatButton?.isVisible = true
+        newChatButton.isVisible = true
         stopRegenerateButton.isVisible = false
         submitButton.isVisible = true
         stopSubmitButton.isVisible = false

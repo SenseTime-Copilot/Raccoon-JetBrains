@@ -23,18 +23,16 @@ class HistoryContentPanel : JPanel(BorderLayout()), ListDataListener, Disposable
         )
     }
 
-    private val histories: MutableList<ChatHistory> =
-        SenseCodeChatHistoryState.instance.historiesJsonString.toChatHistories().toMutableList()
+    private var histories: List<ChatHistory>
+        get() = SenseCodeChatHistoryState.instance.historiesJsonString.toChatHistories()
+        set(value) {
+            SenseCodeChatHistoryState.instance.historiesJsonString = value.toJsonString()
+        }
     private val conversationListPanel: ConversationListPanel = ConversationListPanel()
     private var eventListener: EventListener? = null
 
-    private fun updateHistoriesState() {
-        SenseCodeChatHistoryState.instance.historiesJsonString = histories.toJsonString()
-    }
-
     override fun dispose() {
         eventListener = null
-        updateHistoriesState()
     }
 
     fun build(
@@ -53,7 +51,7 @@ class HistoryContentPanel : JPanel(BorderLayout()), ListDataListener, Disposable
             histories.toDisplayConversations(),
             object : ConversationListPanel.EventListener {
                 override fun onMouseDoubleClicked(e: MouseEvent?, index: Int) {
-                    histories.getOrNull(index)?.let {
+                    this@HistoryContentPanel.histories.getOrNull(index)?.let {
                         conversationListPanel.conversationListModel.remove(index)
                         this@HistoryContentPanel.eventListener?.onHistoryClick(e, it)
                     }
@@ -65,25 +63,19 @@ class HistoryContentPanel : JPanel(BorderLayout()), ListDataListener, Disposable
 
     fun saveHistory(history: ChatHistory) {
         history.takeIf { it.hasData() }?.let {
-            histories.add(it)
+            histories += it
             conversationListPanel.conversationListModel.add(it.toDisplayConversation())
         }
     }
 
-    override fun intervalAdded(e: ListDataEvent?) {
-        updateHistoriesState()
-    }
+    override fun intervalAdded(e: ListDataEvent?) {}
 
     override fun intervalRemoved(e: ListDataEvent?) {
         e?.run {
-            for (i in index0..index1) {
-                histories.removeAt(index0)
-            }
+            val tmpHistories = histories
+            histories = tmpHistories.subList(0, index0) + tmpHistories.subList(index1 + 1, tmpHistories.size)
         }
-        updateHistoriesState()
     }
 
-    override fun contentsChanged(e: ListDataEvent?) {
-        updateHistoriesState()
-    }
+    override fun contentsChanged(e: ListDataEvent?) {}
 }
