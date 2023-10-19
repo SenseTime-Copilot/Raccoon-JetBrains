@@ -13,7 +13,7 @@ import javax.swing.event.ListDataListener
 
 open class ConversationListPanel : JPanel(BorderLayout()), ListDataListener, Disposable {
     interface EventListener {
-        fun onMouseDoubleClicked(e: MouseEvent?, index: Int)
+        fun onMouseDoubleClicked(e: MouseEvent?, conversation: ChatConversation)
     }
 
     class ConversationListModel(items: List<ChatConversation>) : CollectionListModel<ChatConversation>(items)
@@ -47,17 +47,19 @@ open class ConversationListPanel : JPanel(BorderLayout()), ListDataListener, Dis
 
     private fun addConversation(index: Int) {
         conversationListBox.add(
-            ConversationPanel().build(
-                this, conversationListModel.items[index],
-                object : ConversationPanel.EventListener {
-                    override fun onDelete(e: ActionEvent?) {
-                        conversationListModel.remove(index)
-                    }
+            conversationListModel.items[index].let { conversation ->
+                ConversationPanel().build(
+                    this, conversation,
+                    object : ConversationPanel.EventListener {
+                        override fun onDelete(e: ActionEvent?) {
+                            conversationListModel.remove(conversation)
+                        }
 
-                    override fun onMouseDoubleClicked(e: MouseEvent?) {
-                        eventListener?.onMouseDoubleClicked(e, index)
-                    }
-                }), index
+                        override fun onMouseDoubleClicked(e: MouseEvent?) {
+                            eventListener?.onMouseDoubleClicked(e, conversation)
+                        }
+                    })
+            }, index
         )
     }
 

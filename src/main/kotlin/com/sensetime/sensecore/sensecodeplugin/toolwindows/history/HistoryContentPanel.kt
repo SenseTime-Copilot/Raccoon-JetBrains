@@ -50,7 +50,8 @@ class HistoryContentPanel : JPanel(BorderLayout()), ListDataListener, Disposable
             this,
             histories.toDisplayConversations(),
             object : ConversationListPanel.EventListener {
-                override fun onMouseDoubleClicked(e: MouseEvent?, index: Int) {
+                override fun onMouseDoubleClicked(e: MouseEvent?, conversation: ChatConversation) {
+                    val index = conversationListPanel.conversationListModel.getElementIndex(conversation)
                     this@HistoryContentPanel.histories.getOrNull(index)?.let {
                         conversationListPanel.conversationListModel.remove(index)
                         this@HistoryContentPanel.eventListener?.onHistoryClick(e, it)
