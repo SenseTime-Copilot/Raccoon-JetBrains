@@ -3,8 +3,8 @@ package com.sensetime.sensecore.sensecodeplugin.toolwindows.chat
 import com.intellij.ide.DataManager
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.CommonDataKeys
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.observable.util.addFocusListener
 import com.intellij.openapi.observable.util.addListDataListener
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextArea
@@ -20,10 +20,11 @@ import com.sensetime.sensecore.sensecodeplugin.utils.SenseCodeNotification
 import com.sensetime.sensecore.sensecodeplugin.utils.SenseCodePlugin
 import java.awt.BorderLayout
 import java.awt.event.ActionEvent
+import java.awt.event.FocusEvent
+import java.awt.event.FocusListener
 import javax.swing.*
 import javax.swing.event.ListDataEvent
 import javax.swing.event.ListDataListener
-import kotlin.reflect.KMutableProperty0
 
 abstract class ContentPanelBase : JPanel(BorderLayout()), ListDataListener, Disposable {
     interface EventListener {
@@ -57,6 +58,12 @@ abstract class ContentPanelBase : JPanel(BorderLayout()), ListDataListener, Disp
 
     private val userPromptTextArea: JTextArea = JBTextArea().apply {
         lineWrap = true
+        addFocusListener(this@ContentPanelBase, object : FocusListener {
+            override fun focusGained(e: FocusEvent?) {}
+            override fun focusLost(e: FocusEvent?) {
+                updateLastHistoryState()
+            }
+        })
     }
 
     protected val conversationListPanel: ConversationListPanel = ConversationListPanel()
@@ -81,14 +88,17 @@ abstract class ContentPanelBase : JPanel(BorderLayout()), ListDataListener, Disp
             }
         }
 
-    protected abstract val lastStateProp: KMutableProperty0<ChatHistory>
+    protected abstract var lastHistoryState: ChatHistory
+    private fun updateLastHistoryState() {
+        lastHistoryState = ChatHistory(type, userPromptTextArea.text, conversationListPanel.conversationListModel.items)
+    }
 
     override fun dispose() {
         regenerateButton.removeActionListener(this::onRegenerate)
         submitButton.removeActionListener(this::onSubmitButtonClick)
 
         eventListener = null
-        lastStateProp.set(ChatHistory(type, userPromptTextArea.text, conversationListPanel.conversationListModel.items))
+        updateLastHistoryState()
     }
 
     fun build(
@@ -144,9 +154,8 @@ abstract class ContentPanelBase : JPanel(BorderLayout()), ListDataListener, Disp
         }, BorderLayout.SOUTH)
 
         this.eventListener = eventListener
-        val lastHistory = lastStateProp.get()
-        userPromptTextArea.text = lastHistory.userPromptText
-        conversationListPanel.build(this, lastHistory.conversations)
+        userPromptTextArea.text = lastHistoryState.userPromptText
+        conversationListPanel.build(this, lastHistoryState.conversations)
         updateRegenerateButtonVisible()
         conversationListPanel.conversationListModel.addListDataListener(this, this)
         return this
@@ -192,12 +201,15 @@ abstract class ContentPanelBase : JPanel(BorderLayout()), ListDataListener, Disp
     }
 
     private fun endGenerate() {
+        if (stopRegenerateButton.isVisible) {
+            updateLastHistoryState()
+        }
         newChatButton?.isVisible = true
-        regenerateButton.isVisible = true
         stopRegenerateButton.isVisible = false
         submitButton.isVisible = true
         stopSubmitButton.isVisible = false
         userPromptTextArea.isEditable = true
+        updateRegenerateButtonVisible()
 
         conversationListPanel.lastConversation?.takeIf { ChatConversation.State.PROMPT == it.state }?.let {
             if (it.assistant?.raw.isNullOrBlank()) {
@@ -269,14 +281,18 @@ abstract class ContentPanelBase : JPanel(BorderLayout()), ListDataListener, Disp
     }
 
     override fun intervalAdded(e: ListDataEvent?) {
+        updateLastHistoryState()
         updateRegenerateButtonVisible()
     }
 
     override fun intervalRemoved(e: ListDataEvent?) {
+        updateLastHistoryState()
         updateRegenerateButtonVisible()
     }
 
-    override fun contentsChanged(e: ListDataEvent?) {}
+    override fun contentsChanged(e: ListDataEvent?) {
+        updateLastHistoryState()
+    }
 
     companion object {
         @JvmStatic

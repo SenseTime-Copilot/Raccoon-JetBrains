@@ -3,14 +3,19 @@ package com.sensetime.sensecore.sensecodeplugin.toolwindows.chat
 import com.sensetime.sensecore.sensecodeplugin.resources.SenseCodeBundle
 import com.sensetime.sensecore.sensecodeplugin.toolwindows.history.ChatHistory
 import com.sensetime.sensecore.sensecodeplugin.toolwindows.history.SenseCodeChatHistoryState
+import com.sensetime.sensecore.sensecodeplugin.toolwindows.history.toChatHistory
+import com.sensetime.sensecore.sensecodeplugin.toolwindows.history.toJsonString
 import com.sensetime.sensecore.sensecodeplugin.ui.common.ButtonUtils
 import java.awt.event.ActionEvent
 import javax.swing.JButton
-import kotlin.reflect.KMutableProperty0
 
-class ChatContentPanel() : ContentPanelBase() {
+class ChatContentPanel : ContentPanelBase() {
     override val type: ChatHistory.ChatType = ChatHistory.ChatType.FREE_CHAT
-    override val lastStateProp: KMutableProperty0<ChatHistory> = SenseCodeChatHistoryState.instance::lastChatHistory
+    override var lastHistoryState: ChatHistory
+        get() = SenseCodeChatHistoryState.instance.lastChatHistoryString.toChatHistory()
+        set(value) {
+            SenseCodeChatHistoryState.instance.lastChatHistoryString = value.toJsonString()
+        }
 
     override val newChatButton: JButton =
         ButtonUtils.createActionLinkBiggerOn1(SenseCodeBundle.message("toolwindows.content.chat.button.newChat"))

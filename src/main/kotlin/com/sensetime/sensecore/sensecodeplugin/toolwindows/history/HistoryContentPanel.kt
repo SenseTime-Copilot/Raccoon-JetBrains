@@ -23,13 +23,18 @@ class HistoryContentPanel : JPanel(BorderLayout()), ListDataListener, Disposable
         )
     }
 
-    private val histories: MutableList<ChatHistory> = SenseCodeChatHistoryState.instance.histories.toMutableList()
+    private val histories: MutableList<ChatHistory> =
+        SenseCodeChatHistoryState.instance.historiesJsonString.toChatHistories().toMutableList()
     private val conversationListPanel: ConversationListPanel = ConversationListPanel()
     private var eventListener: EventListener? = null
 
+    private fun updateHistoriesState() {
+        SenseCodeChatHistoryState.instance.historiesJsonString = histories.toJsonString()
+    }
+
     override fun dispose() {
         eventListener = null
-        SenseCodeChatHistoryState.instance.histories = histories
+        updateHistoriesState()
     }
 
     fun build(
@@ -65,7 +70,9 @@ class HistoryContentPanel : JPanel(BorderLayout()), ListDataListener, Disposable
         }
     }
 
-    override fun intervalAdded(e: ListDataEvent?) {}
+    override fun intervalAdded(e: ListDataEvent?) {
+        updateHistoriesState()
+    }
 
     override fun intervalRemoved(e: ListDataEvent?) {
         e?.run {
@@ -73,7 +80,10 @@ class HistoryContentPanel : JPanel(BorderLayout()), ListDataListener, Disposable
                 histories.removeAt(index0)
             }
         }
+        updateHistoriesState()
     }
 
-    override fun contentsChanged(e: ListDataEvent?) {}
+    override fun contentsChanged(e: ListDataEvent?) {
+        updateHistoriesState()
+    }
 }

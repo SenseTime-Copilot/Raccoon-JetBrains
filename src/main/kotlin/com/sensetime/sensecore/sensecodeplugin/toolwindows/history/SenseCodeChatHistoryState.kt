@@ -15,24 +15,8 @@ data class SenseCodeChatHistoryState(
     var version: String = ""
 ) : PersistentStateComponent<SenseCodeChatHistoryState> {
     var historiesJsonString: String = "[]"
-    var histories: List<ChatHistory>
-        get() = historiesJsonString.toChatHistories()
-        set(value) {
-            historiesJsonString = value.toJsonString()
-        }
-
-    var lastChatHistoryString: String = """{"chatType": "FREE_CHAT"}"""
-    var lastChatHistory: ChatHistory
-        get() = lastChatHistoryString.toChatHistory()
-        set(value) {
-            lastChatHistoryString = value.toJsonString()
-        }
-    var lastTaskHistoryString: String = """{"chatType": "CODE_TASK"}"""
-    var lastTaskHistory: ChatHistory
-        get() = lastTaskHistoryString.toChatHistory()
-        set(value) {
-            lastTaskHistoryString = value.toJsonString()
-        }
+    var lastChatHistoryString: String = ChatHistory(ChatHistory.ChatType.FREE_CHAT).toJsonString()
+    var lastTaskHistoryString: String = ChatHistory(ChatHistory.ChatType.CODE_TASK).toJsonString()
 
     override fun getState(): SenseCodeChatHistoryState {
         if (version != SenseCodePlugin.version) {
