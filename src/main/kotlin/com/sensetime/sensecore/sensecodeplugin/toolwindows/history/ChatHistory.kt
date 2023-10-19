@@ -18,7 +18,7 @@ data class ChatHistory(
         CODE_TASK("codeTask")
     }
 
-    fun hasData(): Boolean = (null != conversations.firstOrNull()?.user?.raw?.takeIf { it.isNotBlank() })
+    fun hasData(): Boolean = (true == conversations.firstOrNull()?.user?.hasData())
 }
 
 fun ChatHistory.toJsonString(): String =
