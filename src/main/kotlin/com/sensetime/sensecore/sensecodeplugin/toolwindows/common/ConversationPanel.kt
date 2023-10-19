@@ -20,6 +20,7 @@ import java.awt.Component
 import java.awt.event.ActionEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
+import java.awt.event.MouseListener
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.swing.*
@@ -40,7 +41,7 @@ fun JTextPane.updateMarkDownTextAndStyle(markdownText: String, styleAttrs: Simpl
     updateStyle(styleAttrs)
 }
 
-class ConversationPanel : JPanel(BorderLayout()), Disposable {
+class ConversationPanel : JPanel(BorderLayout()), MouseListener by object : MouseAdapter() {}, Disposable {
     interface EventListener {
         fun onDelete(e: ActionEvent?)
         fun onMouseDoubleClicked(e: MouseEvent?) {}
@@ -77,7 +78,9 @@ class ConversationPanel : JPanel(BorderLayout()), Disposable {
                         true,
                         ChatConversation.State.DONE,
                         prompt.getUserPromptDisplay(it.user.args)
-                    )
+                    ).apply {
+                        addMouseListener(this@ConversationPanel, this@ConversationPanel)
+                    }
                 )
                 assistantTextPane = it.assistant?.let { assistantMessage ->
                     add(createRoleBox(false, SenseCodePlugin.NAME, assistantMessage.timestampMs))
@@ -85,22 +88,18 @@ class ConversationPanel : JPanel(BorderLayout()), Disposable {
                         false,
                         it.state,
                         prompt.getAssistantTextDisplay(assistantMessage.args)
-                    ).also { assistantPane -> add(assistantPane) }
+                    ).also { assistantPane ->
+                        add(assistantPane)
+                        assistantPane.addMouseListener(this@ConversationPanel, this@ConversationPanel)
+                    }
                 }
                 add(JSeparator())
                 promptTemplate = prompt
             }
+            addMouseListener(this@ConversationPanel, this@ConversationPanel)
         }, BorderLayout.CENTER)
 
         this.eventListener = eventListener
-        addMouseListener(this@ConversationPanel, object : MouseAdapter() {
-            override fun mouseClicked(e: MouseEvent?) {
-                e?.takeIf { 2 == it.clickCount }?.let {
-                    this@ConversationPanel.eventListener?.onMouseDoubleClicked(e)
-                }
-            }
-        })
-
         Disposer.register(parent, this)
     }
 
@@ -108,6 +107,12 @@ class ConversationPanel : JPanel(BorderLayout()), Disposable {
         assistantTextPane = null
         eventListener = null
         promptTemplate = null
+    }
+
+    override fun mouseClicked(e: MouseEvent?) {
+        e?.takeIf { 2 == it.clickCount }?.let {
+            eventListener?.onMouseDoubleClicked(e)
+        }
     }
 
     companion object {
