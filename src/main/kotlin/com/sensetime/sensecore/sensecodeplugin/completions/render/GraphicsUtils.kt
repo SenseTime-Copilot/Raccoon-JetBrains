@@ -11,7 +11,9 @@ import kotlin.math.sqrt
 object GraphicsUtils {
     fun getFont(editor: Editor): Font {
         val editorFont = editor.colorsScheme.getFont(EditorFontType.ITALIC)
-        return completionFont?.let { Font(it.name, editorFont.style, editorFont.size) } ?: editorFont
+        return completionFont?.let {
+            Font(it.name, editorFont.style or Font.ITALIC, editorFont.size)
+        } ?: editorFont
     }
 
     private val completionFont: Font? =
