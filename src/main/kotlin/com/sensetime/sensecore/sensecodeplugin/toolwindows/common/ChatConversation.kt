@@ -30,15 +30,18 @@ data class ChatConversation(
         companion object {
             const val RAW = "raw"
             const val CODE = "code"
+            const val LANGUAGE = "language"
             fun makeMessage(
                 raw: String,
                 code: String? = null,
+                language: String? = null,
                 args: Map<String, String>? = null,
                 timestampMs: Long = getCurrentTimestampMs()
             ): Message = Message(timestampMs, buildMap {
                 args?.let { putAll(it) }
                 put(RAW, raw)
                 code?.let { put(CODE, it) }
+                language?.let { put(LANGUAGE, it) }
             }.toMutableMap())
         }
 
@@ -49,6 +52,8 @@ data class ChatConversation(
             }
         val code: String?
             get() = args[CODE]
+        val language: String?
+            get() = args[LANGUAGE]
 
         fun hasData(): Boolean = !(raw.isBlank() && code.isNullOrBlank())
     }

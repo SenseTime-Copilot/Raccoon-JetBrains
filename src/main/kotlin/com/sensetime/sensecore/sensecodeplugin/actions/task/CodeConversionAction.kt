@@ -14,7 +14,14 @@ class CodeConversionAction : CodeTaskActionBase() {
                     .setVisibleRowCount(7)
                     .setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
                     .setItemChosenCallback {
-                        sendNewTaskMessage(ChatConversation.Message.makeMessage(raw, code, mapOf("language" to it)))
+                        sendNewTaskMessage(
+                            ChatConversation.Message.makeMessage(
+                                raw,
+                                code,
+                                getEditorLanguage(e.getData(CommonDataKeys.PSI_FILE)),
+                                mapOf("dstLanguage" to it)
+                            )
+                        )
                     }.createPopup().showInBestPositionFor(editor)
             }
         }

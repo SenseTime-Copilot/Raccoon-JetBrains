@@ -5,6 +5,7 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.observable.util.addFocusListener
+import com.intellij.openapi.observable.util.addKeyListener
 import com.intellij.openapi.observable.util.addListDataListener
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextArea
@@ -19,9 +20,7 @@ import com.sensetime.sensecore.sensecodeplugin.ui.common.UserLoginPanel
 import com.sensetime.sensecore.sensecodeplugin.utils.SenseCodeNotification
 import com.sensetime.sensecore.sensecodeplugin.utils.SenseCodePlugin
 import java.awt.BorderLayout
-import java.awt.event.ActionEvent
-import java.awt.event.FocusEvent
-import java.awt.event.FocusListener
+import java.awt.event.*
 import javax.swing.*
 import javax.swing.event.ListDataEvent
 import javax.swing.event.ListDataListener
@@ -65,6 +64,26 @@ abstract class ContentPanelBase : JPanel(BorderLayout()), ListDataListener, Disp
             override fun focusLost(e: FocusEvent?) {
                 updateLastHistoryState()
             }
+        })
+        addKeyListener(this@ContentPanelBase, object : KeyListener {
+            override fun keyTyped(e: KeyEvent?) {}
+            override fun keyPressed(e: KeyEvent?) {
+                e?.takeIf { it.keyCode == KeyEvent.VK_ENTER }?.let { keyEvent ->
+                    if (keyEvent.isControlDown) {
+                        val lastText = text
+                        val lastCaretPosition = caretPosition
+                        text = lastText.substring(0, lastCaretPosition) + System.lineSeparator() + lastText.substring(
+                            lastCaretPosition
+                        )
+                        caretPosition = lastCaretPosition + 1
+                    } else {
+                        keyEvent.consume()
+                        onSubmitButtonClick(null)
+                    }
+                }
+            }
+
+            override fun keyReleased(e: KeyEvent?) {}
         })
     }
 

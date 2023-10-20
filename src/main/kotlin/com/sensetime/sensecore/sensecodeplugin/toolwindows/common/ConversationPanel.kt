@@ -168,7 +168,7 @@ class ConversationPanel : JPanel(BorderLayout()), MouseListener by object : Mous
         ): JTextPane = JTextPane().apply {
             isEditable = false
             contentType = "text/html"
-            border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
+            border = BorderFactory.createEmptyBorder(10, 10, 10, 16)
 
             // color and align
             val attrs = SimpleAttributeSet()
