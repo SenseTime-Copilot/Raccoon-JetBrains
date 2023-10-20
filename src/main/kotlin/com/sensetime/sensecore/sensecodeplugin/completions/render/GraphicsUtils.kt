@@ -5,13 +5,17 @@ import com.intellij.openapi.editor.colors.EditorFontType
 import com.intellij.ui.JBColor
 import java.awt.Color
 import java.awt.Font
-import kotlin.math.abs
+import java.awt.GraphicsEnvironment
 import kotlin.math.sqrt
 
 object GraphicsUtils {
     fun getFont(editor: Editor): Font {
-        return editor.colorsScheme.getFont(EditorFontType.ITALIC)
+        val editorFont = editor.colorsScheme.getFont(EditorFontType.ITALIC)
+        return completionFont?.let { Font(it.name, editorFont.style, editorFont.size) } ?: editorFont
     }
+
+    private val completionFont: Font? =
+        GraphicsEnvironment.getLocalGraphicsEnvironment().allFonts.firstOrNull { -1 == it.canDisplayUpTo("中文") }
 
     val niceContrastColor: Color = JBColor.GRAY
 //    by lazy {
