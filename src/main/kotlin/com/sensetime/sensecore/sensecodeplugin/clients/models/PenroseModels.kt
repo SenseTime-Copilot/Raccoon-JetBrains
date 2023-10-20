@@ -2,20 +2,34 @@ package com.sensetime.sensecore.sensecodeplugin.clients.models
 
 import com.sensetime.sensecore.sensecodeplugin.actions.task.*
 import com.sensetime.sensecore.sensecodeplugin.resources.SenseCodeBundle
+import com.sensetime.sensecore.sensecodeplugin.settings.ClientConfig
 import com.sensetime.sensecore.sensecodeplugin.settings.ModelConfig
+import com.sensetime.sensecore.sensecodeplugin.toolwindows.common.ChatConversation
 
 object PenroseModels {
     @JvmStatic
+    private fun makeDefaultDisplayText(): ModelConfig.DisplayText =
+        ModelConfig.DisplayText("{${ChatConversation.Message.RAW}}")
+
+    @JvmStatic
+    private fun makePromptTemplate(
+        userPrompt: ModelConfig.DisplayText,
+        systemPrompt: ModelConfig.DisplayText?
+    ): ModelConfig.PromptTemplate = ModelConfig.PromptTemplate(
+        "user", userPrompt,
+        "assistant", makeDefaultDisplayText(),
+        "system", systemPrompt
+    )
+
+    @JvmStatic
     private fun makeModelConfig(
         name: String, stop: String, maxInputTokens: Int, tokenLimit: Int,
-        codeTaskActions: Map<String, ModelConfig.PromptTemplate>,
-        freeChatPromptTemplate: ModelConfig.PromptTemplate,
-        customPromptTemplate: Map<String, ModelConfig.PromptTemplate>,
-        inlineCompletionPromptTemplate: Map<String, ModelConfig.PromptTemplate>,
+        promptTemplates: Map<String, ModelConfig.PromptTemplate>,
+        defaultPromptTemplate: ModelConfig.PromptTemplate,
         maxNewTokens: Int?
     ): ModelConfig = ModelConfig(
         name, 0.5f, stop, maxInputTokens, tokenLimit,
-        codeTaskActions, freeChatPromptTemplate, customPromptTemplate, inlineCompletionPromptTemplate,
+        promptTemplates, defaultPromptTemplate,
         mapOf(
             ModelConfig.CompletionPreference.SPEED_PRIORITY to 128,
             ModelConfig.CompletionPreference.BALANCED to 256,
@@ -26,22 +40,24 @@ object PenroseModels {
     @JvmStatic
     private fun makeModelSCodeTaskPrompt(
         taskType: String,
-        systemPrompt: String? = null,
+        systemPrompt: ModelConfig.DisplayText? = null,
         custom: String = ""
-    ): ModelConfig.PromptTemplate = ModelConfig.PromptTemplate(
-        "### $taskType\n${custom}\n\n### Code:\n%s\n",
-        "\n### Instruction:\nTask type: ${taskType}. ${SenseCodeBundle.message("completions.task.prompt.penrose.explanation")}.${custom}\n\n### Input:\n%s\n",
-        systemPrompt
+    ): ModelConfig.PromptTemplate = makePromptTemplate(
+        ModelConfig.DisplayText(
+            "\n### Instruction:\nTask type: ${taskType}. ${
+                SenseCodeBundle.message("completions.task.prompt.penrose.explanation")
+            }.${custom}\n\n### Input:\n{code}\n", "### $taskType\n${custom}\n\n### Code:\n{code}\n"
+        ), systemPrompt
     )
 
     @JvmStatic
     fun makeModelSConfig(
         name: String,
-        systemPrompt: String? = null,
+        systemPrompt: ModelConfig.DisplayText? = null,
         stop: String = "<|end|>",
         maxInputTokens: Int = 4096,
         tokenLimit: Int = 8192,
-        codeTaskActions: Map<String, ModelConfig.PromptTemplate> = mapOf(
+        promptTemplates: Map<String, ModelConfig.PromptTemplate> = mapOf(
             CodeTaskActionBase.getActionKey(GenerationAction::class) to makeModelSCodeTaskPrompt(
                 "code generation",
                 systemPrompt
@@ -62,50 +78,35 @@ object PenroseModels {
             CodeTaskActionBase.getActionKey(RefactoringAction::class) to makeModelSCodeTaskPrompt(
                 "code refactoring and optimization",
                 systemPrompt
-            )
-        ),
-        freeChatPromptTemplate: ModelConfig.PromptTemplate = ModelConfig.PromptTemplate("%s", null, systemPrompt),
-        customPromptTemplate: Map<String, ModelConfig.PromptTemplate> = mapOf(),
-        inlineCompletionPromptTemplate: Map<String, ModelConfig.PromptTemplate> = mapOf(
-            "middle" to ModelConfig.PromptTemplate(
-                "<fim_prefix>Please do not provide any explanations at the end. Please complete the following code.\n\n%s<fim_suffix>%s<fim_middle>",
-                null,
+            ),
+            ClientConfig.INLINE_MIDDLE to makePromptTemplate(
+                ModelConfig.DisplayText("<fim_prefix>Please do not provide any explanations at the end. Please complete the following code.\n\n{prefix}<fim_suffix>{suffix}<fim_middle>"),
                 systemPrompt
             ),
-            "end" to ModelConfig.PromptTemplate(
-                "<fim_prefix>Please do not provide any explanations at the end. Please complete the following code.\n\n%s<fim_middle><fim_suffix>",
-                null,
+            ClientConfig.INLINE_END to makePromptTemplate(
+                ModelConfig.DisplayText("<fim_prefix>Please do not provide any explanations at the end. Please complete the following code.\\n\\n{prefix}<fim_middle><fim_suffix>"),
                 systemPrompt
             )
         ),
+        defaultPromptTemplate: ModelConfig.PromptTemplate = makePromptTemplate(makeDefaultDisplayText(), systemPrompt),
         maxNewTokens: Int? = null
     ): ModelConfig = makeModelConfig(
         name, stop, maxInputTokens, tokenLimit,
-        codeTaskActions,
-        freeChatPromptTemplate,
-        customPromptTemplate,
-        inlineCompletionPromptTemplate,
-        maxNewTokens
+        promptTemplates, defaultPromptTemplate, maxNewTokens
     )
 
     @JvmStatic
     fun makeModelLConfig(
         name: String,
-        systemPrompt: String? = null,
+        systemPrompt: ModelConfig.DisplayText? = null,
         stop: String = "<|endofmessage|>",
         maxInputTokens: Int = 4096,
         tokenLimit: Int = 8192,
-        codeTaskActions: Map<String, ModelConfig.PromptTemplate> = mapOf(),
-        freeChatPromptTemplate: ModelConfig.PromptTemplate = ModelConfig.PromptTemplate("%s", null, systemPrompt),
-        customPromptTemplate: Map<String, ModelConfig.PromptTemplate> = mapOf(),
-        inlineCompletionPromptTemplate: Map<String, ModelConfig.PromptTemplate> = mapOf(),
+        promptTemplates: Map<String, ModelConfig.PromptTemplate> = emptyMap(),
+        defaultPromptTemplate: ModelConfig.PromptTemplate = makePromptTemplate(makeDefaultDisplayText(), systemPrompt),
         maxNewTokens: Int? = null
     ): ModelConfig = makeModelConfig(
         name, stop, maxInputTokens, tokenLimit,
-        codeTaskActions,
-        freeChatPromptTemplate,
-        customPromptTemplate,
-        inlineCompletionPromptTemplate,
-        maxNewTokens
+        promptTemplates, defaultPromptTemplate, maxNewTokens
     )
 }

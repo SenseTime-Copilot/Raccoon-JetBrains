@@ -15,19 +15,86 @@ import com.sensetime.sensecore.sensecodeplugin.messages.SenseCodeTasksListener
 import com.sensetime.sensecore.sensecodeplugin.resources.SenseCodeBundle
 import com.sensetime.sensecore.sensecodeplugin.settings.ModelConfig
 import com.sensetime.sensecore.sensecodeplugin.settings.SenseCodeSettingsState
+import com.sensetime.sensecore.sensecodeplugin.toolwindows.chat.ChatContentPanel
+import com.sensetime.sensecore.sensecodeplugin.toolwindows.chat.ContentPanelBase
+import com.sensetime.sensecore.sensecodeplugin.toolwindows.chat.TaskContentPanel
+import com.sensetime.sensecore.sensecodeplugin.toolwindows.common.ChatConversation
+import com.sensetime.sensecore.sensecodeplugin.toolwindows.common.toCodeRequestMessage
+import com.sensetime.sensecore.sensecodeplugin.toolwindows.history.ChatHistory
+import com.sensetime.sensecore.sensecodeplugin.toolwindows.history.HistoryContentPanel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.launch
 import java.awt.event.ActionEvent
+import java.awt.event.MouseEvent
 
 class SenseCodeToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
-    var toolWindowJob: Job? = null
+    private var chatJob: Job? = null
+        set(value) {
+            field?.cancel()
+            field = value
+        }
+    private var taskJob: Job? = null
+        set(value) {
+            field?.cancel()
+            field = value
+        }
 
     private var taskMessageBusConnection: SimpleMessageBusConnection? = null
         set(value) {
             field?.disconnect()
             field = value
         }
+
+    private fun onSubmit(
+        contentPanel: ContentPanelBase,
+        conversations: List<ChatConversation>,
+        onFinally: () -> Unit
+    ): Job {
+        val maxNewTokens: Int = SenseCodeSettingsState.instance.toolwindowMaxNewTokens
+        val (client, clientConfig) = CodeClientManager.getClientAndConfigPair()
+        val modelConfig = clientConfig.getModelConfigByType(contentPanel.type.code)
+        val responseFlow = client.requestStream(
+            CodeRequest(
+                modelConfig.name,
+                conversations.toCodeRequestMessage(),
+                modelConfig.temperature,
+                1,
+                modelConfig.stop,
+                if (maxNewTokens <= 0) modelConfig.getMaxNewTokens(ModelConfig.CompletionPreference.BEST_EFFORT) else maxNewTokens,
+                clientConfig.apiEndpoint
+            )
+        )
+
+        return CodeClientManager.clientCoroutineScope.launch {
+            responseFlow.onCompletion { ApplicationManager.getApplication().invokeLater { onFinally() } }
+                .collect { streamResponse ->
+                    ApplicationManager.getApplication().invokeLater {
+                        when (streamResponse) {
+                            CodeStreamResponse.Done -> {
+                                contentPanel.setGenerateState(ChatConversation.State.DONE)
+                                onFinally()
+                            }
+
+                            is CodeStreamResponse.Error -> {
+                                contentPanel.appendAssistantTextAndSetGenerateState(
+                                    streamResponse.error,
+                                    ChatConversation.State.ERROR
+                                )
+                                onFinally()
+                            }
+
+                            is CodeStreamResponse.TokenChoices -> streamResponse.choices.firstOrNull()?.token?.takeIf { it.isNotEmpty() }
+                                ?.let {
+                                    contentPanel.appendAssistantText(it)
+                                }
+
+                            else -> {}
+                        }
+                    }
+                }
+        }
+    }
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
         val helpContent = toolWindow.contentManager.factory.createContent(
@@ -36,85 +103,70 @@ class SenseCodeToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
             false
         )
 
-        var chatContentPanel: ChatContentBase = ChatContentPanel()
-        val historyContentPanel = HistoryContentPanel {
-            chatContentPanel.loadFromHistory(it)
-            toolWindow.contentManager.run {
-                setSelectedContent(getContent(chatContentPanel))
+        val chatContentPanel = ChatContentPanel()
+        val taskContentPanel = TaskContentPanel()
+        val historyContentPanel = HistoryContentPanel()
+        chatContentPanel.build(object : ContentPanelBase.EventListener {
+            override fun onSubmit(e: ActionEvent?, conversations: List<ChatConversation>, onFinally: () -> Unit) {
+                chatJob = onSubmit(chatContentPanel, conversations, onFinally)
             }
-        }
-        chatContentPanel = chatContentPanel.build(
-            SenseCodeChatHistoryState.instance::lastFreeChatConversations, object : ChatContentBase.EventListener {
-                override fun onSubmit(
-                    e: ActionEvent?,
-                    chatType: SenseCodeChatHistoryState.ChatType,
-                    conversations: List<SenseCodeChatHistoryState.Conversation>,
-                    onFinally: () -> Unit
-                ) {
-                    toolWindowJob?.cancel()
-                    val maxNewTokens: Int = SenseCodeSettingsState.instance.toolwindowMaxNewTokens
-                    val (client, config) = CodeClientManager.getClientAndConfigPair()
-                    val modelName = when (chatType) {
-                        SenseCodeChatHistoryState.ChatType.FREE_CHAT -> config.freeChatModelName
-                        SenseCodeChatHistoryState.ChatType.CODE_TASK -> config.actionsModelName
-                    }
-                    val model = config.models.getValue(modelName)
-                    val responseFlow = client.requestStream(
-                        CodeRequest(
-                            model.name,
-                            Utils.toCodeRequestMessage(conversations),
-                            model.temperature,
-                            1,
-                            model.stop,
-                            if (maxNewTokens <= 0) model.getMaxNewTokens(ModelConfig.CompletionPreference.BEST_EFFORT) else maxNewTokens,
-                            config.apiEndpoint
-                        )
-                    )
 
-                    toolWindowJob = CodeClientManager.clientCoroutineScope.launch {
-                        responseFlow.onCompletion { onFinally() }.collect { streamResponse ->
-                            when (streamResponse) {
-                                CodeStreamResponse.Done -> {
-                                    chatContentPanel.setGenerateState(SenseCodeChatHistoryState.GenerateState.DONE)
-                                    onFinally()
-                                }
+            override fun onStopGenerate(e: ActionEvent?) {
+                chatJob = null
+            }
 
-                                is CodeStreamResponse.Error -> {
-                                    chatContentPanel.appendAssistantText(streamResponse.error)
-                                    chatContentPanel.setGenerateState(SenseCodeChatHistoryState.GenerateState.ERROR)
-                                    onFinally()
-                                }
+            override fun onSaveHistory(history: ChatHistory) {
+                historyContentPanel.saveHistory(history)
+            }
 
-                                is CodeStreamResponse.TokenChoices -> streamResponse.choices.firstOrNull()?.token?.takeIf { it.isNotEmpty() }
-                                    ?.let {
-                                        chatContentPanel.appendAssistantText(it)
-                                    }
-
-                                else -> {}
-                            }
-                        }
-                    }
+            override fun onGotoHelpContent(e: ActionEvent?) {
+                toolWindow.contentManager.run {
+                    setSelectedContent(helpContent)
                 }
+            }
+        })
+        taskContentPanel.build(object : ContentPanelBase.EventListener {
+            override fun onSubmit(e: ActionEvent?, conversations: List<ChatConversation>, onFinally: () -> Unit) {
+                taskJob = onSubmit(taskContentPanel, conversations, onFinally)
+            }
 
-                override fun onStopGenerate(e: ActionEvent?) {
-                    toolWindowJob?.cancel()
-                    toolWindowJob = null
+            override fun onStopGenerate(e: ActionEvent?) {
+                taskJob = null
+            }
+
+            override fun onSaveHistory(history: ChatHistory) {
+                historyContentPanel.saveHistory(history)
+            }
+
+            override fun onGotoHelpContent(e: ActionEvent?) {
+                toolWindow.contentManager.run {
+                    setSelectedContent(helpContent)
                 }
+            }
 
-                override fun onSaveHistory(history: SenseCodeChatHistoryState.History) {
-                    historyContentPanel.saveHistory(history)
-                }
-
-                override fun onGotoHelpContent(e: ActionEvent?) {
+        })
+        historyContentPanel.build(object : HistoryContentPanel.EventListener {
+            override fun onHistoryClick(e: MouseEvent?, history: ChatHistory) {
+                when (history.chatType) {
+                    ChatHistory.ChatType.FREE_CHAT -> chatContentPanel
+                    ChatHistory.ChatType.CODE_TASK -> taskContentPanel
+                }.let {
+                    it.loadFromHistory(history.userPromptText, history.conversations)
                     toolWindow.contentManager.run {
-                        setSelectedContent(helpContent)
+                        setSelectedContent(getContent(it))
                     }
                 }
-            })
+            }
+        })
 
         toolWindow.contentManager.addContent(
             toolWindow.contentManager.factory.createContent(
                 chatContentPanel, SenseCodeBundle.message("toolwindows.content.chat.title"), false
+            ).apply { setDisposer(this) }
+        )
+        toolWindow.contentManager.addContent(
+            toolWindow.contentManager.factory.createContent(
+                taskContentPanel, SenseCodeBundle.message("toolwindows.content.task.title"), false
             ).apply { setDisposer(this) }
         )
         toolWindow.contentManager.addContent(
@@ -128,13 +180,13 @@ class SenseCodeToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
 
         taskMessageBusConnection = ApplicationManager.getApplication().messageBus.connect().also {
             it.subscribe(SENSE_CODE_TASKS_TOPIC, object : SenseCodeTasksListener {
-                override fun onNewTask(displayText: String, prompt: String?) {
+                override fun onNewTask(type: String, userMessage: ChatConversation.Message) {
                     ApplicationManager.getApplication().invokeLater {
                         toolWindow.contentManager.run {
-                            setSelectedContent(getContent(chatContentPanel))
+                            setSelectedContent(getContent(taskContentPanel))
                         }
                         toolWindow.show()
-                        chatContentPanel.newTask(displayText, prompt)
+                        taskContentPanel.newTask(type, userMessage)
                     }
                 }
             })
@@ -142,8 +194,8 @@ class SenseCodeToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
     }
 
     override fun dispose() {
-        toolWindowJob?.cancel()
-        toolWindowJob = null
+        chatJob = null
+        taskJob = null
         taskMessageBusConnection = null
     }
 }

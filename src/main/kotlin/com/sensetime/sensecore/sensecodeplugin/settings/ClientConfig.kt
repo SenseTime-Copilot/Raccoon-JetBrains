@@ -5,10 +5,17 @@ import com.sensetime.sensecore.sensecodeplugin.clients.CodeClient
 data class ClientConfig(
     val name: String,
     val constructor: () -> CodeClient,
-    val actionsModelName: String,
-    val freeChatModelName: String,
-    val customModelName: String,
-    val inlineCompletionModelName: String,
     var apiEndpoint: String,
-    val models: Map<String, ModelConfig>
-)
+    val models: Map<String, ModelConfig>,
+    val selectedModelNames: Map<String, String>,
+    private val defaultModelName: String
+) {
+    fun getModelConfigByType(type: String): ModelConfig =
+        models.getValue(selectedModelNames.getOrDefault(type, defaultModelName))
+
+    companion object {
+        const val FREE_CHAT = "FreeChat"
+        const val INLINE_MIDDLE = "InlineMiddle"
+        const val INLINE_END = "InlineEnd"
+    }
+}

@@ -42,11 +42,7 @@ class UserLoginPanel(parent: Disposable, akskSettings: CodeClient.AkSkSettings? 
     private val userNameLabel: JLabel = JLabel("").apply { font = JBFont.label().biggerOn(3f).asBold() }
     private val loginButton: LoadingButton = LoadingButton(
         this,
-        ActionLink().apply {
-            isFocusPainted = false
-            autoHideOnDisable = false
-            font = JBFont.label().biggerOn(1f)
-        },
+        ButtonUtils.createActionLinkBiggerOn1(),
         JLabel(AnimatedIcon.Big.INSTANCE)
     ) { _, onCompletion -> loginJob = CodeClientManager.login().apply { invokeOnCompletion { onCompletion() } } }
 
