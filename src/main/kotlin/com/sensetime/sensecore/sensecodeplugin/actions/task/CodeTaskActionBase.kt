@@ -5,6 +5,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Editor
+import com.intellij.psi.PsiFile
 import com.sensetime.sensecore.sensecodeplugin.clients.CodeClientManager
 import com.sensetime.sensecore.sensecodeplugin.messages.SENSE_CODE_TASKS_TOPIC
 import com.sensetime.sensecore.sensecodeplugin.settings.ModelConfig
@@ -21,7 +22,14 @@ abstract class CodeTaskActionBase : AnAction() {
 
     override fun actionPerformed(e: AnActionEvent) {
         getEditorSelectedText(e.getData(CommonDataKeys.EDITOR))?.let { code ->
-            sendNewTaskMessage(ChatConversation.Message.makeMessage(raw, code, customArgs))
+            sendNewTaskMessage(
+                ChatConversation.Message.makeMessage(
+                    raw,
+                    code,
+                    getEditorLanguage(e.getData(CommonDataKeys.PSI_FILE)),
+                    customArgs
+                )
+            )
         }
     }
 
@@ -29,7 +37,9 @@ abstract class CodeTaskActionBase : AnAction() {
         ApplicationManager.getApplication().messageBus.syncPublisher(SENSE_CODE_TASKS_TOPIC).onNewTask(key, userMessage)
     }
 
-    protected fun getEditorSelectedText(editor: Editor?) =
+    protected fun getEditorLanguage(psiFile: PsiFile?): String? = psiFile?.language?.displayName?.lowercase()
+
+    protected fun getEditorSelectedText(editor: Editor?): String? =
         SenseCodeNotification.checkEditorSelectedText(actionsModelConfig.maxInputTokens, editor)
 
     companion object {

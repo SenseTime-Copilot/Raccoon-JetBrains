@@ -46,7 +46,7 @@ object PenroseModels {
         ModelConfig.DisplayText(
             "\n### Instruction:\nTask type: ${taskType}. ${
                 SenseCodeBundle.message("completions.task.prompt.penrose.explanation")
-            }.${custom}\n\n### Input:\n{code}\n", "### $taskType\n${custom}\n\n### Code:\n{code}\n"
+            }.${custom}\n\n### Input:\n```{language}\n{code}```\n", "### $taskType\n${custom}\n\n```{language}\n{code}```\n"
         ), systemPrompt
     )
 
