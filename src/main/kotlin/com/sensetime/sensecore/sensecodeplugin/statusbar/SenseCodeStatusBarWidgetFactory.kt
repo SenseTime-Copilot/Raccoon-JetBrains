@@ -1,19 +1,23 @@
 package com.sensetime.sensecore.sensecodeplugin.statusbar
 
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.StatusBar
 import com.intellij.openapi.wm.StatusBarWidget
 import com.intellij.openapi.wm.StatusBarWidgetFactory
 import com.intellij.ui.AnimatedIcon
+import com.intellij.util.Consumer
 import com.intellij.util.messages.SimpleMessageBusConnection
 import com.sensetime.sensecore.sensecodeplugin.clients.CodeClientManager
 import com.sensetime.sensecore.sensecodeplugin.clients.responses.Usage
 import com.sensetime.sensecore.sensecodeplugin.messages.SENSE_CODE_CLIENTS_TOPIC
 import com.sensetime.sensecore.sensecodeplugin.messages.SenseCodeClientsListener
 import com.sensetime.sensecore.sensecodeplugin.resources.SenseCodeIcons
+import com.sensetime.sensecore.sensecodeplugin.settings.SenseCodeConfigurable
 import com.sensetime.sensecore.sensecodeplugin.utils.SenseCodePlugin
 import kotlinx.coroutines.*
+import java.awt.event.MouseEvent
 import javax.swing.Icon
 
 class SenseCodeStatusBarWidgetFactory : StatusBarWidgetFactory {
@@ -111,6 +115,10 @@ class SenseCodeStatusBarWidgetFactory : StatusBarWidgetFactory {
 
         override fun getTooltipText(): String =
             currentTooltipText ?: CodeClientManager.getClientAndConfigPair().run { "${second.name}: ${first.userName}" }
+
+        override fun getClickConsumer(): Consumer<MouseEvent> = Consumer {
+            ShowSettingsUtil.getInstance().showSettingsDialog(null, SenseCodeConfigurable::class.java)
+        }
 
         override fun ID(): String = SenseCodePlugin.STATUS_BAR_ID
 
