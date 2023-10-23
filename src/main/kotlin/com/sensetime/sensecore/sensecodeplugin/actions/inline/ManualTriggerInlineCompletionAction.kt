@@ -25,6 +25,7 @@ import com.sensetime.sensecore.sensecodeplugin.utils.SenseCodePlugin
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.onCompletion
+import kotlin.math.min
 
 class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Disposable, InlineCompletionAction {
     private var inlineCompletionJob: Job? = null
@@ -168,7 +169,7 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
 
         @JvmStatic
         private fun findPsiElementAt(psiFile: PsiFile?, caretOffset: Int): PsiElement? {
-            var result = psiFile?.findElementAt(caretOffset)
+            var result = psiFile?.run { findElementAt(min(caretOffset, textLength - 1)) }
             if (isWhiteSpacePsi(result) && (caretOffset > 0) && ((null == result) || (caretOffset == result.textOffset))) {
                 val prePsiElement = psiFile?.findElementAt(caretOffset - 1)
                 if (!isWhiteSpacePsi(prePsiElement)) {
