@@ -15,6 +15,7 @@ import com.sensetime.sensecore.sensecodeplugin.messages.SENSE_CODE_CLIENTS_TOPIC
 import com.sensetime.sensecore.sensecodeplugin.messages.SenseCodeClientsListener
 import com.sensetime.sensecore.sensecodeplugin.resources.SenseCodeIcons
 import com.sensetime.sensecore.sensecodeplugin.settings.SenseCodeConfigurable
+import com.sensetime.sensecore.sensecodeplugin.settings.SenseCodeSettingsState
 import com.sensetime.sensecore.sensecodeplugin.utils.SenseCodePlugin
 import kotlinx.coroutines.*
 import java.awt.event.MouseEvent
@@ -57,7 +58,7 @@ class SenseCodeStatusBarWidgetFactory : StatusBarWidgetFactory {
                             isRunning = false
                             currentTooltipText = usage?.getShowString()
                             currentIcon =
-                                if (null != usage?.completion?.takeIf { number -> number <= 1 }) SenseCodeIcons.STATUS_BAR_EMPTY else SenseCodeIcons.STATUS_BAR_SUCCESS
+                                if (null != usage?.completion?.takeIf { number -> number <= SenseCodeSettingsState.instance.candidates }) SenseCodeIcons.STATUS_BAR_EMPTY else SenseCodeIcons.STATUS_BAR_SUCCESS
                             myStatusBar?.updateWidget(SenseCodePlugin.STATUS_BAR_ID)
                         }
                     }
