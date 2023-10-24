@@ -2,7 +2,6 @@ package com.sensetime.sensecore.sensecodeplugin.toolwindows.common
 
 import com.intellij.icons.AllIcons
 import com.intellij.ide.BrowserUtil
-import com.intellij.markdown.utils.convertMarkdownToHtml
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.observable.util.addMouseListener
 import com.intellij.openapi.util.Disposer
@@ -13,6 +12,7 @@ import com.sensetime.sensecore.sensecodeplugin.clients.CodeClientManager
 import com.sensetime.sensecore.sensecodeplugin.resources.SenseCodeIcons
 import com.sensetime.sensecore.sensecodeplugin.settings.ModelConfig
 import com.sensetime.sensecore.sensecodeplugin.ui.common.ButtonUtils
+import com.sensetime.sensecore.sensecodeplugin.utils.SenseCodeMarkdown
 import com.sensetime.sensecore.sensecodeplugin.utils.SenseCodePlugin
 import java.awt.BorderLayout
 import java.awt.Color
@@ -29,7 +29,7 @@ import javax.swing.text.SimpleAttributeSet
 import javax.swing.text.StyleConstants
 
 fun JTextPane.updateMarkDownText(markdownText: String): JTextPane = apply {
-    text = convertMarkdownToHtml(markdownText)
+    text = SenseCodeMarkdown.convertMarkdownToHtml(markdownText)
 }
 
 fun JTextPane.updateStyle(styleAttrs: SimpleAttributeSet): JTextPane = apply {

@@ -1,8 +1,8 @@
 package com.sensetime.sensecore.sensecodeplugin.toolwindows
 
 import com.intellij.ide.BrowserUtil
-import com.intellij.markdown.utils.convertMarkdownToHtml
 import com.intellij.ui.components.JBScrollPane
+import com.sensetime.sensecore.sensecodeplugin.utils.SenseCodeMarkdown
 import org.intellij.lang.annotations.Language
 import java.awt.BorderLayout
 import javax.swing.BorderFactory
@@ -19,7 +19,7 @@ class HelpContentPanel : JPanel() {
             JBScrollPane(JTextPane().apply {
                 isEditable = false
                 contentType = "text/html"
-                text = convertMarkdownToHtml(MARKDOWN_HELP)
+                text = SenseCodeMarkdown.convertMarkdownToHtml(MARKDOWN_HELP)
                 border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
                 addHyperlinkListener { e ->
                     if (e.eventType == HyperlinkEvent.EventType.ACTIVATED) {
