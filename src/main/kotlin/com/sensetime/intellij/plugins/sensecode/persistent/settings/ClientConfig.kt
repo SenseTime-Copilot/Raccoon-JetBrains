@@ -30,6 +30,6 @@ data class ClientConfig(
         get() = toolwindowClientApiConfig.selectedModelConfig
 }
 
-fun List<ClientConfig>.toMap(): Map<String, ClientConfig> = associateBy(ClientConfig::name)
-fun List<ClientConfig.ClientApiConfig>.toMap(): Map<String, ClientConfig.ClientApiConfig> =
+fun List<ClientConfig>.toClientConfigMap(): Map<String, ClientConfig> = associateBy(ClientConfig::name)
+fun List<ClientConfig.ClientApiConfig>.toClientApiConfigMap(): Map<String, ClientConfig.ClientApiConfig> =
     associateBy(ClientConfig.ClientApiConfig::path)

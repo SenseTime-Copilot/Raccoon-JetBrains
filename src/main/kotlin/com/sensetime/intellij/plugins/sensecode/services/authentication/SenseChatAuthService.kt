@@ -43,7 +43,7 @@ class SenseChatAuthService : RestService() {
         }
 
         fun startLoginFromBrowser(loginUrl: String) {
-            BrowserUtil.browse("$loginUrl?redirect_url=${baseUrl.toExternalForm()}")
+            BrowserUtil.browse("$loginUrl?redirect_uri=${baseUrl.toExternalForm()}")
         }
     }
 }

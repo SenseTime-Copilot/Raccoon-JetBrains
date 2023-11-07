@@ -19,7 +19,8 @@ import com.sensetime.intellij.plugins.sensecode.clients.responses.SenseChatCheck
 import com.sensetime.intellij.plugins.sensecode.clients.responses.SenseChatRefreshTokenResponse
 import com.sensetime.intellij.plugins.sensecode.clients.responses.SenseNovaCodeResponse
 import com.sensetime.intellij.plugins.sensecode.persistent.settings.ClientConfig
-import com.sensetime.intellij.plugins.sensecode.persistent.settings.toMap
+import com.sensetime.intellij.plugins.sensecode.persistent.settings.toClientApiConfigMap
+import com.sensetime.intellij.plugins.sensecode.persistent.settings.toModelConfigMap
 import com.sensetime.intellij.plugins.sensecode.utils.letIfNotBlank
 
 class SenseChatOnlyLoginClient : CodeClient() {
@@ -240,14 +241,14 @@ class SenseChatOnlyLoginClient : CodeClient() {
                     ClientConfig.ClientApiConfig(
                         API_LLM_COMPLETIONS,
                         PTC_CODE_S_MODEL_NAME,
-                        listOf(PenroseModels.createModelCompletionSConfig(PTC_CODE_S_MODEL_NAME)).toMap()
+                        listOf(PenroseModels.createModelCompletionSConfig(PTC_CODE_S_MODEL_NAME)).toModelConfigMap()
                     ),
                     ClientConfig.ClientApiConfig(
                         API_LLM_CHAT_COMPLETIONS,
                         PTC_CODE_L_MODEL_NAME,
-                        listOf(PenroseModels.createModelChatLConfig(PTC_CODE_L_MODEL_NAME)).toMap()
+                        listOf(PenroseModels.createModelChatLConfig(PTC_CODE_L_MODEL_NAME)).toModelConfigMap()
                     )
-                ).toMap()
+                ).toClientApiConfigMap()
             )
     }
 }

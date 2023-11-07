@@ -91,4 +91,4 @@ data class ModelConfig(
     }
 }
 
-fun List<ModelConfig>.toMap(): Map<String, ModelConfig> = associateBy(ModelConfig::name)
+fun List<ModelConfig>.toModelConfigMap(): Map<String, ModelConfig> = associateBy(ModelConfig::name)

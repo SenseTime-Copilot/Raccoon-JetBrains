@@ -35,7 +35,7 @@ data class SenseCodeSettingsState(
     private val selectedClientName: String = SenseChatOnlyLoginClient.CLIENT_NAME
     var clientBaseUrlMap: Map<String, String> =
         mapOf(SenseChatOnlyLoginClient.CLIENT_NAME to SenseChatOnlyLoginClient.BASE_API)
-    private val clients: Map<String, ClientConfig> = listOf(SenseChatOnlyLoginClient.defaultClientConfig).toMap()
+    private val clients: Map<String, ClientConfig> = listOf(SenseChatOnlyLoginClient.defaultClientConfig).toClientConfigMap()
 
     fun restore() {
         loadState(SenseCodeSettingsState(SenseCodePlugin.version))
