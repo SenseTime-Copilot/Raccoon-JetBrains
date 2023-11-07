@@ -21,6 +21,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.awt.event.ActionEvent
 import java.awt.event.MouseEvent
+import kotlin.coroutines.cancellation.CancellationException
 
 class SenseCodeToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
     private var chatJob: Job? = null
@@ -51,36 +52,45 @@ class SenseCodeToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
                 val modelConfig = clientConfig.toolwindowModelConfig
 
                 chatJob = SenseCodeClientManager.clientCoroutineScope.launch {
-                    client.requestStream(
-                        CodeRequest(
-                            modelConfig.name,
-                            conversations.toCodeRequestMessage(modelConfig),
-                            modelConfig.temperature,
-                            1,
-                            modelConfig.stop,
-                            if (maxNewTokens <= 0) modelConfig.getMaxNewTokens(ModelConfig.CompletionPreference.BEST_EFFORT) else maxNewTokens,
-                            clientConfig.toolwindowApiPath
-                        )
-                    ) { streamResponse ->
-                        SenseCodeUIUtils.invokeOnUIThreadLater {
-                            when (streamResponse) {
-                                CodeStreamResponse.Done -> chatContentPanel.setGenerateState(AssistantMessage.GenerateState.DONE)
-                                is CodeStreamResponse.Error -> chatContentPanel.appendAssistantTextAndSetGenerateState(
-                                    streamResponse.error,
-                                    AssistantMessage.GenerateState.ERROR
-                                )
+                    try {
+                        client.requestStream(
+                            CodeRequest(
+                                modelConfig.name,
+                                conversations.toCodeRequestMessage(modelConfig),
+                                modelConfig.temperature,
+                                1,
+                                modelConfig.stop,
+                                if (maxNewTokens <= 0) modelConfig.getMaxNewTokens(ModelConfig.CompletionPreference.BEST_EFFORT) else maxNewTokens,
+                                clientConfig.toolwindowApiPath
+                            )
+                        ) { streamResponse ->
+                            SenseCodeUIUtils.invokeOnUIThreadLater {
+                                when (streamResponse) {
+                                    CodeStreamResponse.Done -> chatContentPanel.setGenerateState(AssistantMessage.GenerateState.DONE)
+                                    is CodeStreamResponse.Error -> chatContentPanel.appendAssistantTextAndSetGenerateState(
+                                        streamResponse.error,
+                                        AssistantMessage.GenerateState.ERROR
+                                    )
 
-                                is CodeStreamResponse.TokenChoices -> streamResponse.choices.firstOrNull()?.token?.takeIf { it.isNotEmpty() }
-                                    ?.let {
-                                        chatContentPanel.appendAssistantText(it)
-                                    }
+                                    is CodeStreamResponse.TokenChoices -> streamResponse.choices.firstOrNull()?.token?.takeIf { it.isNotEmpty() }
+                                        ?.let {
+                                            chatContentPanel.appendAssistantText(it)
+                                        }
 
-                                else -> {}
+                                    else -> {}
+                                }
                             }
                         }
+                    } catch (t: Throwable) {
+                        if (t !is CancellationException) {
+                            chatContentPanel.appendAssistantTextAndSetGenerateState(
+                                t.localizedMessage,
+                                AssistantMessage.GenerateState.ERROR
+                            )
+                        }
+                    } finally {
+                        SenseCodeUIUtils.invokeOnUIThreadLater(onFinally)
                     }
-                }.apply {
-                    invokeOnCompletion { onFinally() }
                 }
             }
 

@@ -39,21 +39,6 @@
         <httpRequestHandler
                 implementation="com.sensetime.intellij.plugins.sensecode.services.authentication.SenseChatAuthService"/>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         <!--        Inline Completion-->
         <backgroundPostStartupActivity
                 implementation="com.sensetime.intellij.plugins.sensecode.completions.auto.AutoCompletionServer$Initializer"/>
@@ -63,13 +48,12 @@
                 implementation="com.sensetime.intellij.plugins.sensecode.completions.auto.EditorChangeDetector"/>
         <typedHandler implementation="com.sensetime.intellij.plugins.sensecode.completions.auto.UserTypedHandler"/>
 
-        <actionPromoter implementation="com.sensetime.intellij.plugins.sensecode.actions.inline.InlineActionsPromoter"/>
+        <actionPromoter
+                implementation="com.sensetime.intellij.plugins.sensecode.completions.actions.InlineActionsPromoter"/>
         <editorActionHandler action="EditorEscape" order="before hide-hints"
-                             id="com.sensetime.intellij.plugins.sensecode.actions.inline.EscapeEditorActionHandler"
-                             implementationClass="com.sensetime.intellij.plugins.sensecode.actions.inline.EscapeEditorActionHandler"/>
+                             id="com.sensetime.intellij.plugins.sensecode.completions.actions.EscapeEditorActionHandler"
+                             implementationClass="com.sensetime.intellij.plugins.sensecode.completions.actions.EscapeEditorActionHandler"/>
     </extensions>
-
-
 
     <actions>
         <!--        Code Task-->
@@ -117,31 +101,23 @@
             </action>
         </group>
 
-
-
-
-
-
-
-
-
         <!--        Inline Completion-->
-        <action id="com.sensetime.intellij.plugins.sensecode.actions.inline.ManualTriggerInlineCompletionAction"
-                class="com.sensetime.intellij.plugins.sensecode.actions.inline.ManualTriggerInlineCompletionAction">
+        <action id="com.sensetime.intellij.plugins.sensecode.completions.actions.ManualTriggerInlineCompletionAction"
+                class="com.sensetime.intellij.plugins.sensecode.completions.actions.ManualTriggerInlineCompletionAction">
             <keyboard-shortcut first-keystroke="control alt SLASH" keymap="$default"/>
             <keyboard-shortcut first-keystroke="control alt SLASH" keymap="Mac OS X" replace-all="true"/>
             <keyboard-shortcut first-keystroke="control alt SLASH" keymap="Mac OS X 10.5+" replace-all="true"/>
         </action>
-        <action id="com.sensetime.intellij.plugins.sensecode.actions.inline.ShowPreviousInlineCompletionAction"
-                class="com.sensetime.intellij.plugins.sensecode.actions.inline.ShowPreviousInlineCompletionAction">
+        <action id="com.sensetime.intellij.plugins.sensecode.completions.actions.ShowPreviousInlineCompletionAction"
+                class="com.sensetime.intellij.plugins.sensecode.completions.actions.ShowPreviousInlineCompletionAction">
             <keyboard-shortcut first-keystroke="alt OPEN_BRACKET" keymap="$default"/>
         </action>
-        <action id="com.sensetime.intellij.plugins.sensecode.actions.inline.ShowNextInlineCompletionAction"
-                class="com.sensetime.intellij.plugins.sensecode.actions.inline.ShowNextInlineCompletionAction">
+        <action id="com.sensetime.intellij.plugins.sensecode.completions.actions.ShowNextInlineCompletionAction"
+                class="com.sensetime.intellij.plugins.sensecode.completions.actions.ShowNextInlineCompletionAction">
             <keyboard-shortcut first-keystroke="alt CLOSE_BRACKET" keymap="$default"/>
         </action>
-        <action id="com.sensetime.intellij.plugins.sensecode.actions.inline.AcceptInlineCompletionAction"
-                class="com.sensetime.intellij.plugins.sensecode.actions.inline.AcceptInlineCompletionAction"
+        <action id="com.sensetime.intellij.plugins.sensecode.completions.actions.AcceptInlineCompletionAction"
+                class="com.sensetime.intellij.plugins.sensecode.completions.actions.AcceptInlineCompletionAction"
                 text="Accept Inline Completion">
             <keyboard-shortcut first-keystroke="TAB" keymap="$default"/>
         </action>

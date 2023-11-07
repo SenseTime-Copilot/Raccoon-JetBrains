@@ -10,6 +10,7 @@ import com.intellij.ui.dsl.builder.bind
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.dsl.builder.selected
 import com.sensetime.intellij.plugins.sensecode.clients.SenseCodeClientManager
+import com.sensetime.intellij.plugins.sensecode.completions.actions.ManualTriggerInlineCompletionAction
 import com.sensetime.intellij.plugins.sensecode.persistent.settings.ModelConfig
 import com.sensetime.intellij.plugins.sensecode.persistent.settings.SenseCodeSettingsState
 import com.sensetime.intellij.plugins.sensecode.resources.SenseCodeBundle
