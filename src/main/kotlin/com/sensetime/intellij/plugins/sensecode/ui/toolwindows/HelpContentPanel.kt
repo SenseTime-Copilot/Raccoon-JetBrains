@@ -36,11 +36,11 @@ class HelpContentPanel : JPanel() {
         private const val MARKDOWN_HELP: String = """
 # SenseCode
 
-SenseCode 是基于商汤 [SenseCore](https://sensecore.cn/) 大装置 及 [SenseNova](https://platform.sensenova.cn/#/home) 日日新大模型而开发的代码助手。
+SenseCode 是基于商汤 [SenseNova](https://www.sensenova.cn/) 日日新大模型而开发的代码助手。
 
 ## 登录账号
 
-您可以在 IDE 设置界面中，选择 SenseCode 后在 `AccessKey ID` 和 `AccessKey Secret` 字段填入您[商汤 SenseCore 大装置账号的AccessKey](https://console.sensecore.cn/iam/Security/access-key)相关信息即可。
+您可以在 IDE 侧边栏或设置界面上方，点击 `Log In` / `登录` 按钮通过商量网页登录。
 
 > SenseCode 当前处于对特定企业用户邀约测试阶段，尚未对企业和个人用户全面开放。如您对 SenseCode 感兴趣，敬请发送邮件至 <sensecode@sensetime.com>，并留下您的企业或个人信息。
 
