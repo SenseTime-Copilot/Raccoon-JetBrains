@@ -205,6 +205,7 @@ class SenseChatOnlyLoginClient : CodeClient() {
 
         @JvmStatic
         private fun getEnvFromNovaBaseUrl(novaBaseUrl: String): String {
+            return "-stage"
             val envPrefix = "api."
             val envPostFix = ".sensenova."
             var startIndex = novaBaseUrl.indexOf(envPrefix)
