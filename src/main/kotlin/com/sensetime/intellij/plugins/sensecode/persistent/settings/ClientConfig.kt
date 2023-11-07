@@ -5,8 +5,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class ClientConfig(
     val name: String,
-    private val inlineApiPath: String,
-    private val toolwindowApiPath: String,
+    val inlineApiPath: String,
+    val toolwindowApiPath: String,
     private val apis: Map<String, ClientApiConfig>
 ) {
     @Serializable

@@ -8,38 +8,50 @@
     <resource-bundle>i18n.messages</resource-bundle>
 
     <applicationListeners>
-        <listener class="com.sensetime.intellij.plugins.sensecode.clients.CodeClientManager$CredentialsListener"
-                  topic="com.sensetime.intellij.plugins.sensecode.messages.SenseCodeCredentialsListener"/>
+        <listener class="com.sensetime.intellij.plugins.sensecode.clients.SenseCodeClientManager$CredentialsListener"
+                  topic="com.sensetime.intellij.plugins.sensecode.topics.SenseCodeCredentialsListener"/>
     </applicationListeners>
 
     <extensions defaultExtensionNs="com.intellij">
+        <!--        Persistent Data-->
+        <applicationService
+                serviceImplementation="com.sensetime.intellij.plugins.sensecode.persistent.settings.SenseCodeSettingsState"/>
+        <applicationService
+                serviceImplementation="com.sensetime.intellij.plugins.sensecode.persistent.histories.SenseCodeChatHistoriesState"/>
+
         <!--        UI-->
-        <notificationGroup displayType="BALLOON" id="com.sensetime.intellij.plugins.sensecode.balloon"/>
+        <notificationGroup displayType="BALLOON" id="SenseCode Notification Group"/>
 
         <toolWindow id="SenseCode" anchor="right"
-                    factoryClass="com.sensetime.intellij.plugins.sensecode.toolwindows.SenseCodeToolWindowFactory"
+                    factoryClass="com.sensetime.intellij.plugins.sensecode.ui.toolwindows.SenseCodeToolWindowFactory"
                     icon="com.sensetime.intellij.plugins.sensecode.resources.SenseCodeIcons.TOOLWINDOW_SENSECODE">
         </toolWindow>
 
         <statusBarWidgetFactory id="SenseCode" order="last"
-                                implementation="com.sensetime.intellij.plugins.sensecode.statusbar.SenseCodeStatusBarWidgetFactory"/>
+                                implementation="com.sensetime.intellij.plugins.sensecode.ui.SenseCodeStatusBarWidgetFactory"/>
 
         <applicationConfigurable
-                instance="com.sensetime.intellij.plugins.sensecode.settings.SenseCodeConfigurable"
-                id="com.sensetime.intellij.plugins.sensecode.settings.SenseCodeConfigurable"
+                instance="com.sensetime.intellij.plugins.sensecode.ui.SenseCodeConfigurable"
+                id="com.sensetime.intellij.plugins.sensecode.ui.SenseCodeConfigurable"
                 displayName="SenseCode"/>
-
-
-        <!--        Persistent Data-->
-        <applicationService
-                serviceImplementation="com.sensetime.intellij.plugins.sensecode.settings.SenseCodeSettingsState"/>
-        <applicationService
-                serviceImplementation="com.sensetime.intellij.plugins.sensecode.toolwindows.history.SenseCodeChatHistoryState"/>
-
 
         <!--        Local Http Server-->
         <httpRequestHandler
-                implementation="com.sensetime.intellij.plugins.sensecode.services.http.authentication.SenseNovaAuthService"/>
+                implementation="com.sensetime.intellij.plugins.sensecode.services.authentication.SenseChatAuthService"/>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
         <!--        Inline Completion-->
@@ -57,9 +69,11 @@
                              implementationClass="com.sensetime.intellij.plugins.sensecode.actions.inline.EscapeEditorActionHandler"/>
     </extensions>
 
+
+
     <actions>
         <!--        Code Task-->
-        <group id="com.sensetime.intellij.plugins.sensecode.actions.CodeTaskGroup" text="SenseCode" popup="true">
+        <group id="com.sensetime.intellij.plugins.sensecode.tasks.CodeTaskActionsGroup" text="SenseCode" popup="true">
             <!--            Add actions to the tools menu-->
             <add-to-group
                     group-id="ToolsMenu"
@@ -71,37 +85,44 @@
                     anchor="last">
             </add-to-group>
 
-            <action id="com.sensetime.intellij.plugins.sensecode.actions.task.GenerationAction"
-                    class="com.sensetime.intellij.plugins.sensecode.actions.task.GenerationAction">
+            <action id="com.sensetime.intellij.plugins.sensecode.tasks.Generation"
+                    class="com.sensetime.intellij.plugins.sensecode.tasks.Generation">
                 <keyboard-shortcut first-keystroke="control alt shift G" keymap="$default" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift G" keymap="Mac OS X" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift G" keymap="Mac OS X 10.5+" replace-all="true"/>
             </action>
-            <action id="com.sensetime.intellij.plugins.sensecode.actions.task.AddTestAction"
-                    class="com.sensetime.intellij.plugins.sensecode.actions.task.AddTestAction">
+            <action id="com.sensetime.intellij.plugins.sensecode.tasks.AddTest"
+                    class="com.sensetime.intellij.plugins.sensecode.tasks.AddTest">
                 <keyboard-shortcut first-keystroke="control alt shift U" keymap="$default" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift U" keymap="Mac OS X" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift U" keymap="Mac OS X 10.5+" replace-all="true"/>
             </action>
-            <action id="com.sensetime.intellij.plugins.sensecode.actions.task.CodeConversionAction"
-                    class="com.sensetime.intellij.plugins.sensecode.actions.task.CodeConversionAction">
+            <action id="com.sensetime.intellij.plugins.sensecode.tasks.CodeConversion"
+                    class="com.sensetime.intellij.plugins.sensecode.tasks.CodeConversion">
                 <keyboard-shortcut first-keystroke="control alt shift X" keymap="$default" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift X" keymap="Mac OS X" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift X" keymap="Mac OS X 10.5+" replace-all="true"/>
             </action>
-            <action id="com.sensetime.intellij.plugins.sensecode.actions.task.CodeCorrectionAction"
-                    class="com.sensetime.intellij.plugins.sensecode.actions.task.CodeCorrectionAction">
+            <action id="com.sensetime.intellij.plugins.sensecode.tasks.CodeCorrection"
+                    class="com.sensetime.intellij.plugins.sensecode.tasks.CodeCorrection">
                 <keyboard-shortcut first-keystroke="control alt shift F" keymap="$default" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift F" keymap="Mac OS X" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift F" keymap="Mac OS X 10.5+" replace-all="true"/>
             </action>
-            <action id="com.sensetime.intellij.plugins.sensecode.actions.task.RefactoringAction"
-                    class="com.sensetime.intellij.plugins.sensecode.actions.task.RefactoringAction">
+            <action id="com.sensetime.intellij.plugins.sensecode.tasks.Refactoring"
+                    class="com.sensetime.intellij.plugins.sensecode.tasks.Refactoring">
                 <keyboard-shortcut first-keystroke="control alt shift R" keymap="$default"/>
                 <keyboard-shortcut first-keystroke="control alt shift R" keymap="Mac OS X" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift R" keymap="Mac OS X 10.5+" replace-all="true"/>
             </action>
         </group>
+
+
+
+
+
+
+
 
 
         <!--        Inline Completion-->

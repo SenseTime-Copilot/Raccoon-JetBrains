@@ -1,9 +1,12 @@
 package com.sensetime.intellij.plugins.sensecode.persistent.histories
 
+import com.sensetime.intellij.plugins.sensecode.clients.SenseCodeClientManager
 import com.sensetime.intellij.plugins.sensecode.persistent.settings.ModelConfig
 import com.sensetime.intellij.plugins.sensecode.persistent.settings.SenseCodeSettingsState
+import com.sensetime.intellij.plugins.sensecode.ui.SenseCodeNotification
 import com.sensetime.intellij.plugins.sensecode.utils.SenseCodePlugin
 import com.sensetime.intellij.plugins.sensecode.utils.SenseCodeUtils
+import com.sensetime.intellij.plugins.sensecode.utils.letIfNotBlank
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -11,6 +14,8 @@ interface DisplayMessage {
     val name: String
     val displayText: String
     val timestampMs: Long
+
+    fun hasData(): Boolean
 }
 
 @Serializable
@@ -25,32 +30,36 @@ data class UserMessage(
         modelConfig.getPromptTemplate(promptType)!!.toRawText(args)
 
     override val displayText: String
-        get() = SenseCodeSettingsState.instance.selectedClientConfig.toolwindowClientApiConfig.selectedModelConfig.getPromptTemplate(
-            promptType
-        )!!.toDisplayText(args)
+        get() = SenseCodeSettingsState.selectedClientConfig.toolwindowModelConfig.getPromptTemplate(promptType)!!
+            .toDisplayText(args)
 
     private val text: String?
         get() = args[ModelConfig.DisplayTextTemplate.TEXT]
     private val code: String?
         get() = args[ModelConfig.DisplayTextTemplate.CODE]
 
-    fun hasData(): Boolean = !(text.isNullOrBlank() && code.isNullOrBlank())
+    override fun hasData(): Boolean = !(text.isNullOrBlank() && code.isNullOrBlank())
 
     companion object {
         fun createUserMessage(
-            name: String,
+            name: String? = SenseCodeClientManager.userName,
             promptType: String,
             text: String? = null,
             code: String? = null,
             language: String? = null,
             args: Map<String, String>? = null,
             timestampMs: Long = SenseCodeUtils.getCurrentTimestampMs()
-        ): UserMessage = UserMessage(name, promptType, timestampMs, buildMap {
-            args?.let { putAll(it) }
-            text?.let { put(ModelConfig.DisplayTextTemplate.TEXT, it) }
-            code?.let { put(ModelConfig.DisplayTextTemplate.CODE, it) }
-            language?.let { put(ModelConfig.DisplayTextTemplate.LANGUAGE, it) }
-        })
+        ): UserMessage? = if (name.isNullOrBlank()) {
+            SenseCodeNotification.notifyLoginWithSettingsAction()
+            null
+        } else {
+            UserMessage(name, promptType, timestampMs, buildMap {
+                args?.let { putAll(it) }
+                text?.let { put(ModelConfig.DisplayTextTemplate.TEXT, it) }
+                code?.let { put(ModelConfig.DisplayTextTemplate.CODE, it) }
+                language?.let { put(ModelConfig.DisplayTextTemplate.LANGUAGE, it) }
+            })
+        }
     }
 }
 
@@ -72,6 +81,8 @@ data class AssistantMessage(
         get() = SenseCodePlugin.NAME
     override val displayText: String
         get() = content
+
+    override fun hasData(): Boolean = content.isNotBlank()
 
     companion object {
         @JvmStatic

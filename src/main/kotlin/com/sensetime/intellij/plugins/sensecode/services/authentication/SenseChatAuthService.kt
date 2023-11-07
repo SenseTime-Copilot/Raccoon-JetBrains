@@ -4,6 +4,7 @@ import com.intellij.ide.BrowserUtil
 import com.intellij.util.Url
 import com.intellij.util.Urls
 import com.sensetime.intellij.plugins.sensecode.clients.SenseChatOnlyLoginClient
+import com.sensetime.intellij.plugins.sensecode.clients.SenseCodeClientManager
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.http.FullHttpRequest
 import io.netty.handler.codec.http.HttpResponseStatus
@@ -31,11 +32,14 @@ class SenseChatAuthService : RestService() {
             get() = Urls.newFromEncoded("http://localhost:${BuiltInServerManager.getInstance().port}/$PREFIX/$SERVICE_NAME")
 
         fun updateLoginResult(urlDecoder: QueryStringDecoder) {
-            val queries = urlDecoder.parameters()
-            SenseChatOnlyLoginClient.updateLoginResult(
-                queries.getValue("token").first(),
-                queries.getValue("refresh").first()
-            )
+            urlDecoder.parameters().let { queries ->
+                SenseCodeClientManager.updateLoginResult(SenseChatOnlyLoginClient.CLIENT_NAME) { codeClient ->
+                    (codeClient as? SenseChatOnlyLoginClient)?.updateLoginResult(
+                        queries.getValue("token").first(),
+                        queries["refresh"]?.firstOrNull()
+                    )
+                }
+            }
         }
 
         fun startLoginFromBrowser(loginUrl: String) {

@@ -5,11 +5,12 @@ import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.util.xmlb.XmlSerializerUtil
+import com.sensetime.intellij.plugins.sensecode.clients.SenseChatOnlyLoginClient
 import com.sensetime.intellij.plugins.sensecode.utils.SenseCodePlugin
 import kotlin.math.max
 
 @State(
-    name = "com.sensetime.intellij.plugins.sensecode.settings.SenseCodeSettingsState",
+    name = "com.sensetime.intellij.plugins.sensecode.persistent.settings.SenseCodeSettingsState",
     storages = [Storage("SenseCodeIntelliJSettings.xml")]
 )
 data class SenseCodeSettingsState(
@@ -31,20 +32,10 @@ data class SenseCodeSettingsState(
 
     // only for dev
     var toolwindowMaxNewTokens: Int = -1
-    var selectedClientName: String = SenseCoreClient.CLIENT_NAME
-    var clientBaseApiMap: Map<String, String> = mapOf(
-        SenseCoreClient.CLIENT_NAME to SenseCoreClient.API_ENDPOINT,
-        SenseNovaClient.CLIENT_NAME to SenseNovaClient.API_ENDPOINT
-    )
-    private val clients: Map<String, ClientConfig> =
-        mapOf(
-            SenseCoreClient.CLIENT_NAME to SenseCoreClient.getDefaultClientConfig(),
-            SenseNovaClient.CLIENT_NAME to SenseNovaClient.getDefaultClientConfig()
-        )
-    val selectedClientConfig: ClientConfig
-        get() = selectedClientName.let {
-            clients.getValue(it).apply { apiEndpoint = clientApiEndpointMap.getValue(it) }
-        }
+    private val selectedClientName: String = SenseChatOnlyLoginClient.CLIENT_NAME
+    var clientBaseUrlMap: Map<String, String> =
+        mapOf(SenseChatOnlyLoginClient.CLIENT_NAME to SenseChatOnlyLoginClient.BASE_API)
+    private val clients: Map<String, ClientConfig> = listOf(SenseChatOnlyLoginClient.defaultClientConfig).toMap()
 
     fun restore() {
         loadState(SenseCodeSettingsState(SenseCodePlugin.version))
@@ -60,13 +51,16 @@ data class SenseCodeSettingsState(
     }
 
     companion object {
-        private const val MIN_CANDIDATES: Int = 1
-        private const val MAX_CANDIDATES: Int = 4
+        const val MIN_CANDIDATES: Int = 1
+        const val MAX_CANDIDATES: Int = 3
         private const val DEFAULT_CANDIDATES: Int = MIN_CANDIDATES
         private const val MIN_AUTO_COMPLETE_DELAY_MS: Int = 1000
         private const val DEFAULT_AUTO_COMPLETE_DELAY_MS: Int = MIN_AUTO_COMPLETE_DELAY_MS
 
         val instance: SenseCodeSettingsState
             get() = ApplicationManager.getApplication().getService(SenseCodeSettingsState::class.java)
+
+        val selectedClientConfig: ClientConfig
+            get() = instance.let { it.clients.getValue(it.selectedClientName) }
     }
 }

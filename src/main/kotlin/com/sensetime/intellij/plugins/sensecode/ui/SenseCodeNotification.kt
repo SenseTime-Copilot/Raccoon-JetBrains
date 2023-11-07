@@ -1,11 +1,11 @@
-package com.sensetime.intellij.plugins.sensecode.utils
+package com.sensetime.intellij.plugins.sensecode.ui
 
 import com.intellij.notification.*
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.sensetime.intellij.plugins.sensecode.resources.SenseCodeBundle
-import com.sensetime.intellij.plugins.sensecode.ui.SenseCodeConfigurable
+import com.sensetime.intellij.plugins.sensecode.ui.common.SenseCodeUIUtils
+import com.sensetime.intellij.plugins.sensecode.utils.letIfNotBlank
 
 object SenseCodeNotification {
     const val GROUP_ID: String = "SenseCode Notification Group"
@@ -17,7 +17,7 @@ object SenseCodeNotification {
     @JvmStatic
     fun notifySettingsAction(notification: Notification, actionName: String) {
         notification.addAction(NotificationAction.createSimple(actionName) {
-            ShowSettingsUtil.getInstance().showSettingsDialog(null, SenseCodeConfigurable::class.java)
+            SenseCodeUIUtils.showSenseCodeSettings()
         }).notify(null)
     }
 

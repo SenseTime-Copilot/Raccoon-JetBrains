@@ -2,8 +2,10 @@ package com.sensetime.intellij.plugins.sensecode.ui.common
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.ui.components.ActionLink
 import com.intellij.util.ui.JBFont
+import com.sensetime.intellij.plugins.sensecode.ui.SenseCodeConfigurable
 import java.awt.Component
 import java.awt.Dimension
 import javax.swing.Icon
@@ -17,6 +19,11 @@ object SenseCodeUIUtils {
     @JvmStatic
     fun invokeOnUIThreadLater(block: () -> Unit) {
         ApplicationManager.getApplication().invokeLater(block)
+    }
+
+    @JvmStatic
+    fun showSenseCodeSettings() {
+        ShowSettingsUtil.getInstance().showSettingsDialog(null, SenseCodeConfigurable::class.java)
     }
 
     @JvmStatic

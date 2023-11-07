@@ -1,5 +1,8 @@
 package com.sensetime.intellij.plugins.sensecode.utils
 
+import com.intellij.psi.PsiElement
+
+
 // String
 
 fun String.takeIfNotBlank(): String? = takeIf { it.isNotBlank() }
@@ -18,4 +21,6 @@ fun <T> List<T>.takeIfNotEmpty(): List<T>? = takeIf { it.isNotEmpty() }
 
 object SenseCodeUtils {
     fun getCurrentTimestampMs() = System.currentTimeMillis()
+
+    fun getMarkdownLanguage(psiElement: PsiElement?): String = psiElement?.language?.id?.lowercase() ?: ""
 }

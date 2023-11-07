@@ -10,7 +10,7 @@ import com.sensetime.intellij.plugins.sensecode.persistent.settings.SenseCodeSet
 import com.sensetime.intellij.plugins.sensecode.topics.SENSE_CODE_CLIENT_REQUEST_STATE_TOPIC
 import com.sensetime.intellij.plugins.sensecode.topics.SenseCodeClientRequestStateListener
 import com.sensetime.intellij.plugins.sensecode.ui.common.SenseCodeUIUtils
-import com.sensetime.intellij.plugins.sensecode.utils.SenseCodeNotification
+import com.sensetime.intellij.plugins.sensecode.ui.SenseCodeNotification
 import com.sensetime.intellij.plugins.sensecode.utils.ifNullOrBlank
 import com.sensetime.intellij.plugins.sensecode.utils.ifNullOrBlankElse
 import com.sensetime.intellij.plugins.sensecode.utils.letIfNotBlank
@@ -51,9 +51,9 @@ internal suspend fun Call.await(): Response =
     }
 
 abstract class CodeClient {
-    abstract val clientName: String
+    abstract val name: String
     protected val baseUrl: String
-        get() = SenseCodeSettingsState.instance.clientBaseUrlMap.getValue(clientName)
+        get() = SenseCodeSettingsState.instance.clientBaseUrlMap.getValue(name)
 
     protected fun getApiEndpoint(apiPath: String) = baseUrl + apiPath
 
@@ -163,7 +163,7 @@ abstract class CodeClient {
             clientResponse?.message?.letIfNotBlank { "Message: $it" },
             "Details: ${bodyErrorGetter(clientResponse).ifNullOrBlank(Error.UNKNOWN_ERROR)}",
             t?.let { "Exception: ${it.localizedMessage}" }).joinToString("\n")
-            .let { if (401 == response?.code) UnauthorizedException(clientName, it) else IOException(it) }
+            .let { if (401 == response?.code) UnauthorizedException(name, it) else IOException(it) }
     }
 
     protected fun toErrorException(

@@ -3,6 +3,7 @@ package com.sensetime.intellij.plugins.sensecode.clients
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.intellij.credentialStore.Credentials
+import com.sensetime.intellij.plugins.sensecode.clients.models.PenroseModels
 import com.sensetime.intellij.plugins.sensecode.persistent.SenseCodeCredentialsManager
 import com.sensetime.intellij.plugins.sensecode.persistent.letIfFilled
 import com.sensetime.intellij.plugins.sensecode.services.authentication.SenseChatAuthService
@@ -17,10 +18,12 @@ import com.sensetime.intellij.plugins.sensecode.clients.responses.CodeResponse
 import com.sensetime.intellij.plugins.sensecode.clients.responses.SenseChatCheckTokenResponse
 import com.sensetime.intellij.plugins.sensecode.clients.responses.SenseChatRefreshTokenResponse
 import com.sensetime.intellij.plugins.sensecode.clients.responses.SenseNovaCodeResponse
+import com.sensetime.intellij.plugins.sensecode.persistent.settings.ClientConfig
+import com.sensetime.intellij.plugins.sensecode.persistent.settings.toMap
 import com.sensetime.intellij.plugins.sensecode.utils.letIfNotBlank
 
 class SenseChatOnlyLoginClient : CodeClient() {
-    override val clientName: String
+    override val name: String
         get() = CLIENT_NAME
 
     private val senseChatBaseUrl: String
@@ -164,10 +167,12 @@ class SenseChatOnlyLoginClient : CodeClient() {
 
     companion object {
         const val CLIENT_NAME = "sensechat-nova"
-        const val SENSENOVA_BASE_API = "https://api.sensenova.cn"
+        const val BASE_API = "https://api.sensenova.cn"
 
         private const val API_LLM_COMPLETIONS = "/v1/llm/completions"
         private const val API_LLM_CHAT_COMPLETIONS = "/v1/llm/chat-completions"
+        private const val PTC_CODE_S_MODEL_NAME = "nova-ptc-s-v1-codecompletion"
+        private const val PTC_CODE_L_MODEL_NAME = "nova-ptc-l-v1-code"
 
         private var accessTokenCredentials: Credentials?
             get() = SenseCodeCredentialsManager.getAccessToken(CLIENT_NAME)
@@ -225,5 +230,24 @@ class SenseChatOnlyLoginClient : CodeClient() {
             token?.let {
                 createRequestBuilderWithCommonHeader(apiEndpoint).addHeader("Authorization", "Bearer $it")
             } ?: throw UnauthorizedException(CLIENT_NAME, "access token is empty")
+
+        val defaultClientConfig: ClientConfig
+            get() = ClientConfig(
+                CLIENT_NAME,
+                API_LLM_COMPLETIONS,
+                API_LLM_CHAT_COMPLETIONS,
+                listOf(
+                    ClientConfig.ClientApiConfig(
+                        API_LLM_COMPLETIONS,
+                        PTC_CODE_S_MODEL_NAME,
+                        listOf(PenroseModels.createModelCompletionSConfig(PTC_CODE_S_MODEL_NAME)).toMap()
+                    ),
+                    ClientConfig.ClientApiConfig(
+                        API_LLM_CHAT_COMPLETIONS,
+                        PTC_CODE_L_MODEL_NAME,
+                        listOf(PenroseModels.createModelChatLConfig(PTC_CODE_L_MODEL_NAME)).toMap()
+                    )
+                ).toMap()
+            )
     }
 }

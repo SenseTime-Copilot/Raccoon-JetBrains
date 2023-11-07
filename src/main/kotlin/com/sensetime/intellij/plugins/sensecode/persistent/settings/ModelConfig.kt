@@ -13,7 +13,7 @@ data class ModelConfig(
     private val completionPreferenceMap: Map<CompletionPreference, Int>,
     private val promptTemplates: Map<String, DisplayTextTemplate>,
     private val systemPrompt: String? = null,
-    private val roleMap: Map<Role, String>? = null,
+    private val roleMap: Map<Role, String>? = null
 ) {
     enum class CompletionPreference(val key: String) {
         SPEED_PRIORITY("settings.CompletionPreference.SpeedPriority"),
@@ -44,12 +44,23 @@ data class ModelConfig(
             const val CODE = "code"
             const val LANGUAGE = "language"
 
+            const val PREFIX_LINES = "prefixLines"
+            const val SUFFIX_LINES = "suffixLines"
+            const val PREFIX_CURSOR = "prefixCursor"
+
             val textExpression: String
                 get() = toArgExpression(TEXT)
             val codeExpression: String
                 get() = toArgExpression(CODE)
             val languageExpression: String
                 get() = toArgExpression(LANGUAGE)
+
+            val prefixLinesExpression: String
+                get() = toArgExpression(PREFIX_LINES)
+            val suffixLinesExpression: String
+                get() = toArgExpression(SUFFIX_LINES)
+            val prefixCursorExpression: String
+                get() = toArgExpression(PREFIX_CURSOR)
 
             val markdownCodeTemplate: String
                 get() = "```${languageExpression}\n${codeExpression}\n```"
@@ -58,7 +69,7 @@ data class ModelConfig(
             fun toArgExpression(argName: String): String = "{$argName}"
 
             @JvmStatic
-            private fun replaceArgs(template: String, args: Map<String, String>?): String = args?.run {
+            fun replaceArgs(template: String, args: Map<String, String>?): String = args?.run {
                 keys.fold(template) { preContent, currentArgName ->
                     preContent.replace(toArgExpression(currentArgName), getValue(currentArgName))
                 }
@@ -73,6 +84,11 @@ data class ModelConfig(
 
     fun getSystemPromptPair(): Pair<String, String>? = systemPrompt?.let { Pair(getRoleString(Role.SYSTEM), it) }
     fun getPromptTemplate(type: String): DisplayTextTemplate? = promptTemplates[type]
+
+    companion object {
+        const val FREE_CHAT = "Chat"
+        const val INLINE_COMPLETION = "Inline"
+    }
 }
 
 fun List<ModelConfig>.toMap(): Map<String, ModelConfig> = associateBy(ModelConfig::name)
