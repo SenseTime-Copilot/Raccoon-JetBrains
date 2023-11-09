@@ -231,7 +231,7 @@ class SenseChatOnlyLoginClient : CodeClient() {
         ): Request.Builder =
             token?.let {
                 createRequestBuilderWithCommonHeader(apiEndpoint).addHeader("Authorization", "Bearer $it")
-            } ?: throw UnauthorizedException(CLIENT_NAME, "access token is empty")
+            } ?: throw UnauthorizedException("access token is empty")
 
         val defaultClientConfig: ClientConfig
             get() = ClientConfig(

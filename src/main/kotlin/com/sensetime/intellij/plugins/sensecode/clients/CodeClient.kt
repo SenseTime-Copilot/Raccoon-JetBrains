@@ -14,6 +14,7 @@ import com.sensetime.intellij.plugins.sensecode.ui.SenseCodeNotification
 import com.sensetime.intellij.plugins.sensecode.utils.ifNullOrBlank
 import com.sensetime.intellij.plugins.sensecode.utils.ifNullOrBlankElse
 import com.sensetime.intellij.plugins.sensecode.utils.letIfNotBlank
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.flow.callbackFlow
@@ -96,8 +97,10 @@ abstract class CodeClient {
         fun toCodeResponse(body: String, stream: Boolean): CodeResponse
     }
 
-    class UnauthorizedException(clientName: String? = null, details: String? = null) :
-        Exception("Code client${clientName.ifNullOrBlankElse("") { "($it)" }} unauthorized${details.ifNullOrBlankElse("!") { ": $it" }}")
+    open class CodeClientException(message: String) : Exception(message)
+
+    class UnauthorizedException(message: String? = null) :
+        CodeClientException("Unauthorized${message.ifNullOrBlankElse("!") { ": $it" }}")
 
     private val requestStateTopicPublisher: SenseCodeClientRequestStateListener
         get() = ApplicationManager.getApplication().messageBus.syncPublisher(SENSE_CODE_CLIENT_REQUEST_STATE_TOPIC)
@@ -116,8 +119,12 @@ abstract class CodeClient {
     ): R {
         val id = currentRequestID.getAndIncrement()
         return try {
-            requestStateTopicPublisher.onStart(id)
-            block(id, toOkHttpRequest(request, stream))
+            try {
+                requestStateTopicPublisher.onStart(id)
+                block(id, toOkHttpRequest(request, stream))
+            } catch (e: CancellationException) {
+                throw (e.cause as? CodeClientException) ?: e
+            }
         } catch (e: Throwable) {
             if (e is UnauthorizedException) {
                 if (isSupportLogin) {
@@ -163,7 +170,7 @@ abstract class CodeClient {
             clientResponse?.message?.letIfNotBlank { "Message: $it" },
             "Details: ${bodyErrorGetter(clientResponse).ifNullOrBlank(Error.UNKNOWN_ERROR)}",
             t?.let { "Exception: ${it.localizedMessage}" }).joinToString("\n")
-            .let { if (401 == response?.code) UnauthorizedException(name, it) else IOException(it) }
+            .let { if (401 == response?.code) UnauthorizedException(it) else CodeClientException(it) }
     }
 
     protected fun toErrorException(
@@ -228,7 +235,7 @@ abstract class CodeClient {
                         channel.close()
 
                         openResponse?.let {
-                            throw toErrorException(request.apiPath, true, it)
+                            cancel("SenseCodeClient", toErrorException(request.apiPath, true, it))
                         }
                     }
 
@@ -236,7 +243,7 @@ abstract class CodeClient {
                         super.onFailure(eventSource, t, response)
 
                         openResponse = null
-                        throw toErrorException(request.apiPath, true, response, t)
+                        cancel("SenseCodeClient", toErrorException(request.apiPath, true, response, t))
                     }
                 })
 
