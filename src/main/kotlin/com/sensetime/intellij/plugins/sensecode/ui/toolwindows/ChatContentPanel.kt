@@ -100,6 +100,8 @@ class ChatContentPanel(eventListener: EventListener? = null) : JPanel(BorderLayo
         ConversationListPanel(this, it.conversations)
     }
 
+    private var scrollBar: JScrollBar? = null
+
     var eventListener: EventListener? = null
         set(value) {
             if (field !== value) {
@@ -150,7 +152,9 @@ class ChatContentPanel(eventListener: EventListener? = null) : JPanel(BorderLayo
                 },
                 ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
                 ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
-            ), BorderLayout.CENTER
+            ).apply {
+                scrollBar = verticalScrollBar
+            }, BorderLayout.CENTER
         )
         add(JPanel(BorderLayout()).apply {
             add(Box.createHorizontalBox().apply {
@@ -167,6 +171,7 @@ class ChatContentPanel(eventListener: EventListener? = null) : JPanel(BorderLayo
             border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
         }, BorderLayout.SOUTH)
 
+        gotoEnd()
         this.eventListener = eventListener
         updateRegenerateButtonVisible()
         conversationListPanel.conversationListModel.addListDataListener(this, this)
@@ -176,9 +181,20 @@ class ChatContentPanel(eventListener: EventListener? = null) : JPanel(BorderLayo
         newChatButton.removeActionListener(this::onNewChat)
         regenerateButton.removeActionListener(this::onRegenerate)
         submitButton.removeActionListener(this::onSubmitButtonClick)
+        scrollBar = null
 
         eventListener = null
         updateLastHistoryState()
+    }
+
+    private fun gotoEnd() {
+        // todo fix trick
+        SenseCodeUIUtils.invokeOnUIThreadLater {
+            scrollBar?.apply {
+                this@ChatContentPanel.validate()
+                value = maximum
+            }
+        }
     }
 
     fun loadFromHistory(userPromptText: String = "", conversations: List<ChatConversation>? = null) {
@@ -195,6 +211,7 @@ class ChatContentPanel(eventListener: EventListener? = null) : JPanel(BorderLayo
         } else {
             conversationListPanel.conversationListModel.replaceAll(conversations)
         }
+        gotoEnd()
     }
 
     private fun onNewChat(e: ActionEvent?) {
