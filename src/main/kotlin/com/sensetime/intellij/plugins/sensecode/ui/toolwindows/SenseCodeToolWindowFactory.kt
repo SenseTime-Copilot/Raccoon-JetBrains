@@ -18,6 +18,7 @@ import com.sensetime.intellij.plugins.sensecode.topics.SENSE_CODE_TASKS_TOPIC
 import com.sensetime.intellij.plugins.sensecode.topics.SenseCodeTasksListener
 import com.sensetime.intellij.plugins.sensecode.ui.common.SenseCodeUIUtils
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import java.awt.event.ActionEvent
 import java.awt.event.MouseEvent
@@ -26,7 +27,7 @@ import kotlin.coroutines.cancellation.CancellationException
 class SenseCodeToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
     private var chatJob: Job? = null
         set(value) {
-            field?.cancel()
+            field.takeIf { true == it?.isActive }?.cancel()
             field = value
         }
 
@@ -140,7 +141,20 @@ class SenseCodeToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
                         setSelectedContent(getContent(chatContentPanel))
                     }
                     toolWindow.show()
-                    chatContentPanel.newTask(userMessage)
+                    if (null == chatJob) {
+                        chatContentPanel.newTask(userMessage)
+                    } else {
+                        SenseCodeClientManager.clientCoroutineScope.launch {
+                            chatJob?.run {
+                                cancel()
+                                join()
+                            }
+                        }.invokeOnCompletion {
+                            SenseCodeUIUtils.invokeOnUIThreadLater {
+                                chatContentPanel.newTask(userMessage)
+                            }
+                        }
+                    }
                 }
             })
         }

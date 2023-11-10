@@ -16,19 +16,32 @@ data class ChatConversation(
 fun List<ChatConversation>.toCodeRequestMessage(modelConfig: ModelConfig): List<CodeRequest.Message> {
     val userRole = modelConfig.getRoleString(ModelConfig.Role.USER)
     val assistantRole = modelConfig.getRoleString(ModelConfig.Role.ASSISTANT)
+    val maxInputTokens = modelConfig.maxInputTokens
+    var currentTokens = 0
     return listOfNotNull(
         modelConfig.getSystemPromptPair()
-            ?.let { CodeRequest.Message(it.first, it.second) }) + flatMapIndexed { index, conversation ->
-        if (index >= lastIndex) {
-            listOf(CodeRequest.Message(userRole, conversation.user.getContent(modelConfig)))
+            ?.let { CodeRequest.Message(it.first, it.second) }) + ((reversed().flatMapIndexed { index, conversation ->
+        if (index <= 0) {
+            val content = conversation.user.getContent(modelConfig)
+            currentTokens += content.length
+            listOf(CodeRequest.Message(userRole, content))
         } else {
-            conversation.assistant?.takeIf { AssistantMessage.GenerateState.DONE == it.generateState }
+            conversation.assistant?.takeIf { (currentTokens >= 0) && (AssistantMessage.GenerateState.DONE == it.generateState) }
                 ?.let { assistant ->
-                    listOf(
-                        CodeRequest.Message(userRole, conversation.user.getContent(modelConfig)),
-                        CodeRequest.Message(assistantRole, assistant.content)
-                    )
+                    val userContent = conversation.user.getContent(modelConfig)
+                    val assistantContent = assistant.content
+                    val tmpLength = userContent.length + assistantContent.length
+                    if (currentTokens + tmpLength <= maxInputTokens) {
+                        currentTokens += tmpLength
+                        listOf(
+                            CodeRequest.Message(assistantRole, assistantContent),
+                            CodeRequest.Message(userRole, userContent)
+                        )
+                    } else {
+                        currentTokens = -1
+                        null
+                    }
                 } ?: emptyList()
         }
-    }
+    }).reversed())
 }

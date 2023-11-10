@@ -272,7 +272,6 @@ class ChatContentPanel(eventListener: EventListener? = null) : JPanel(BorderLayo
     }
 
     fun newTask(userMessage: UserMessage) {
-        endGenerate()
         conversationListPanel.conversationListModel.add(ChatConversation(userMessage))
         startGenerate()
     }
