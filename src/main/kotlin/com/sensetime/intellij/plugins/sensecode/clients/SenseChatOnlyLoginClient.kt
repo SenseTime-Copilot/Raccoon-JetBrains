@@ -131,7 +131,7 @@ class SenseChatOnlyLoginClient : CodeClient() {
     private suspend fun checkRefreshToken(): Credentials? = kotlin.runCatching {
         accessToken?.letIfNotBlank { currentAccessToken ->
             refreshTokenCredentials?.letIfFilled { user, password ->
-                user.toIntOrNull()?.takeIf { expiresIn -> ((Date().time / 1000L) + (3600L * 24)) > expiresIn }
+                user.toIntOrNull()?.takeIf { expiresIn -> ((Date().time / 1000L) + 60L) > expiresIn }
                     ?.let { password }
             }?.let { refreshToken ->
                 val refreshRequest = RefreshRequest(currentAccessToken, refreshToken)
@@ -205,7 +205,7 @@ class SenseChatOnlyLoginClient : CodeClient() {
 
         @JvmStatic
         private fun getEnvFromNovaBaseUrl(novaBaseUrl: String): String {
-            return "-stage"
+            return ""
             val envPrefix = "api."
             val envPostFix = ".sensenova."
             var startIndex = novaBaseUrl.indexOf(envPrefix)
