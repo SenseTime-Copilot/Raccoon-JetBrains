@@ -11,7 +11,7 @@ import kotlin.math.max
 
 @State(
     name = "com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState",
-    storages = [Storage("RaccoonIntelliJSettings.xml")]
+    storages = [Storage("RaccoonJetBrainsSettings.xml")]
 )
 data class RaccoonSettingsState(
     var version: String = ""

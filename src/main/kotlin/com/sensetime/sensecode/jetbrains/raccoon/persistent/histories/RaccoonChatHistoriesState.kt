@@ -9,7 +9,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
 
 @State(
     name = "com.sensetime.sensecode.jetbrains.raccoon.persistent.histories.RaccoonChatHistoriesState",
-    storages = [Storage("RaccoonIntelliJChatHistories.xml")]
+    storages = [Storage("RaccoonJetBrainsChatHistories.xml")]
 )
 data class RaccoonChatHistoriesState(
     var version: String = ""
