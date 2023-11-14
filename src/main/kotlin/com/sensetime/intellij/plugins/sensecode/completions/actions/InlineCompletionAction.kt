@@ -1,3 +1,0 @@
-package com.sensetime.intellij.plugins.sensecode.completions.actions
-
-interface InlineCompletionAction

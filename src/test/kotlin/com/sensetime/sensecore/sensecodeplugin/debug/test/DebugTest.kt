@@ -1,4 +1,4 @@
-package com.sensetime.sensecore.sensecodeplugin.debug.test
+package com.sensetime.sensecode.jetbrains.raccoon.debug.test
 
 import org.junit.Test
 

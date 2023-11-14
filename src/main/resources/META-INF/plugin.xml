@@ -1,63 +1,63 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-    <id>com.sensetime.intellij.plugins.sensecode</id>
-    <name>SenseCode</name>
+    <id>com.sensetime.sensecode.jetbrains.raccoon</id>
+    <name>Raccoon</name>
     <vendor>SenseTime</vendor>
 
     <depends>com.intellij.modules.platform</depends>
     <resource-bundle>i18n.messages</resource-bundle>
 
     <applicationListeners>
-        <listener class="com.sensetime.intellij.plugins.sensecode.clients.SenseCodeClientManager$CredentialsListener"
-                  topic="com.sensetime.intellij.plugins.sensecode.topics.SenseCodeCredentialsListener"/>
+        <listener class="com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager$CredentialsListener"
+                  topic="com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonCredentialsListener"/>
     </applicationListeners>
 
     <extensions defaultExtensionNs="com.intellij">
         <!--        Persistent Data-->
         <applicationService
-                serviceImplementation="com.sensetime.intellij.plugins.sensecode.persistent.settings.SenseCodeSettingsState"/>
+                serviceImplementation="com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState"/>
         <applicationService
-                serviceImplementation="com.sensetime.intellij.plugins.sensecode.persistent.histories.SenseCodeChatHistoriesState"/>
+                serviceImplementation="com.sensetime.sensecode.jetbrains.raccoon.persistent.histories.RaccoonChatHistoriesState"/>
 
         <!--        UI-->
-        <notificationGroup displayType="BALLOON" id="SenseCode Notification Group"/>
+        <notificationGroup displayType="BALLOON" id="Raccoon Notification Group"/>
 
-        <toolWindow id="SenseCode" anchor="right"
-                    factoryClass="com.sensetime.intellij.plugins.sensecode.ui.toolwindows.SenseCodeToolWindowFactory"
-                    icon="com.sensetime.intellij.plugins.sensecode.resources.SenseCodeIcons.TOOLWINDOW_SENSECODE">
+        <toolWindow id="Raccoon" anchor="right"
+                    factoryClass="com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindows.RaccoonToolWindowFactory"
+                    icon="com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonIcons.TOOLWINDOW_RACCOON">
         </toolWindow>
 
-        <statusBarWidgetFactory id="SenseCode" order="last"
-                                implementation="com.sensetime.intellij.plugins.sensecode.ui.SenseCodeStatusBarWidgetFactory"/>
+        <statusBarWidgetFactory id="Raccoon" order="last"
+                                implementation="com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonStatusBarWidgetFactory"/>
 
         <applicationConfigurable
-                instance="com.sensetime.intellij.plugins.sensecode.ui.SenseCodeConfigurable"
-                id="com.sensetime.intellij.plugins.sensecode.ui.SenseCodeConfigurable"
-                displayName="SenseCode"/>
+                instance="com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonConfigurable"
+                id="com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonConfigurable"
+                displayName="Raccoon"/>
 
         <!--        Local Http Server-->
         <httpRequestHandler
-                implementation="com.sensetime.intellij.plugins.sensecode.services.authentication.SenseChatAuthService"/>
+                implementation="com.sensetime.sensecode.jetbrains.raccoon.services.authentication.SenseChatAuthService"/>
 
         <!--        Inline Completion-->
         <backgroundPostStartupActivity
-                implementation="com.sensetime.intellij.plugins.sensecode.completions.auto.AutoCompletionServer$Initializer"/>
+                implementation="com.sensetime.sensecode.jetbrains.raccoon.completions.auto.AutoCompletionServer$Initializer"/>
         <editorFactoryDocumentListener
-                implementation="com.sensetime.intellij.plugins.sensecode.completions.auto.EditorChangeDetector"/>
+                implementation="com.sensetime.sensecode.jetbrains.raccoon.completions.auto.EditorChangeDetector"/>
         <editorFactoryMouseListener
-                implementation="com.sensetime.intellij.plugins.sensecode.completions.auto.EditorChangeDetector"/>
-        <typedHandler implementation="com.sensetime.intellij.plugins.sensecode.completions.auto.UserTypedHandler"/>
+                implementation="com.sensetime.sensecode.jetbrains.raccoon.completions.auto.EditorChangeDetector"/>
+        <typedHandler implementation="com.sensetime.sensecode.jetbrains.raccoon.completions.auto.UserTypedHandler"/>
 
         <actionPromoter
-                implementation="com.sensetime.intellij.plugins.sensecode.completions.actions.InlineActionsPromoter"/>
+                implementation="com.sensetime.sensecode.jetbrains.raccoon.completions.actions.InlineActionsPromoter"/>
         <editorActionHandler action="EditorEscape" order="before hide-hints"
-                             id="com.sensetime.intellij.plugins.sensecode.completions.actions.EscapeEditorActionHandler"
-                             implementationClass="com.sensetime.intellij.plugins.sensecode.completions.actions.EscapeEditorActionHandler"/>
+                             id="com.sensetime.sensecode.jetbrains.raccoon.completions.actions.EscapeEditorActionHandler"
+                             implementationClass="com.sensetime.sensecode.jetbrains.raccoon.completions.actions.EscapeEditorActionHandler"/>
     </extensions>
 
     <actions>
         <!--        Code Task-->
-        <group id="com.sensetime.intellij.plugins.sensecode.tasks.CodeTaskActionsGroup" text="SenseCode" popup="true">
+        <group id="com.sensetime.sensecode.jetbrains.raccoon.tasks.CodeTaskActionsGroup" text="Raccoon" popup="true">
             <!--            Add actions to the tools menu-->
             <add-to-group
                     group-id="ToolsMenu"
@@ -69,32 +69,32 @@
                     anchor="last">
             </add-to-group>
 
-            <action id="com.sensetime.intellij.plugins.sensecode.tasks.Generation"
-                    class="com.sensetime.intellij.plugins.sensecode.tasks.Generation">
+            <action id="com.sensetime.sensecode.jetbrains.raccoon.tasks.Generation"
+                    class="com.sensetime.sensecode.jetbrains.raccoon.tasks.Generation">
                 <keyboard-shortcut first-keystroke="control alt shift G" keymap="$default" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift G" keymap="Mac OS X" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift G" keymap="Mac OS X 10.5+" replace-all="true"/>
             </action>
-            <action id="com.sensetime.intellij.plugins.sensecode.tasks.AddTest"
-                    class="com.sensetime.intellij.plugins.sensecode.tasks.AddTest">
+            <action id="com.sensetime.sensecode.jetbrains.raccoon.tasks.AddTest"
+                    class="com.sensetime.sensecode.jetbrains.raccoon.tasks.AddTest">
                 <keyboard-shortcut first-keystroke="control alt shift U" keymap="$default" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift U" keymap="Mac OS X" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift U" keymap="Mac OS X 10.5+" replace-all="true"/>
             </action>
-            <action id="com.sensetime.intellij.plugins.sensecode.tasks.CodeConversion"
-                    class="com.sensetime.intellij.plugins.sensecode.tasks.CodeConversion">
+            <action id="com.sensetime.sensecode.jetbrains.raccoon.tasks.CodeConversion"
+                    class="com.sensetime.sensecode.jetbrains.raccoon.tasks.CodeConversion">
                 <keyboard-shortcut first-keystroke="control alt shift X" keymap="$default" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift X" keymap="Mac OS X" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift X" keymap="Mac OS X 10.5+" replace-all="true"/>
             </action>
-            <action id="com.sensetime.intellij.plugins.sensecode.tasks.CodeCorrection"
-                    class="com.sensetime.intellij.plugins.sensecode.tasks.CodeCorrection">
+            <action id="com.sensetime.sensecode.jetbrains.raccoon.tasks.CodeCorrection"
+                    class="com.sensetime.sensecode.jetbrains.raccoon.tasks.CodeCorrection">
                 <keyboard-shortcut first-keystroke="control alt shift F" keymap="$default" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift F" keymap="Mac OS X" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift F" keymap="Mac OS X 10.5+" replace-all="true"/>
             </action>
-            <action id="com.sensetime.intellij.plugins.sensecode.tasks.Refactoring"
-                    class="com.sensetime.intellij.plugins.sensecode.tasks.Refactoring">
+            <action id="com.sensetime.sensecode.jetbrains.raccoon.tasks.Refactoring"
+                    class="com.sensetime.sensecode.jetbrains.raccoon.tasks.Refactoring">
                 <keyboard-shortcut first-keystroke="control alt shift R" keymap="$default"/>
                 <keyboard-shortcut first-keystroke="control alt shift R" keymap="Mac OS X" replace-all="true"/>
                 <keyboard-shortcut first-keystroke="control alt shift R" keymap="Mac OS X 10.5+" replace-all="true"/>
@@ -102,22 +102,22 @@
         </group>
 
         <!--        Inline Completion-->
-        <action id="com.sensetime.intellij.plugins.sensecode.completions.actions.ManualTriggerInlineCompletionAction"
-                class="com.sensetime.intellij.plugins.sensecode.completions.actions.ManualTriggerInlineCompletionAction">
+        <action id="com.sensetime.sensecode.jetbrains.raccoon.completions.actions.ManualTriggerInlineCompletionAction"
+                class="com.sensetime.sensecode.jetbrains.raccoon.completions.actions.ManualTriggerInlineCompletionAction">
             <keyboard-shortcut first-keystroke="control alt SLASH" keymap="$default"/>
             <keyboard-shortcut first-keystroke="control alt SLASH" keymap="Mac OS X" replace-all="true"/>
             <keyboard-shortcut first-keystroke="control alt SLASH" keymap="Mac OS X 10.5+" replace-all="true"/>
         </action>
-        <action id="com.sensetime.intellij.plugins.sensecode.completions.actions.ShowPreviousInlineCompletionAction"
-                class="com.sensetime.intellij.plugins.sensecode.completions.actions.ShowPreviousInlineCompletionAction">
+        <action id="com.sensetime.sensecode.jetbrains.raccoon.completions.actions.ShowPreviousInlineCompletionAction"
+                class="com.sensetime.sensecode.jetbrains.raccoon.completions.actions.ShowPreviousInlineCompletionAction">
             <keyboard-shortcut first-keystroke="alt OPEN_BRACKET" keymap="$default"/>
         </action>
-        <action id="com.sensetime.intellij.plugins.sensecode.completions.actions.ShowNextInlineCompletionAction"
-                class="com.sensetime.intellij.plugins.sensecode.completions.actions.ShowNextInlineCompletionAction">
+        <action id="com.sensetime.sensecode.jetbrains.raccoon.completions.actions.ShowNextInlineCompletionAction"
+                class="com.sensetime.sensecode.jetbrains.raccoon.completions.actions.ShowNextInlineCompletionAction">
             <keyboard-shortcut first-keystroke="alt CLOSE_BRACKET" keymap="$default"/>
         </action>
-        <action id="com.sensetime.intellij.plugins.sensecode.completions.actions.AcceptInlineCompletionAction"
-                class="com.sensetime.intellij.plugins.sensecode.completions.actions.AcceptInlineCompletionAction"
+        <action id="com.sensetime.sensecode.jetbrains.raccoon.completions.actions.AcceptInlineCompletionAction"
+                class="com.sensetime.sensecode.jetbrains.raccoon.completions.actions.AcceptInlineCompletionAction"
                 text="Accept Inline Completion">
             <keyboard-shortcut first-keystroke="TAB" keymap="$default"/>
         </action>
