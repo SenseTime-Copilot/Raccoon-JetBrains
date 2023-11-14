@@ -1,6 +1,41 @@
+package com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindows
+
+import com.intellij.ide.BrowserUtil
+import com.intellij.ui.components.JBScrollPane
+import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonMarkdown
+import org.intellij.lang.annotations.Language
+import java.awt.BorderLayout
+import javax.swing.BorderFactory
+import javax.swing.JPanel
+import javax.swing.JTextPane
+import javax.swing.ScrollPaneConstants
+import javax.swing.event.HyperlinkEvent
+
+class HelpContentPanel : JPanel() {
+    init {
+        layout = BorderLayout()
+
+        add(
+            JBScrollPane(JTextPane().apply {
+                isEditable = false
+                contentType = "text/html"
+                text = RaccoonMarkdown.convertMarkdownToHtml(MARKDOWN_HELP)
+                border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
+                addHyperlinkListener { e ->
+                    if (e.eventType == HyperlinkEvent.EventType.ACTIVATED) {
+                        BrowserUtil.browse(e.url.toURI())
+                    }
+                }
+            }, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER),
+            BorderLayout.CENTER
+        )
+    }
+
+    companion object {
+        @Language("Markdown")
+        private const val MARKDOWN_HELP: String = """
 # Raccoon
 
-<!-- Plugin description -->
 Raccoon 是基于商汤 [SenseNova](https://www.sensenova.cn/) 日日新大模型而开发的代码助手。
 
 ## 登录账号
@@ -56,5 +91,6 @@ Raccoon 的侧边栏助手中，默认为 `流式输出` 模式，即回答将�
 * 您理解并同意，本服务所为您展示的代码只是 “推荐”，若您选择采纳本服务所推荐的代码，应当视为您实际撰写了此代码，您应当是所产生、选择的代码的唯一著作权人。我方不会就本服务所推荐的任何代码承担安全、瑕疵、质量、兼容等任何保证责任，无论是明示或暗示，您有责任确保你生成的代码的安全和质量（无论其是由您完全自主撰写或者是采纳了本服务提出的建议），我们建议您在使用本服务推荐的代码时采取与使用您完全自主编写的代码时相同的预防措施。
 * 您同意并承诺，不会使用本服务进行违反法律的应用开发，如您使用本服务开展特定行业的业务应用（如教育、医疗、银行行业），将同时遵守相关国家规定的用户数据保护法律和内容管理法律。
 * 您确认并同意，我方不会因为本服务或您使用本服务违反上述约定，而需要承担任何责任。
-
-<!-- Plugin description end -->
+"""
+    }
+}
