@@ -65,7 +65,7 @@ abstract class CodeClient {
     open val alreadyLoggedIn: Boolean = false
     open val isSupportLogin: Boolean = false
 
-    open suspend fun login() {
+    open suspend fun login(phone: String, password: CharArray) {
         throw NotImplementedError("")
     }
 

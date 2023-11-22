@@ -52,7 +52,7 @@ class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
                 val (client, clientConfig) = RaccoonClientManager.clientAndConfigPair
                 val modelConfig = clientConfig.toolwindowModelConfig
 
-                chatJob = RaccoonClientManager.clientCoroutineScope.launch {
+                chatJob = RaccoonClientManager.launchClientJob {
                     try {
                         client.requestStream(
                             CodeRequest(
@@ -144,7 +144,7 @@ class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
                     if (null == chatJob) {
                         chatContentPanel.newTask(userMessage)
                     } else {
-                        RaccoonClientManager.clientCoroutineScope.launch {
+                        RaccoonClientManager.launchClientJob {
                             chatJob?.run {
                                 cancel()
                                 join()

@@ -44,11 +44,15 @@ data class SenseNovaCodeResponseData(
 data class SenseNovaCodeResponse(
     val data: SenseNovaCodeResponseData? = null,
     val status: SenseNovaStatus? = null,
-    val error: SenseNovaStatus? = null
-) {
+    @SerialName("error")
+    val novaError: SenseNovaStatus? = null
+) : SenseCodeStatus() {
     fun toCodeResponse(): CodeResponse = (data ?: SenseNovaCodeResponseData()).also { codeResponse ->
+        if (hasError()) {
+            codeResponse.error = SenseNovaStatus(code, message)
+        }
         if (null == codeResponse.error?.takeIf { it.hasError() }) {
-            codeResponse.error = this@SenseNovaCodeResponse.error ?: this@SenseNovaCodeResponse.status
+            codeResponse.error = this@SenseNovaCodeResponse.novaError ?: this@SenseNovaCodeResponse.status
         }
     }
 }

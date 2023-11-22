@@ -46,14 +46,29 @@ class UserAuthorizationPanelBuilder : Disposable {
             field = value
         }
 
+    private var alreadyLoggedIn: Boolean = false
+        set(value) {
+            loginButton.button.text =
+                RaccoonBundle.message(if (value) "authorization.panel.button.logout" else "authorization.panel.button.login")
+            akskGroup?.expanded = !value
+            field = value
+        }
+
     private var akskGroup: CollapsibleRow? = null
     private val userIconLabel: JLabel = JLabel()
     private val userNameLabel: JLabel = JLabel("").apply { font = JBFont.label().biggerOn(3f).asBold() }
-    private val loginButton: LoadingButton = LoadingButton(
-        this,
-        RaccoonUIUtils.createActionLinkBiggerOn1(),
-        JLabel(AnimatedIcon.Big.INSTANCE)
-    ) { _, onCompletion -> loginJob = RaccoonClientManager.login().apply { invokeOnCompletion { onCompletion() } } }
+    private val loginButton: LoadingButton = RaccoonUIUtils.createActionLinkBiggerOn1().let { loginActionLink ->
+        LoadingButton(this, loginActionLink, JLabel(AnimatedIcon.Big.INSTANCE)) { _, onCompletion ->
+            loginJob = if (alreadyLoggedIn) {
+                RaccoonClientManager.launchClientJob { kotlin.runCatching { it.logout() } }
+                    .apply { invokeOnCompletion { onCompletion() } }
+            } else {
+                LoginDialog(null, loginActionLink).showAndGet()
+                onCompletion()
+                null
+            }
+        }
+    }
 
     private fun setUserName(userName: String?) {
         if (userName.isNullOrBlank()) {
@@ -65,23 +80,18 @@ class UserAuthorizationPanelBuilder : Disposable {
         }
     }
 
-    private fun setAlreadyLoggedIn(alreadyLoggedIn: Boolean) {
-        loginButton.button.text =
-            RaccoonBundle.message(if (alreadyLoggedIn) "user.button.logout" else "user.button.login")
-        akskGroup?.expanded = !alreadyLoggedIn
-    }
-
     private fun setIsSupportLogin(isSupportLogin: Boolean) {
         loginButton.isEnabled = isSupportLogin
         if (!isSupportLogin) {
-            loginButton.button.toolTipText = RaccoonBundle.message("user.tooltip.LoginNotSupported")
+            loginButton.button.toolTipText =
+                RaccoonBundle.message("authorization.panel.button.tooltip.LoginNotSupported")
         }
     }
 
     fun build(parent: Disposable, akskSettings: CodeClient.AkSkSettings? = null): DialogPanel {
         val client = RaccoonClientManager.currentCodeClient
         setUserName(client.userName)
-        setAlreadyLoggedIn(client.alreadyLoggedIn)
+        alreadyLoggedIn = client.alreadyLoggedIn
         setIsSupportLogin(client.isSupportLogin)
 
         val userAuthorizationPanel: DialogPanel = panel {
@@ -102,7 +112,9 @@ class UserAuthorizationPanelBuilder : Disposable {
                 }
 
                 override fun onAlreadyLoggedInChanged(alreadyLoggedIn: Boolean) {
-                    userAuthorizationPanel.invokeOnUIThreadLater { setAlreadyLoggedIn(alreadyLoggedIn) }
+                    userAuthorizationPanel.invokeOnUIThreadLater {
+                        this@UserAuthorizationPanelBuilder.alreadyLoggedIn = alreadyLoggedIn
+                    }
                 }
             })
         }

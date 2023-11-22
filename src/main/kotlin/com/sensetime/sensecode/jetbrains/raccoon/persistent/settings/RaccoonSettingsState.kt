@@ -5,7 +5,7 @@ import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.util.xmlb.XmlSerializerUtil
-import com.sensetime.sensecode.jetbrains.raccoon.clients.SenseChatOnlyLoginClient
+import com.sensetime.sensecode.jetbrains.raccoon.clients.SenseCodeClient
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
 import kotlin.math.max
 
@@ -32,10 +32,10 @@ data class RaccoonSettingsState(
 
     // only for dev
     var toolwindowMaxNewTokens: Int = -1
-    private val selectedClientName: String = SenseChatOnlyLoginClient.CLIENT_NAME
+    private val selectedClientName: String = SenseCodeClient.CLIENT_NAME
     var clientBaseUrlMap: Map<String, String> =
-        mapOf(SenseChatOnlyLoginClient.CLIENT_NAME to SenseChatOnlyLoginClient.BASE_API)
-    private val clients: Map<String, ClientConfig> = listOf(SenseChatOnlyLoginClient.defaultClientConfig).toClientConfigMap()
+        mapOf(SenseCodeClient.CLIENT_NAME to SenseCodeClient.BASE_API)
+    private val clients: Map<String, ClientConfig> = listOf(SenseCodeClient.defaultClientConfig).toClientConfigMap()
 
     fun restore() {
         loadState(RaccoonSettingsState(RaccoonPlugin.version))
