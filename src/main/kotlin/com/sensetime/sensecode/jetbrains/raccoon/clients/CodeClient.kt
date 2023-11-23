@@ -130,7 +130,7 @@ abstract class CodeClient {
                 if (isSupportLogin) {
                     logout()
                 }
-                RaccoonUIUtils.invokeOnUIThreadLater { RaccoonNotification.notifyLoginWithSettingsAction() }
+                RaccoonUIUtils.invokeOnUIThreadLater { RaccoonNotification.notifyGotoLogin() }
             }
             if (e !is CancellationException) {
                 requestStateTopicPublisher.onError(id, e.localizedMessage)

@@ -50,7 +50,7 @@ data class UserMessage(
             args: Map<String, String>? = null,
             timestampMs: Long = RaccoonUtils.getCurrentTimestampMs()
         ): UserMessage? = if (name.isNullOrBlank()) {
-            RaccoonNotification.notifyLoginWithSettingsAction()
+            RaccoonNotification.notifyGotoLogin()
             null
         } else {
             UserMessage(name, promptType, timestampMs, buildMap {
