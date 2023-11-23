@@ -35,10 +35,12 @@ class SenseCodeClient : CodeClient() {
     @Serializable
     private data class LoginData(
         val phone: String,
-        val password: String
+        val password: String,
+        @SerialName("nation_code")
+        val nationCode: String = "86"
     )
 
-    private fun encrypt(src: ByteArray): String = Cipher.getInstance("AES/CFB8/NoPadding").let { cipher ->
+    private fun encrypt(src: ByteArray): String = Cipher.getInstance("AES/CFB/NoPadding").let { cipher ->
         cipher.init(
             Cipher.ENCRYPT_MODE,
             byteArrayOf(
@@ -70,7 +72,7 @@ class SenseCodeClient : CodeClient() {
         val loginData = LoginData(cvtPhone(phone), cvtPassword(password))
         val loginJsonString = RaccoonClientJson.encodeToString(LoginData.serializer(), loginData)
         okHttpClient.newCall(
-            createRequestBuilderWithCommonHeader(getApiEndpoint("/api/plugin/auth/v1/login")).post(
+            createRequestBuilderWithCommonHeader(getApiEndpoint("/api/plugin/auth/v1/login_with_password")).post(
                 loginJsonString.toRequestBody()
             ).build()
         ).await().let { response ->
@@ -82,7 +84,9 @@ class SenseCodeClient : CodeClient() {
                             bodyError = authResponse.getShowError()
                             null
                         } else {
-                            updateLoginResult(authResponse.accessToken, authResponse.refreshToken)
+                            authResponse.data?.let { authData ->
+                                updateLoginResult(authData.accessToken, authData.refreshToken)
+                            }
                         }
                     }
             } ?: throw toErrorException(response) {
@@ -104,7 +108,7 @@ class SenseCodeClient : CodeClient() {
                         bodyError = userInfoResponse.getShowError()
                         null
                     } else {
-                        userInfoResponse.displayName.also {
+                        userInfoResponse.data?.displayName.also {
                             accessUserName = it
                         }
                     }
@@ -204,7 +208,9 @@ class SenseCodeClient : CodeClient() {
                                 bodyError = authResponse.getShowError()
                                 null
                             } else {
-                                updateLoginResult(authResponse.accessToken, authResponse.refreshToken)
+                                authResponse.data?.let { authData ->
+                                    updateLoginResult(authData.accessToken, authData.refreshToken)
+                                }
                             }
                         }
                 } ?: throw toErrorException(response) {
@@ -227,7 +233,7 @@ class SenseCodeClient : CodeClient() {
     companion object {
         const val CLIENT_NAME = "sensecode"
 
-        const val BASE_API = "http://10.53.27.220:8080"
+        const val BASE_API = "http://code-test-api.sensetime.com"
 
         private const val API_LLM_COMPLETIONS = "/api/plugin/nova/v1/proxy/v1/llm/completions"
         private const val API_LLM_CHAT_COMPLETIONS = "/api/plugin/nova/v1/proxy/v1/llm/chat-completions"

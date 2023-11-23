@@ -16,19 +16,29 @@ open class SenseCodeStatus : Error {
 }
 
 @Serializable
-data class SenseCodeUserInfoResponse(
+data class SenseCodeUserInfo(
     val phone: String,
     val name: String? = null,
     @SerialName("created_at")
     val createdAt: String? = null
-) : SenseCodeStatus() {
+) {
     val displayName: String = name ?: phone
 }
 
 @Serializable
-data class SenseCodeAuthResponse(
+data class SenseCodeUserInfoResponse(
+    val data: SenseCodeUserInfo? = null
+) : SenseCodeStatus()
+
+@Serializable
+data class SenseCodeAuth(
     @SerialName("access_token")
     val accessToken: String,
     @SerialName("refresh_token")
     val refreshToken: String? = null
+)
+
+@Serializable
+data class SenseCodeAuthResponse(
+    val data: SenseCodeAuth? = null
 ) : SenseCodeStatus()
