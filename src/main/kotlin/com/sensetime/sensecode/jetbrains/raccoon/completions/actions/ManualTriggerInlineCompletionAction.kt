@@ -68,7 +68,7 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
                 modelConfig.getMaxNewTokens(settings.inlineCompletionPreference),
                 clientConfig.inlineApiPath
             )
-            RaccoonClientManager.clientCoroutineScope.launch {
+            RaccoonClientManager.launchClientJob {
                 try {
                     if (n <= 1) {
                         // stream

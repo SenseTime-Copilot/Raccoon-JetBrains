@@ -35,10 +35,6 @@
                 id="com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonConfigurable"
                 displayName="Raccoon"/>
 
-        <!--        Local Http Server-->
-        <httpRequestHandler
-                implementation="com.sensetime.sensecode.jetbrains.raccoon.services.authentication.SenseChatAuthService"/>
-
         <!--        Inline Completion-->
         <backgroundPostStartupActivity
                 implementation="com.sensetime.sensecode.jetbrains.raccoon.completions.auto.AutoCompletionServer$Initializer"/>

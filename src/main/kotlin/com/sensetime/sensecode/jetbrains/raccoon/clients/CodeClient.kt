@@ -55,7 +55,7 @@ abstract class CodeClient {
     abstract val name: String
     protected val baseUrl: String
         get() = RaccoonSettingsState.instance.clientBaseUrlMap.getValue(name)
-
+    abstract val webBaseUrl: String
     protected fun getApiEndpoint(apiPath: String) = baseUrl + apiPath
 
 
@@ -65,7 +65,7 @@ abstract class CodeClient {
     open val alreadyLoggedIn: Boolean = false
     open val isSupportLogin: Boolean = false
 
-    open suspend fun login() {
+    open suspend fun login(phone: String, password: CharArray) {
         throw NotImplementedError("")
     }
 
@@ -130,7 +130,7 @@ abstract class CodeClient {
                 if (isSupportLogin) {
                     logout()
                 }
-                RaccoonUIUtils.invokeOnUIThreadLater { RaccoonNotification.notifyLoginWithSettingsAction() }
+                RaccoonUIUtils.invokeOnUIThreadLater { RaccoonNotification.notifyGotoLogin() }
             }
             if (e !is CancellationException) {
                 requestStateTopicPublisher.onError(id, e.localizedMessage)

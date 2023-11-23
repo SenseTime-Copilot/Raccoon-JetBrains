@@ -4,6 +4,7 @@ import com.intellij.notification.*
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
+import com.sensetime.sensecode.jetbrains.raccoon.ui.common.LoginDialog
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.RaccoonUIUtils
 import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
 
@@ -22,14 +23,14 @@ object RaccoonNotification {
     }
 
     @JvmStatic
-    fun notifyLoginWithSettingsAction() {
-        notifySettingsAction(
-            notificationGroup.createNotification(
-                RaccoonBundle.message("notification.settings.login.notloggedin"),
-                "",
-                NotificationType.WARNING
-            ), RaccoonBundle.message("notification.settings.goto.login")
-        )
+    fun notifyGotoLogin() {
+        notificationGroup.createNotification(
+            RaccoonBundle.message("notification.settings.login.notloggedin"),
+            "",
+            NotificationType.WARNING
+        ).addAction(NotificationAction.createSimple(RaccoonBundle.message("notification.settings.goto.login")) {
+            LoginDialog(null, null).showAndGet()
+        }).notify(null)
     }
 
     private var lastPopupMessage: String = ""
