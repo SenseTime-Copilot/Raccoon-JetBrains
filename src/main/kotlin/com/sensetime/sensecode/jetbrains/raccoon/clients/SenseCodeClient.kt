@@ -24,6 +24,9 @@ class SenseCodeClient : CodeClient() {
     override val name: String
         get() = CLIENT_NAME
 
+    override val webBaseUrl: String
+        get() = baseUrl.replace("-api", "")
+
     override val userName: String?
         get() = accessUserName
 

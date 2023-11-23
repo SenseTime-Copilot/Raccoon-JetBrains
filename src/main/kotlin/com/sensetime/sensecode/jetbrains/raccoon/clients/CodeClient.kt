@@ -55,7 +55,7 @@ abstract class CodeClient {
     abstract val name: String
     protected val baseUrl: String
         get() = RaccoonSettingsState.instance.clientBaseUrlMap.getValue(name)
-
+    abstract val webBaseUrl: String
     protected fun getApiEndpoint(apiPath: String) = baseUrl + apiPath
 
 

@@ -126,8 +126,11 @@ class LoginDialog(
             }.component
         }
         row {
-            comment(RaccoonBundle.message("login.dialog.text.signup", "todo"))
-            comment(RaccoonBundle.message("login.dialog.text.forgotPassword", "todo")).align(AlignX.RIGHT)
+            val webBaseUrl = RaccoonClientManager.currentCodeClient.webBaseUrl
+            comment(RaccoonBundle.message("login.dialog.text.signup", "$webBaseUrl/register"))
+            comment(RaccoonBundle.message("login.dialog.text.forgotPassword", "$webBaseUrl/reset-password")).align(
+                AlignX.RIGHT
+            )
         }
     }
 
