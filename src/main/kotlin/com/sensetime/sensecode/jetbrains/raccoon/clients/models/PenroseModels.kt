@@ -7,12 +7,12 @@ import com.sensetime.sensecode.jetbrains.raccoon.tasks.*
 object PenroseModels {
     @JvmStatic
     private fun createModelConfig(
-        name: String, stop: String, maxInputTokens: Int, tokenLimit: Int,
+        name: String, temperature: Float, stop: String, maxInputTokens: Int, tokenLimit: Int,
         promptTemplates: Map<String, ModelConfig.DisplayTextTemplate>,
         systemPrompt: String?,
         roleMap: Map<ModelConfig.Role, String>?
     ): ModelConfig = ModelConfig(
-        name, 0.5f, stop, maxInputTokens, tokenLimit,
+        name, temperature, stop, maxInputTokens, tokenLimit,
         mapOf(
             ModelConfig.CompletionPreference.SPEED_PRIORITY to 128,
             ModelConfig.CompletionPreference.BALANCED to 256,
@@ -31,13 +31,13 @@ object PenroseModels {
     fun createModelCompletionSConfig(
         name: String,
         stop: String = "<|EOT|>",
-        maxInputTokens: Int = 4096,
-        tokenLimit: Int = 8192,
+        maxInputTokens: Int = 12288,
+        tokenLimit: Int = 16384,
         promptTemplates: Map<String, ModelConfig.DisplayTextTemplate> = emptyMap(),
         systemPrompt: String? = null,
         roleMap: Map<ModelConfig.Role, String>? = null
     ): ModelConfig = createModelConfig(
-        name, stop, maxInputTokens, tokenLimit,
+        name, 0.4f, stop, maxInputTokens, tokenLimit,
         mapOf(ModelConfig.INLINE_COMPLETION to ModelConfig.DisplayTextTemplate("<LANG>${ModelConfig.DisplayTextTemplate.languageExpression}<SUF>${ModelConfig.DisplayTextTemplate.suffixLinesExpression}<PRE>${ModelConfig.DisplayTextTemplate.prefixLinesExpression}<MID>${ModelConfig.DisplayTextTemplate.prefixCursorExpression}")) + promptTemplates,
         systemPrompt, roleMap
     )
@@ -46,13 +46,13 @@ object PenroseModels {
     fun createModelChatLConfig(
         name: String,
         stop: String = "<|endofmessage|>",
-        maxInputTokens: Int = 4096,
+        maxInputTokens: Int = 6144,
         tokenLimit: Int = 8192,
         promptTemplates: Map<String, ModelConfig.DisplayTextTemplate> = emptyMap(),
         systemPrompt: String? = null,
         roleMap: Map<ModelConfig.Role, String>? = null
     ): ModelConfig = createModelConfig(
-        name, stop, maxInputTokens, tokenLimit,
+        name, 0.8f, stop, maxInputTokens, tokenLimit,
         mapOf(
             ModelConfig.FREE_CHAT to ModelConfig.DisplayTextTemplate(ModelConfig.DisplayTextTemplate.textExpression),
             CodeTaskActionBase.getActionKey(Generation::class) to createModelSCodeTaskPrompt("code generation"),
