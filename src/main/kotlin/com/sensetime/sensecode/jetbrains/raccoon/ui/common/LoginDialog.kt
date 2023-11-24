@@ -87,7 +87,7 @@ class LoginDialog(
     }
 
     override fun createCenterPanel(): JComponent = panel {
-        row(RaccoonBundle.message("login.dialog.label.phone")) {
+        row(RaccoonBundle.message("login.dialog.label.phone") + " +86") {
             phoneField = textField().onChanged { loginError = null }.validationOnApply {
                 if (PHONE_NUMBER_LENGTH != it.text.length) {
                     error(
