@@ -14,6 +14,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonNotification
 import com.sensetime.sensecode.jetbrains.raccoon.utils.ifNullOrBlank
 import com.sensetime.sensecode.jetbrains.raccoon.utils.ifNullOrBlankElse
 import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
+import com.sensetime.sensecode.jetbrains.raccoon.utils.takeIfNotEmpty
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.trySendBlocking
@@ -166,10 +167,13 @@ abstract class CodeClient {
         val httpCode = response?.code?.let { "Http code: $it" }
         val clientResponse = response?.takeUnless { it.code in 500..599 }
         return listOfNotNull(
-            httpCode,
-            clientResponse?.message?.letIfNotBlank { "Message: $it" },
-            "Details: ${bodyErrorGetter(clientResponse).ifNullOrBlank(Error.UNKNOWN_ERROR)}",
-            t?.let { "Exception: ${it.localizedMessage}" }).joinToString("\n")
+            bodyErrorGetter(clientResponse)?.letIfNotBlank { "Details: $it" },
+            t?.let { "Exception: ${it.localizedMessage}" }).ifEmpty {
+            listOfNotNull(
+                httpCode,
+                "Message: ${clientResponse?.message.ifNullOrBlank(Error.UNKNOWN_ERROR)}"
+            )
+        }.joinToString("\n")
             .let { if (401 == response?.code) UnauthorizedException(it) else CodeClientException(it) }
     }
 

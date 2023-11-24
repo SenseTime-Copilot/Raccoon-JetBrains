@@ -107,7 +107,7 @@ class LoginDialog(
                 } else {
                     null
                 }
-            }.component
+            }.align(AlignX.FILL).component
         }
         row(RaccoonBundle.message("login.dialog.label.password")) {
             passwordField = passwordField().onChanged { loginError = null }.validationOnApply {
@@ -123,7 +123,7 @@ class LoginDialog(
                         MIN_PASSWORD_LENGTH
                     )
                 ) else null
-            }.component
+            }.align(AlignX.FILL).component
         }
         row {
             val webBaseUrl = RaccoonClientManager.currentCodeClient.webBaseUrl

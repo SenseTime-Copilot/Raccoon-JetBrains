@@ -236,7 +236,8 @@ class SenseCodeClient : CodeClient() {
     companion object {
         const val CLIENT_NAME = "sensecode"
 
-        const val BASE_API = "http://code-test-api.sensetime.com"
+        const val BASE_API = "https://code-api.sensetime.com"
+//        const val BASE_API = "http://code-test-api.sensetime.com"
 
         private const val API_LLM_COMPLETIONS = "/api/plugin/nova/v1/proxy/v1/llm/completions"
         private const val API_LLM_CHAT_COMPLETIONS = "/api/plugin/nova/v1/proxy/v1/llm/chat-completions"
