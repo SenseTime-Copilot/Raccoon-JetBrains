@@ -1,6 +1,6 @@
 package com.sensetime.sensecode.jetbrains.raccoon.clients.responses
 
-import com.sensetime.sensecode.jetbrains.raccoon.utils.takeIfNotEmpty
+import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -10,9 +10,19 @@ open class SenseCodeStatus : Error {
     val message: String? = null
 
     override val error: String?
-        get() = listOfNotNull(
-            code?.takeIf { 0 != it }?.let { "code: $it" },
-            message?.takeIf { it.isNotBlank() && ("ok" != it) && ("success" != it) }).takeIfNotEmpty()?.joinToString()
+        get() = code?.takeIf { 0 != it }?.let { c ->
+            errorMessagesMap.getOrDefault(
+                c,
+                message?.takeIf { m -> m.isNotBlank() && ("ok" != m) && ("success" != m) })
+        }
+
+    companion object {
+        private val errorMessagesMap: Map<Int, String> = mapOf(
+            200004 to RaccoonBundle.message("client.sensecode.response.error.invalidPhoneOrPassword"),
+            200005 to RaccoonBundle.message("client.sensecode.response.error.UserNotFound"),
+            200003 to RaccoonBundle.message("client.sensecode.response.error.authFailed")
+        )
+    }
 }
 
 @Serializable
