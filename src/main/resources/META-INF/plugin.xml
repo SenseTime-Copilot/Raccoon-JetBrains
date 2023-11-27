@@ -36,7 +36,7 @@
                 displayName="Raccoon"/>
 
         <!--        Inline Completion-->
-        <backgroundPostStartupActivity
+        <postStartupActivity
                 implementation="com.sensetime.sensecode.jetbrains.raccoon.completions.auto.AutoCompletionServer$Initializer"/>
         <editorFactoryDocumentListener
                 implementation="com.sensetime.sensecode.jetbrains.raccoon.completions.auto.EditorChangeDetector"/>

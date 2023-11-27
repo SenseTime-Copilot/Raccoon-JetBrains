@@ -3,6 +3,7 @@ package com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindows
 import com.intellij.ide.DataManager
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.observable.util.addFocusListener
 import com.intellij.openapi.observable.util.addKeyListener
@@ -252,8 +253,9 @@ class ChatContentPanel(eventListener: EventListener? = null) : JPanel(BorderLayo
                         ModelConfig.DisplayTextTemplate.markdownCodeTemplate,
                         mapOf(
                             ModelConfig.DisplayTextTemplate.LANGUAGE to RaccoonUtils.getMarkdownLanguage(
-                                PsiManager.getInstance(project).findFile(editor.virtualFile)
-                            ), ModelConfig.DisplayTextTemplate.CODE to code
+                                FileDocumentManager.getInstance().getFile(editor.document)
+                                    ?.let { PsiManager.getInstance(project).findFile(it) }),
+                            ModelConfig.DisplayTextTemplate.CODE to code
                         )
                     )
                 }

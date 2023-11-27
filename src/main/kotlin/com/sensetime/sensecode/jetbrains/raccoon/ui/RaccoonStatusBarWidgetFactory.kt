@@ -2,6 +2,7 @@ package com.sensetime.sensecode.jetbrains.raccoon.ui
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.StatusBar
 import com.intellij.openapi.wm.StatusBarWidget
 import com.intellij.openapi.wm.StatusBarWidgetFactory
@@ -12,8 +13,8 @@ import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.Usage
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonIcons
-import com.sensetime.sensecode.jetbrains.raccoon.topics.SENSE_CODE_CLIENT_REQUEST_STATE_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonClientRequestStateListener
+import com.sensetime.sensecode.jetbrains.raccoon.topics.SENSE_CODE_CLIENT_REQUEST_STATE_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.RaccoonUIUtils
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
 import kotlinx.coroutines.*
@@ -23,6 +24,13 @@ import javax.swing.Icon
 class RaccoonStatusBarWidgetFactory : StatusBarWidgetFactory {
     companion object {
         const val ID = RaccoonPlugin.NAME
+    }
+
+    override fun isAvailable(project: Project): Boolean = true
+    override fun canBeEnabledOn(statusBar: StatusBar): Boolean = true
+
+    override fun disposeWidget(widget: StatusBarWidget) {
+        Disposer.dispose(widget)
     }
 
     override fun getId(): String = ID
@@ -69,7 +77,6 @@ class RaccoonStatusBarWidgetFactory : StatusBarWidgetFactory {
         }
 
         override fun dispose() {
-            super.dispose()
             myStatusBar = null
             currentTooltipText = null
             currentIcon = RaccoonIcons.STATUS_BAR_DEFAULT
@@ -138,7 +145,6 @@ class RaccoonStatusBarWidgetFactory : StatusBarWidgetFactory {
         }
 
         override fun install(statusBar: StatusBar) {
-            super.install(statusBar)
             myStatusBar = statusBar
         }
 

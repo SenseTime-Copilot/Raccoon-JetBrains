@@ -61,8 +61,8 @@ class RaccoonConfigurable : Configurable, Disposable {
                             3000
                         )
                     }
-                }.bind(RaccoonSettingsState.instance::autoCompleteDelayMs).visibleIf(autoCompleteButton!!.selected)
-            }
+                }.bind(RaccoonSettingsState.instance::autoCompleteDelayMs)
+            }.visibleIf(autoCompleteButton!!.selected)
 
             buttonsGroup {
                 row(RaccoonBundle.message("settings.group.InlineCompletion.CompletionPreference.label")) {
