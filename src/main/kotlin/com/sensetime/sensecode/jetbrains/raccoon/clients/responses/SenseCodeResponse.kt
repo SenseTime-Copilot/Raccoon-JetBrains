@@ -8,19 +8,42 @@ import kotlinx.serialization.Serializable
 open class SenseCodeStatus : Error {
     val code: Int? = null
     val message: String? = null
+    private val details: String? = null
+    private val errorParamName: String? = details?.let {
+        Regex("param\\s+(\\w+)").find(it)?.groupValues?.getOrNull(1)
+            ?.let { paramName -> paramNamesMap.getOrDefault(paramName, paramName) }
+    }
 
     override val error: String?
         get() = code?.takeIf { 0 != it }?.let { c ->
-            errorMessagesMap.getOrDefault(
-                c,
-                message?.takeIf { m -> m.isNotBlank() && ("ok" != m) && ("success" != m) })
+            when (c) {
+                100001 -> errorParamName?.let {
+                    RaccoonBundle.message(
+                        "client.sensecode.response.error.paramEmpty",
+                        it
+                    )
+                }
+
+                100002 -> errorParamName?.let {
+                    RaccoonBundle.message(
+                        "client.sensecode.response.error.paramInvalid",
+                        it
+                    )
+                }
+
+                100008 -> RaccoonBundle.message("client.sensecode.response.error.requestLimit")
+                200003 -> RaccoonBundle.message("client.sensecode.response.error.authFailed")
+                200004 -> RaccoonBundle.message("client.sensecode.response.error.invalidPhoneOrPassword")
+                200005 -> RaccoonBundle.message("client.sensecode.response.error.userNotFound")
+                200007 -> RaccoonBundle.message("client.sensecode.response.error.userLocked")
+                else -> null
+            } ?: message?.takeIf { m -> m.isNotBlank() && ("ok" != m) && ("success" != m) }?.let { details ?: it }
         }
 
     companion object {
-        private val errorMessagesMap: Map<Int, String> = mapOf(
-            200004 to RaccoonBundle.message("client.sensecode.response.error.invalidPhoneOrPassword"),
-            200005 to RaccoonBundle.message("client.sensecode.response.error.UserNotFound"),
-            200003 to RaccoonBundle.message("client.sensecode.response.error.authFailed")
+        private val paramNamesMap: Map<String, String> = mapOf(
+            "phone" to RaccoonBundle.message("login.dialog.label.phone"),
+            "password" to RaccoonBundle.message("login.dialog.label.password")
         )
     }
 }
