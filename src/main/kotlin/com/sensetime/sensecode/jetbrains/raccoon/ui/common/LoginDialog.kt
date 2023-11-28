@@ -2,19 +2,23 @@ package com.sensetime.sensecode.jetbrains.raccoon.ui.common
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
-import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.openapi.util.Disposer
+import com.intellij.ui.ColorUtil
+import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.components.JBTextField
-import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
+import com.intellij.ui.dsl.gridLayout.HorizontalAlign
+import com.intellij.util.ui.UIUtil
 import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Job
 import java.awt.Component
 import java.util.*
 import javax.swing.JComponent
+import javax.swing.JEditorPane
+import javax.swing.event.DocumentEvent
 import kotlin.coroutines.cancellation.CancellationException
 
 class LoginDialog(
@@ -24,7 +28,15 @@ class LoginDialog(
 ) {
     private var phoneField: JBTextField? = null
     private var passwordField: JBPasswordField? = null
-    private var loginError: ValidationInfo? = null
+
+    private var loginErrorEditorPane: JEditorPane? = null
+    private var loginErrorText: String?
+        get() = loginErrorEditorPane?.text
+        set(value) {
+            loginErrorEditorPane?.text =
+                value?.letIfNotBlank { "<p style=\"color:${ColorUtil.toHex(UIUtil.getErrorForeground())};\">$it</p>" }
+        }
+
     private var loginJob: Job? = null
         set(value) {
             field?.cancel()
@@ -44,18 +56,16 @@ class LoginDialog(
     private fun startLoading() {
         setOKButtonText(RaccoonBundle.message("login.dialog.button.loggingIn"))
         isOKActionEnabled = false
-        loginError = null
+        loginErrorText = null
     }
 
     private fun stopLoading(error: String? = null) {
         setOKButtonText(RaccoonBundle.message("authorization.panel.button.login"))
         isOKActionEnabled = true
-        loginError = error?.letIfNotBlank { ValidationInfo(it).withOKEnabled() }
+        loginErrorText = error
     }
 
     override fun getPreferredFocusedComponent(): JComponent? = phoneField
-
-    override fun doValidate(): ValidationInfo? = loginError
 
     override fun doOKAction() {
         if (!okAction.isEnabled) {
@@ -88,7 +98,7 @@ class LoginDialog(
 
     override fun createCenterPanel(): JComponent = panel {
         row(RaccoonBundle.message("login.dialog.label.phone") + " +86") {
-            phoneField = textField().onChanged { loginError = null }.validationOnApply {
+            phoneField = textField().validationOnApply {
                 if (PHONE_NUMBER_LENGTH != it.text.length) {
                     error(
                         RaccoonBundle.message(
@@ -107,10 +117,16 @@ class LoginDialog(
                 } else {
                     null
                 }
-            }.align(AlignX.FILL).component
+            }.horizontalAlign(HorizontalAlign.FILL).component.apply {
+                document.addDocumentListener(object : DocumentAdapter() {
+                    override fun textChanged(e: DocumentEvent) {
+                        loginErrorText = null
+                    }
+                })
+            }
         }
         row(RaccoonBundle.message("login.dialog.label.password")) {
-            passwordField = passwordField().onChanged { loginError = null }.validationOnApply {
+            passwordField = cell(JBPasswordField()).validationOnApply {
                 val length = it.password.let { pwd ->
                     // Zero out the possible password, for security.
                     Arrays.fill(pwd, '0')
@@ -123,14 +139,26 @@ class LoginDialog(
                         MIN_PASSWORD_LENGTH
                     )
                 ) else null
-            }.align(AlignX.FILL).component
+            }.horizontalAlign(HorizontalAlign.FILL).component.apply {
+                document.addDocumentListener(object : DocumentAdapter() {
+                    override fun textChanged(e: DocumentEvent) {
+                        loginErrorText = null
+                    }
+                })
+            }
         }
         row {
             val webBaseUrl = RaccoonClientManager.currentCodeClient.webBaseUrl
             comment(RaccoonBundle.message("login.dialog.text.signup", "$webBaseUrl/register"))
-            comment(RaccoonBundle.message("login.dialog.text.forgotPassword", "$webBaseUrl/reset-password")).align(
-                AlignX.RIGHT
-            )
+            comment(
+                RaccoonBundle.message(
+                    "login.dialog.text.forgotPassword",
+                    "$webBaseUrl/reset-password"
+                )
+            ).horizontalAlign(HorizontalAlign.RIGHT)
+        }
+        row {
+            loginErrorEditorPane = text("").component
         }
     }
 

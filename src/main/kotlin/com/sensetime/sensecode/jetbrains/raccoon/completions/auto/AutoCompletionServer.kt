@@ -18,7 +18,7 @@ import com.intellij.openapi.editor.ex.FocusChangeListener
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.startup.ProjectActivity
+import com.intellij.openapi.startup.StartupActivity
 import com.intellij.util.messages.SimpleMessageBusConnection
 import com.sensetime.sensecode.jetbrains.raccoon.completions.actions.ManualTriggerInlineCompletionAction
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
@@ -120,8 +120,8 @@ class AutoCompletionServer(
         return waitForTimeMs
     }
 
-    private class Initializer : ProjectActivity {
-        override suspend fun execute(project: Project) {
+    private class Initializer : StartupActivity {
+        override fun runActivity(project: Project) {
             project.service<AutoCompletionServer>()
         }
     }
