@@ -5,6 +5,7 @@
     <vendor>SenseTime</vendor>
 
     <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.lang</depends>
     <resource-bundle>i18n.messages</resource-bundle>
 
     <applicationListeners>
