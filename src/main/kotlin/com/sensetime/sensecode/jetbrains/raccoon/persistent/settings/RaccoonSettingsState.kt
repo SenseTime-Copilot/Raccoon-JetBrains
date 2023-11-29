@@ -28,7 +28,7 @@ data class RaccoonSettingsState(
             field = max(MIN_AUTO_COMPLETE_DELAY_MS, value)
         }
 
-    var inlineCompletionPreference: ModelConfig.CompletionPreference = ModelConfig.CompletionPreference.BALANCED
+    var inlineCompletionPreference: ModelConfig.CompletionPreference = ModelConfig.CompletionPreference.BEST_EFFORT
 
     // only for dev
     var toolwindowMaxNewTokens: Int = -1
