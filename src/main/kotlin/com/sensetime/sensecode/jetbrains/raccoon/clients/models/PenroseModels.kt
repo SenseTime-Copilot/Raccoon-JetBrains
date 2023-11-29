@@ -38,7 +38,7 @@ object PenroseModels {
         roleMap: Map<ModelConfig.Role, String>? = null
     ): ModelConfig = createModelConfig(
         name, 0.4f, stop, maxInputTokens, tokenLimit,
-        mapOf(ModelConfig.INLINE_COMPLETION to ModelConfig.DisplayTextTemplate("<LANG>${ModelConfig.DisplayTextTemplate.languageExpression}<SUF>${ModelConfig.DisplayTextTemplate.suffixLinesExpression}<PRE>${ModelConfig.DisplayTextTemplate.prefixLinesExpression}<MID>${ModelConfig.DisplayTextTemplate.prefixCursorExpression}")) + promptTemplates,
+        mapOf(ModelConfig.INLINE_COMPLETION to ModelConfig.DisplayTextTemplate("<LANG>${ModelConfig.DisplayTextTemplate.languageExpression}<SUF>${ModelConfig.DisplayTextTemplate.suffixLinesExpression}<PRE>${ModelConfig.DisplayTextTemplate.prefixLinesExpression}<COVER>${ModelConfig.DisplayTextTemplate.suffixCursorExpression}<MID>${ModelConfig.DisplayTextTemplate.prefixCursorExpression}")) + promptTemplates,
         systemPrompt, roleMap
     )
 

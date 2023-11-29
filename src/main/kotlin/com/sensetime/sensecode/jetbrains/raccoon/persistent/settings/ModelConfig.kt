@@ -47,6 +47,7 @@ data class ModelConfig(
             const val PREFIX_LINES = "prefixLines"
             const val SUFFIX_LINES = "suffixLines"
             const val PREFIX_CURSOR = "prefixCursor"
+            const val SUFFIX_CURSOR = "suffixCursor"
 
             val textExpression: String
                 get() = toArgExpression(TEXT)
@@ -61,6 +62,8 @@ data class ModelConfig(
                 get() = toArgExpression(SUFFIX_LINES)
             val prefixCursorExpression: String
                 get() = toArgExpression(PREFIX_CURSOR)
+            val suffixCursorExpression: String
+                get() = toArgExpression(SUFFIX_CURSOR)
 
             val markdownCodeTemplate: String
                 get() = "```${languageExpression}\n${codeExpression}\n```"

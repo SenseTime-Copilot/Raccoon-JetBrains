@@ -218,13 +218,20 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
                 modelConfig.getPromptTemplate(ModelConfig.INLINE_COMPLETION)!!.toRawText(
                     if (text.length > offset) {
                         val suffix = text.substring(offset)
+                        var suffixLines = ""
+                        var suffixCursor = suffix.trimEnd('\r', '\n')
+                        suffix.indexOf('\n').takeIf { it >= 0 }?.let {
+                            suffixLines = suffix.substring(it + 1)
+                            suffixCursor = suffix.substring(0, it).trimEnd('\r', '\n')
+                        }
                         mapOf(
                             "language" to language,
-                            "suffixLines" to suffix.trimStart('\r', '\n'),
+                            "suffixLines" to suffixLines,
+                            "suffixCursor" to suffixCursor,
                             "suffix" to suffix
                         ) + getPrefixArgs(text.substring(0, offset))
                     } else {
-                        mapOf("language" to language, "suffixLines" to "") + getPrefixArgs(text)
+                        mapOf("language" to language, "suffixLines" to "", "suffixCursor" to "") + getPrefixArgs(text)
                     }
                 )
             )
