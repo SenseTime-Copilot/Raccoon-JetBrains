@@ -30,7 +30,7 @@ object PenroseModels {
     @JvmStatic
     fun createModelCompletionSConfig(
         name: String,
-        stop: String = "<|EOT|>",
+        stop: String = "<EOT>",
         maxInputTokens: Int = 12288,
         tokenLimit: Int = 16384,
         promptTemplates: Map<String, ModelConfig.DisplayTextTemplate> = emptyMap(),
