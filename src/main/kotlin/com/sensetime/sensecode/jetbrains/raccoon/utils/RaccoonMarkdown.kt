@@ -1,17 +1,11 @@
 package com.sensetime.sensecode.jetbrains.raccoon.utils
 
-import org.intellij.markdown.IElementType
-import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
-import org.intellij.markdown.html.HtmlGenerator
-import org.intellij.markdown.parser.MarkdownParser
+import com.vladsch.flexmark.html.HtmlRenderer
+import com.vladsch.flexmark.parser.Parser
+import com.vladsch.flexmark.util.data.MutableDataSet
 
 object RaccoonMarkdown {
-    // https://github.com/JetBrains/markdown/issues/72
-    private val embeddedHtmlType = IElementType("ROOT")
-
-    fun convertMarkdownToHtml(markdownText: String): String {
-        val flavour = GFMFlavourDescriptor()
-        val parsedTree = MarkdownParser(flavour).parse(embeddedHtmlType, markdownText)
-        return HtmlGenerator(markdownText, parsedTree, flavour).generateHtml()
+    fun convertMarkdownToHtml(markdownText: String): String = MutableDataSet().let { options ->
+        HtmlRenderer.builder(options).build().render(Parser.builder(options).build().parse(markdownText))
     }
 }

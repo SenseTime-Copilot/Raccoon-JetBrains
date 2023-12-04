@@ -1,10 +1,10 @@
 package com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindows
 
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.observable.util.addListDataListener
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.CollectionListModel
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.histories.ChatConversation
+import com.sensetime.sensecode.jetbrains.raccoon.ui.common.addListDataListenerWithDisposable
 import java.awt.BorderLayout
 import java.awt.Component
 import java.awt.event.ActionEvent
@@ -39,7 +39,7 @@ class ConversationListPanel(
 
     init {
         add(conversationListBox, BorderLayout.CENTER)
-        conversationListModel.addListDataListener(this, this)
+        conversationListModel.addListDataListenerWithDisposable(this, this)
         Disposer.register(parent, this)
     }
 

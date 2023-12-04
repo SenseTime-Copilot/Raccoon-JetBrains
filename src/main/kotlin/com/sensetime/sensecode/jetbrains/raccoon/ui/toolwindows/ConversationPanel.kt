@@ -3,7 +3,6 @@ package com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindows
 import com.intellij.icons.AllIcons
 import com.intellij.ide.BrowserUtil
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.observable.util.addMouseListener
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.JBColor
 import com.intellij.util.ui.JBFont
@@ -12,6 +11,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.persistent.histories.AssistantM
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.histories.ChatConversation
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonIcons
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.RaccoonUIUtils
+import com.sensetime.sensecode.jetbrains.raccoon.ui.common.addMouseListenerWithDisposable
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonMarkdown
 import java.awt.BorderLayout
 import java.awt.Color
@@ -72,7 +72,7 @@ class ConversationPanel(
                 createContentTextPane(
                     true,
                     conversation.user.displayText
-                ).apply { addMouseListener(this@ConversationPanel, this@ConversationPanel) })
+                ).apply { addMouseListenerWithDisposable(this@ConversationPanel, this@ConversationPanel) })
             assistantTextPane = conversation.assistant?.let { assistantMessage ->
                 add(createRoleBox(false, assistantMessage.name, assistantMessage.timestampMs))
                 createContentTextPane(
@@ -81,11 +81,11 @@ class ConversationPanel(
                     assistantMessage.generateState
                 ).also { assistantPane ->
                     add(assistantPane)
-                    assistantPane.addMouseListener(this@ConversationPanel, this@ConversationPanel)
+                    assistantPane.addMouseListenerWithDisposable(this@ConversationPanel, this@ConversationPanel)
                 }
             }
             add(JSeparator())
-            addMouseListener(this@ConversationPanel, this@ConversationPanel)
+            addMouseListenerWithDisposable(this@ConversationPanel, this@ConversationPanel)
         }, BorderLayout.CENTER)
 
         this.eventListener = eventListener
