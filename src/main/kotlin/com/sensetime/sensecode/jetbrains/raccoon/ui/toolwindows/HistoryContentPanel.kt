@@ -1,11 +1,11 @@
 package com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindows
 
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.observable.util.addListDataListener
 import com.intellij.ui.components.JBScrollPane
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.histories.*
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.RaccoonUIUtils
+import com.sensetime.sensecode.jetbrains.raccoon.ui.common.addListDataListenerWithDisposable
 import java.awt.BorderLayout
 import java.awt.event.ActionEvent
 import java.awt.event.MouseEvent
@@ -56,7 +56,7 @@ class HistoryContentPanel(
             border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
         }, BorderLayout.SOUTH)
 
-        conversationListPanel.conversationListModel.addListDataListener(this, this)
+        conversationListPanel.conversationListModel.addListDataListenerWithDisposable(this, this)
     }
 
     override fun dispose() {

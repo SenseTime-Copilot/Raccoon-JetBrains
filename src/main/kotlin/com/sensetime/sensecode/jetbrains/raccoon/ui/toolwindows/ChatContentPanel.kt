@@ -5,9 +5,6 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
-import com.intellij.openapi.observable.util.addFocusListener
-import com.intellij.openapi.observable.util.addKeyListener
-import com.intellij.openapi.observable.util.addListDataListener
 import com.intellij.psi.PsiManager
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextArea
@@ -18,8 +15,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSett
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonIcons
 import com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonNotification
-import com.sensetime.sensecode.jetbrains.raccoon.ui.common.RaccoonUIUtils
-import com.sensetime.sensecode.jetbrains.raccoon.ui.common.UserAuthorizationPanelBuilder
+import com.sensetime.sensecode.jetbrains.raccoon.ui.common.*
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils
 import com.sensetime.sensecode.jetbrains.raccoon.utils.ifNullOrBlankElse
 import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
@@ -68,13 +64,13 @@ class ChatContentPanel(eventListener: EventListener? = null) : JPanel(BorderLayo
 
     private val userPromptTextArea: JTextArea = JBTextArea().apply {
         lineWrap = true
-        addFocusListener(this@ChatContentPanel, object : FocusListener {
+        addFocusListenerWithDisposable(this@ChatContentPanel, object : FocusListener {
             override fun focusGained(e: FocusEvent?) {}
             override fun focusLost(e: FocusEvent?) {
                 updateLastHistoryState()
             }
         })
-        addKeyListener(this@ChatContentPanel, object : KeyListener {
+        addKeyListenerWithDisposable(this@ChatContentPanel, object : KeyListener {
             override fun keyTyped(e: KeyEvent?) {}
             override fun keyPressed(e: KeyEvent?) {
                 e?.takeIf { it.keyCode == KeyEvent.VK_ENTER }?.let { keyEvent ->
@@ -175,7 +171,7 @@ class ChatContentPanel(eventListener: EventListener? = null) : JPanel(BorderLayo
         gotoEnd()
         this.eventListener = eventListener
         updateRegenerateButtonVisible()
-        conversationListPanel.conversationListModel.addListDataListener(this, this)
+        conversationListPanel.conversationListModel.addListDataListenerWithDisposable(this, this)
     }
 
     override fun dispose() {
