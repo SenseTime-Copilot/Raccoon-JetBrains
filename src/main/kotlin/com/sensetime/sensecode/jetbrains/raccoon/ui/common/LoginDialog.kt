@@ -148,7 +148,7 @@ class LoginDialog(
             }
         }
         row {
-            val webBaseUrl = RaccoonClientManager.currentCodeClient.webBaseUrl
+            val webBaseUrl: String = RaccoonClientManager.currentCodeClient.webBaseUrl!!
             comment(RaccoonBundle.message("login.dialog.text.signup", "$webBaseUrl/register"))
             comment(
                 RaccoonBundle.message(
