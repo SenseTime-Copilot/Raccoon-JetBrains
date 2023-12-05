@@ -34,21 +34,21 @@ object RaccoonCredentialsManager {
         setClientAuth(name, REFRESH_TOKEN_KEY, credentials)
     }
 
-//    private const val AKSK_KEY = "aksk"
-//    fun getClientAkSk(name: String): Credentials? = getClientAuth(name, AKSK_KEY)
-//    fun setClientAkSk(name: String, credentials: Credentials? = null) {
-//        setClientAuth(name, AKSK_KEY, credentials)
-//    }
+    private const val AKSK_KEY = "aksk"
+    fun getClientAkSk(name: String): Credentials? = getClientAuth(name, AKSK_KEY)
+    fun setClientAkSk(name: String, credentials: Credentials? = null) {
+        setClientAuth(name, AKSK_KEY, credentials)
+    }
 
-//    fun getClientAk(name: String): String? = getClientAkSk(name)?.userName
-//    fun setClientAk(name: String, ak: String? = null) {
-//        setClientAkSk(name, Credentials(ak, getClientSk(name)))
-//    }
+    fun getClientAk(name: String): String? = getClientAkSk(name)?.userName
+    fun setClientAk(name: String, ak: String? = null) {
+        setClientAkSk(name, Credentials(ak, getClientSk(name)))
+    }
 
-//    fun getClientSk(name: String): String? = getClientAkSk(name)?.getPasswordAsString()
-//    fun setClientSk(name: String, sk: String? = null) {
-//        setClientAkSk(name, Credentials(getClientAk(name), sk))
-//    }
+    fun getClientSk(name: String): String? = getClientAkSk(name)?.getPasswordAsString()
+    fun setClientSk(name: String, sk: String? = null) {
+        setClientAkSk(name, Credentials(getClientAk(name), sk))
+    }
 
     private fun createCredentialAttributes(key: String): CredentialAttributes =
         CredentialAttributes(generateServiceName("${RaccoonPlugin.NAME} Attributes", key))
