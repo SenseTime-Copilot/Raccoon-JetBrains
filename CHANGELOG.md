@@ -239,3 +239,9 @@
 ### Bugfix
 
 - Change main page url to https
+
+## [0.7.5] - 2023-12-06
+
+### Bugfix
+
+- update backend error code mapping
