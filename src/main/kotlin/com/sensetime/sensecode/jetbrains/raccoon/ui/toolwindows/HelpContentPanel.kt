@@ -36,7 +36,7 @@ class HelpContentPanel : JPanel() {
         private const val MARKDOWN_HELP: String = """
 # Raccoon
 
-Raccoon (**R**accoon is **A**nother **C**ode **CO**-pilot and **O**utstanding **N**avigator) 是基于 AI 的代码助手。
+Raccoon (**R**accoon is **A**nother **C**ode **CO**-pil**O**t **N**avigator) 是基于 AI 的代码助手。
 
 ## 账号管理/设置
 
