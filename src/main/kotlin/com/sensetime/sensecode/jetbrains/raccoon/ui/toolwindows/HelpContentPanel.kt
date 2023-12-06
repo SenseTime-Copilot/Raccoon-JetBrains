@@ -36,7 +36,11 @@ class HelpContentPanel : JPanel() {
         private const val MARKDOWN_HELP: String = """
 # Raccoon
 
-Raccoon (**R**accoon is **A**nother **C**ode **CO**-pil**O**t **N**avigator) 是基于 AI 的代码助手。
+## Raccoon (**R**accoon is **A**nother **C**ode **CO**-pil**O**t **N**avigator)
+
+[Raccoon](http://code.sensetime.com) is your AI coding assistant. It provides real-time code completions, code assistant, as well as actions for `Generation`, `Add Test`, `Code Conversion`, `Code Correction` and `Refactoring`. It helps increase your development velocity and enhances your coding experience.
+
+[Raccoon](http://code.sensetime.com)，是基于 AI 的代码助手。提供编辑器内代码补全、侧边栏代码助手以及`代码生成`、`测试代码生成`、`代码翻译`、`代码修正`、`代码重构`等命令。可以提升用户编程效率优化开发体验。
 
 ## 账号管理/设置
 
