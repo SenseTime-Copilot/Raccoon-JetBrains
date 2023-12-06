@@ -233,3 +233,9 @@
 ### Added
 
 - Change Raccoon description
+
+## [0.7.4] - 2023-12-06
+
+### Bugfix
+
+- Change main page url to https
