@@ -227,3 +227,9 @@
 
 - 更新README文档, 加入动图演示
 - 修复23.x版本IDE中可能出现报错的bug
+
+## [0.7.3] - 2023-12-06
+
+### Added
+
+- Change Raccoon description
