@@ -52,7 +52,7 @@ object PenroseModels {
         systemPrompt: String? = null,
         roleMap: Map<ModelConfig.Role, String>? = null
     ): ModelConfig = createModelConfig(
-        name, 0.8f, stop, maxInputTokens, tokenLimit,
+        name, 0.4f, stop, maxInputTokens, tokenLimit,
         mapOf(
             ModelConfig.FREE_CHAT to ModelConfig.DisplayTextTemplate(ModelConfig.DisplayTextTemplate.textExpression),
             CodeTaskActionBase.getActionKey(Generation::class) to createModelSCodeTaskPrompt("code generation"),
