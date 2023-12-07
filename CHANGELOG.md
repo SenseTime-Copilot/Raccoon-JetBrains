@@ -245,3 +245,9 @@
 ### Bugfix
 
 - update backend error code mapping
+
+## [0.7.6] - 2023-12-07
+
+### Added
+
+- change model default temperature
