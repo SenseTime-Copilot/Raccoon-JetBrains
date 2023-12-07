@@ -1,4 +1,4 @@
-package com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindows
+package com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindow
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
@@ -18,8 +18,6 @@ import com.sensetime.sensecode.jetbrains.raccoon.topics.SENSE_CODE_TASKS_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonTasksListener
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.RaccoonUIUtils
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
 import java.awt.event.ActionEvent
 import java.awt.event.MouseEvent
 import kotlin.coroutines.cancellation.CancellationException
@@ -40,7 +38,7 @@ class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
         val helpContent = toolWindow.contentManager.factory.createContent(
             HelpContentPanel(),
-            RaccoonBundle.message("toolwindows.content.help.title"),
+            RaccoonBundle.message("toolwindow.content.help.title"),
             false
         )
 
@@ -122,13 +120,13 @@ class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
 
         toolWindow.contentManager.addContent(
             toolWindow.contentManager.factory.createContent(
-                chatContentPanel, RaccoonBundle.message("toolwindows.content.chat.title"), false
+                chatContentPanel, RaccoonBundle.message("toolwindow.content.chat.title"), false
             ).apply { setDisposer(this) }
         )
         toolWindow.contentManager.addContent(
             toolWindow.contentManager.factory.createContent(
                 historyContentPanel,
-                RaccoonBundle.message("toolwindows.content.history.title"),
+                RaccoonBundle.message("toolwindow.content.history.title"),
                 false
             )
         )

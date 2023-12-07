@@ -1,4 +1,4 @@
-package com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindows
+package com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindow
 
 import com.intellij.icons.AllIcons
 import com.intellij.ide.BrowserUtil

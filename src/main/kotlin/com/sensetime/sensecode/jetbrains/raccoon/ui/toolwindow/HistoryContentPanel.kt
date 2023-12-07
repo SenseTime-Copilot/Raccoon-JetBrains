@@ -1,4 +1,4 @@
-package com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindows
+package com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindow
 
 import com.intellij.openapi.Disposable
 import com.intellij.ui.components.JBScrollPane
@@ -39,7 +39,7 @@ class HistoryContentPanel(
         ConversationListPanel(this, histories.toDisplayConversations(), this)
 
     private val clearButton: JButton =
-        RaccoonUIUtils.createActionLinkBiggerOn1(RaccoonBundle.message("toolwindows.content.history.button.clear"))
+        RaccoonUIUtils.createActionLinkBiggerOn1(RaccoonBundle.message("toolwindow.content.history.button.clear"))
             .apply { addActionListener(this@HistoryContentPanel::onClear) }
 
     init {

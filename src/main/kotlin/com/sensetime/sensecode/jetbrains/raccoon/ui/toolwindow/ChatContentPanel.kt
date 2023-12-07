@@ -1,4 +1,4 @@
-package com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindows
+package com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindow
 
 import com.intellij.ide.DataManager
 import com.intellij.openapi.Disposable
@@ -45,16 +45,16 @@ class ChatContentPanel(eventListener: EventListener? = null) : JPanel(BorderLayo
         }
 
     private val gotoHelpContentButton: JButton =
-        RaccoonUIUtils.createActionLinkBiggerOn1(RaccoonBundle.message("toolwindows.content.chat.assistant.gotoHelp"))
+        RaccoonUIUtils.createActionLinkBiggerOn1(RaccoonBundle.message("toolwindow.content.chat.assistant.gotoHelp"))
 
     private val newChatButton: JButton =
-        RaccoonUIUtils.createActionLinkBiggerOn1(RaccoonBundle.message("toolwindows.content.chat.button.newChat"))
+        RaccoonUIUtils.createActionLinkBiggerOn1(RaccoonBundle.message("toolwindow.content.chat.button.newChat"))
             .apply { addActionListener(this@ChatContentPanel::onNewChat) }
     private val regenerateButton: JButton =
-        RaccoonUIUtils.createActionLinkBiggerOn1(RaccoonBundle.message("toolwindows.content.chat.button.regenerate"))
+        RaccoonUIUtils.createActionLinkBiggerOn1(RaccoonBundle.message("toolwindow.content.chat.button.regenerate"))
             .apply { addActionListener(this@ChatContentPanel::onRegenerate) }
     private val stopRegenerateButton: JButton =
-        RaccoonUIUtils.createActionLinkBiggerOn1(RaccoonBundle.message("toolwindows.content.chat.button.stopGenerate"))
+        RaccoonUIUtils.createActionLinkBiggerOn1(RaccoonBundle.message("toolwindow.content.chat.button.stopGenerate"))
             .apply { isVisible = false }
 
     private val submitButton: JButton = RaccoonUIUtils.createIconButton(RaccoonIcons.TOOLWINDOW_SUBMIT)
@@ -129,7 +129,7 @@ class ChatContentPanel(eventListener: EventListener? = null) : JPanel(BorderLayo
                     add(JSeparator())
                     AssistantMessage(generateState = AssistantMessage.GenerateState.DONE).apply {
                         content = RaccoonBundle.message(
-                            "toolwindows.content.chat.assistant.hello",
+                            "toolwindow.content.chat.assistant.hello",
                             RaccoonClientManager.userName.ifNullOrBlankElse("") { " __@${it}__" },
                             "__${name}__"
                         )
@@ -320,7 +320,7 @@ class ChatContentPanel(eventListener: EventListener? = null) : JPanel(BorderLayo
                     setGenerateState(AssistantMessage.GenerateState.STOPPED)
                 } else {
                     appendAssistantTextAndSetGenerateState(
-                        RaccoonBundle.message("toolwindows.content.chat.assistant.empty.stopped"),
+                        RaccoonBundle.message("toolwindow.content.chat.assistant.empty.stopped"),
                         AssistantMessage.GenerateState.STOPPED
                     )
                 }

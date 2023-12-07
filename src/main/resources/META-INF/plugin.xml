@@ -24,7 +24,7 @@
         <notificationGroup displayType="BALLOON" id="Raccoon Notification Group"/>
 
         <toolWindow id="Raccoon" anchor="right"
-                    factoryClass="com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindows.RaccoonToolWindowFactory"
+                    factoryClass="com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindow.RaccoonToolWindowFactory"
                     icon="com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonIcons.TOOLWINDOW_RACCOON">
         </toolWindow>
 
