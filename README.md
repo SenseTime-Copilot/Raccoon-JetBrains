@@ -1,6 +1,6 @@
 # Raccoon
 
-Raccoon (**R**accoon is **A**nother **C**ode **CO**-pilot and **O**utstanding **N**avigator) 是基于 AI 的代码助手。
+Raccoon (**R**accoon is **A**nother **C**ode **CO**-pil**O**t **N**avigator) 是基于 AI 的代码助手。
 
 ## 账号管理/设置
 
@@ -14,11 +14,11 @@ Raccoon (**R**accoon is **A**nother **C**ode **CO**-pilot and **O**utstanding **
   * 手动：当按下快捷键时获取补全建议，默认的快捷键为 `Ctrl + Alt + /`
   * 自动：当输入停止时获取补全建议，您可以在设置页面切换延迟时间的长短，此时手动触发仍然有效
 * 补全偏好：
-    * 速度优先：优先保证响应速度，返回简短的补全建议
-    * 平衡：兼顾响应速度和补全建议长度
-    * 最大长度：最大可能的返回尽可能长的补全建议
+  * 速度优先：优先保证响应速度，返回简短的补全建议
+  * 平衡：兼顾响应速度和补全建议长度
+  * 最大长度：最大可能的返回尽可能长的补全建议
 * 候选建议数量：
-    * 设置返回候选条目的数量
+  * 设置返回候选条目的数量
 
 ![Raccoon-Settings](media/Raccoon-Settings.gif)
 
@@ -38,11 +38,11 @@ Raccoon (**R**accoon is **A**nother **C**ode **CO**-pilot and **O**utstanding **
 
 也可在选择指定代码后直接使用快捷键触发命令， 默认快捷键为
 
-- Generation: `Ctrl + Alt + Shift + G`
-- Add Test: `Ctrl + Alt + Shift + U`
-- Code Conversion: `Ctrl + Alt + Shift + X`
-- Code Correction: `Ctrl + Alt + Shift + F`
-- Refactoring: `Ctrl + Alt + Shift + R`
+* Generation: `Ctrl + Alt + Shift + G`
+* Add Test: `Ctrl + Alt + Shift + U`
+* Code Conversion: `Ctrl + Alt + Shift + X`
+* Code Correction: `Ctrl + Alt + Shift + F`
+* Refactoring: `Ctrl + Alt + Shift + R`
 
 ![Raccoon-Refactoring](media/Raccoon-Refactoring.gif)
 ![Raccoon-CodeCorrection](media/Raccoon-CodeCorrection.gif)
@@ -64,10 +64,6 @@ Raccoon 的侧边栏助手中，默认为 `流式输出` 模式，即回答将�
 
 ![Raccoon-Chat](media/Raccoon-Chat.gif)
 ![Raccoon-SelectCode](media/Raccoon-SelectCode.gif)
-
-## 问题反馈
-
-如使用过程中遇到问题或有任何改进意见，欢迎发送邮件到 <sensecode@sensetime.com> 反馈。
 
 ## 免责声明
 
