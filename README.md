@@ -2,6 +2,13 @@
 
 Raccoon (**R**accoon is **A**nother **C**ode **CO**-pil**O**t **N**avigator) 是基于 AI 的代码助手。
 
+## 离线安装插件
+
+1. 在[Raccoon](https://code.sensetime.com)主页下载 JetBrains IDE 插件的离线安装包（通常为`zip`格式）到本地任意目录
+2. 按照如下演示动画指引，在 `Settings` 页面完成安装操作后即可登录使用本插件
+
+![Raccoon-Install](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.7/media/Raccoon-Install.gif)
+
 ## 账号管理/设置
 
 您可以在 Raccoon 代码助手 侧边栏视图或设置界面上方，点击 `Log in` / `登录` 按钮在弹出的对话框使用 手机号 + 密码 进行登录，点击 `Log out` / `登出` 按钮退出登录
@@ -20,7 +27,7 @@ Raccoon (**R**accoon is **A**nother **C**ode **CO**-pil**O**t **N**avigator) 是
 * 候选建议数量：
   * 设置返回候选条目的数量
 
-![Raccoon-Settings](media/Raccoon-Settings.gif)
+![Raccoon-Settings](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.7/media/Raccoon-Settings.gif)
 
 ## 代码补全
 
@@ -30,7 +37,7 @@ Raccoon (**R**accoon is **A**nother **C**ode **CO**-pil**O**t **N**avigator) 是
 
 > 编辑器在触发补全事件后，如遇用户点击 `Esc` 键的或其他移动、输入行为，则会 **取消** 补全操作。
 
-![Raccoon-InlineCompletion](media/Raccoon-InlineCompletion.gif)
+![Raccoon-InlineCompletion](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.7/media/Raccoon-InlineCompletion.gif)
 
 ## 代码命令
 
@@ -44,8 +51,8 @@ Raccoon (**R**accoon is **A**nother **C**ode **CO**-pil**O**t **N**avigator) 是
 * Code Correction: `Ctrl + Alt + Shift + F`
 * Refactoring: `Ctrl + Alt + Shift + R`
 
-![Raccoon-Refactoring](media/Raccoon-Refactoring.gif)
-![Raccoon-CodeCorrection](media/Raccoon-CodeCorrection.gif)
+![Raccoon-Refactoring](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.7/media/Raccoon-Refactoring.gif)
+![Raccoon-CodeCorrection](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.7/media/Raccoon-CodeCorrection.gif)
 
 ## 侧边栏助手
 
@@ -62,8 +69,8 @@ Raccoon 的侧边栏助手中，默认为 `流式输出` 模式，即回答将�
 
 帮助信息和错误提示等非对话内容，不会作为上下文发送。
 
-![Raccoon-Chat](media/Raccoon-Chat.gif)
-![Raccoon-SelectCode](media/Raccoon-SelectCode.gif)
+![Raccoon-Chat](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.7/media/Raccoon-Chat.gif)
+![Raccoon-SelectCode](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.7/media/Raccoon-SelectCode.gif)
 
 ## 免责声明
 
