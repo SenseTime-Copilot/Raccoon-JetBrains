@@ -7,6 +7,13 @@
 
 [Raccoon](https://code.sensetime.com)，是基于 AI 的代码助手。提供编辑器内代码补全、侧边栏代码助手以及`代码生成`、`测试代码生成`、`代码翻译`、`代码修正`、`代码重构`等命令。可以提升用户编程效率优化开发体验。
 
+## 离线安装插件
+
+1. 在[Raccoon](https://code.sensetime.com)主页下载 JetBrains IDE 插件的离线安装包（通常为`zip`格式）到本地任意目录
+2. 按照如下演示动画指引，在 `Settings` 页面完成安装操作后即可登录使用本插件
+
+![Raccoon-Install](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.7/media/Raccoon-Install.gif)
+
 ## 账号管理/设置
 
 您可以在 Raccoon 代码助手 侧边栏视图或设置界面上方，点击 `Log in` / `登录` 按钮在弹出的对话框使用 手机号 + 密码 进行登录，点击 `Log out` / `登出` 按钮退出登录
@@ -19,11 +26,11 @@
   * 手动：当按下快捷键时获取补全建议，默认的快捷键为 `Ctrl + Alt + /`
   * 自动：当输入停止时获取补全建议，您可以在设置页面切换延迟时间的长短，此时手动触发仍然有效
 * 补全偏好：
-    * 速度优先：优先保证响应速度，返回简短的补全建议
-    * 平衡：兼顾响应速度和补全建议长度
-    * 最大长度：最大可能的返回尽可能长的补全建议
+  * 速度优先：优先保证响应速度，返回简短的补全建议
+  * 平衡：兼顾响应速度和补全建议长度
+  * 最大长度：最大可能的返回尽可能长的补全建议
 * 候选建议数量：
-    * 设置返回候选条目的数量
+  * 设置返回候选条目的数量
 
 ![Raccoon-Settings](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.7/media/Raccoon-Settings.gif)
 
@@ -43,11 +50,11 @@
 
 也可在选择指定代码后直接使用快捷键触发命令， 默认快捷键为
 
-- Generation: `Ctrl + Alt + Shift + G`
-- Add Test: `Ctrl + Alt + Shift + U`
-- Code Conversion: `Ctrl + Alt + Shift + X`
-- Code Correction: `Ctrl + Alt + Shift + F`
-- Refactoring: `Ctrl + Alt + Shift + R`
+* Generation: `Ctrl + Alt + Shift + G`
+* Add Test: `Ctrl + Alt + Shift + U`
+* Code Conversion: `Ctrl + Alt + Shift + X`
+* Code Correction: `Ctrl + Alt + Shift + F`
+* Refactoring: `Ctrl + Alt + Shift + R`
 
 ![Raccoon-Refactoring](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.7/media/Raccoon-Refactoring.gif)
 ![Raccoon-CodeCorrection](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.7/media/Raccoon-CodeCorrection.gif)
@@ -69,10 +76,6 @@ Raccoon 的侧边栏助手中，默认为 `流式输出` 模式，即回答将�
 
 ![Raccoon-Chat](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.7/media/Raccoon-Chat.gif)
 ![Raccoon-SelectCode](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.7/media/Raccoon-SelectCode.gif)
-
-## 问题反馈
-
-如使用过程中遇到问题或有任何改进意见，欢迎发送邮件到 <sensecode@sensetime.com> 反馈。
 
 ## 免责声明
 

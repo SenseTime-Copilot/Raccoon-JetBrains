@@ -138,7 +138,7 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
                 val selectedText = editor.selectionModel.selectedText
                 if (selectedText.isNullOrBlank()) {
                     inlineCompletion(editor, psiFile)
-                } else {
+                } else if (!RaccoonSettingsState.instance.isAutoCompleteMode) {
                     popupCodeTaskActionsGroup(editor)
                 }
             }
