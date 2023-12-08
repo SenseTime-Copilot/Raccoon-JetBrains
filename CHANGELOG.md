@@ -251,3 +251,9 @@
 ### Added
 
 - change model default temperature
+
+## [0.7.7] - 2023-12-08
+
+### BugFix
+
+- 修复开启自动模式的编辑器内补全时, 选中代码会触发Raccoon弹窗的问题
