@@ -7,6 +7,7 @@ import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.components.ActionLink
 import com.intellij.util.ui.JBFont
+import com.intellij.util.ui.JBUI
 import com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonConfigurable
 import java.awt.Component
 import java.awt.Dimension
@@ -43,6 +44,18 @@ fun ListModel<*>.addListDataListenerWithDisposable(parentDisposable: Disposable,
 }
 
 object RaccoonUIUtils {
+    val SMALL_GAP_SIZE: Int
+        get() = JBUI.scale(6)
+
+    val DEFAULT_GAP_SIZE: Int
+        get() = JBUI.scale(8)
+
+    val MEDIUM_GAP_SIZE: Int
+        get() = JBUI.scale(10)
+
+    val BIG_GAP_SIZE: Int
+        get() = JBUI.scale(16)
+
     @JvmStatic
     fun invokeOnUIThreadLater(block: () -> Unit) {
         ApplicationManager.getApplication().invokeLater(block)
