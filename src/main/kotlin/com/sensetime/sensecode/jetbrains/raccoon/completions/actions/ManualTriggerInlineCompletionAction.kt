@@ -202,7 +202,7 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
                 var prefixLines = ""
                 var prefixCursor = prefix
                 prefix.lastIndexOf('\n').takeIf { it >= 0 }?.let {
-                    prefixLines = prefix.substring(0, it)
+                    prefixLines = prefix.substring(0, it + 1)
                     prefixCursor = prefix.substring(it + 1)
                 }
                 return mapOf("prefixLines" to prefixLines, "prefixCursor" to prefixCursor, "prefix" to prefix)
