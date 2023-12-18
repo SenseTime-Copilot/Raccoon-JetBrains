@@ -28,7 +28,6 @@ object RaccoonLanguages {
         val isValid: Boolean
             get() = !(type.isNullOrBlank() || (extensions.isEmpty() && filenames.isEmpty()))
 
-        private fun FileType.takeIfNotUnknownType(): FileType? = takeIf { it.name != FileTypes.UNKNOWN.name }
         val fileType: FileType?
             get() = FileTypeRegistry.getInstance().let { fileTypeRegistry ->
                 extensions.firstNotNullOfOrNull { extension ->
@@ -38,6 +37,9 @@ object RaccoonLanguages {
                 }
             }
 
+        val primaryExtension: String?
+            get() = extensions.firstOrNull()
+
         fun indexOfFilename(filename: String): Int = filenames.indexOf(filename)
         fun indexOfExtension(extension: String): Int = extensions.indexOfFirst { 0 == it.compareTo(extension, true) }
     }
@@ -46,6 +48,9 @@ object RaccoonLanguages {
     private val nameToLanguageMap: Map<String, Pair<String, Language>>
     private val filenamesToLanguageMap: Map<String, Pair<String, Language>>
     private val extensionToLanguageMap: Map<String, Pair<String, Language>>
+    val DEFAULT_FILE_TYPE: FileType by lazy {
+        FileTypeRegistry.getInstance().findFileTypeByName("textmate")?.takeIfNotUnknownType() ?: FileTypes.PLAIN_TEXT
+    }
 
     init {
         val tmpNameToLanguageMap: MutableMap<String, Pair<String, Language>> = mutableMapOf()
@@ -93,6 +98,8 @@ object RaccoonLanguages {
         extensionToLanguageMap = tmpExtensionToLanguageMap.toMap()
     }
 
+    private fun FileType.takeIfNotUnknownType(): FileType? = takeIf { it.name != FileTypes.UNKNOWN.name }
+
     @JvmStatic
     fun getLanguageFromFilename(filename: String): Pair<String, Language>? = filename.lowercase()
         .let { lowercaseFilename ->
@@ -105,5 +112,5 @@ object RaccoonLanguages {
         nameToLanguageMap[markdownLanguage.lowercase()]
 }
 
-fun RaccoonLanguages.Language?.getFileTypeOrDefault(defaultFileType: FileType = FileTypes.PLAIN_TEXT): FileType =
+fun RaccoonLanguages.Language?.getFileTypeOrDefault(defaultFileType: FileType = RaccoonLanguages.DEFAULT_FILE_TYPE): FileType =
     (this?.fileType) ?: defaultFileType
