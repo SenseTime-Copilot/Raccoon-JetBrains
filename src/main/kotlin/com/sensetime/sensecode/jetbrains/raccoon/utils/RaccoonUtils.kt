@@ -19,6 +19,20 @@ inline fun <R> String.letIfNotBlank(block: (String) -> R): R? = takeIfNotBlank()
 
 fun <T> List<T>.takeIfNotEmpty(): List<T>? = takeIf { it.isNotEmpty() }
 
+
+// Map
+
+fun <K, V> MutableMap<K, V>.putUnique(key: K, value: V) {
+    require(!containsKey(key)) { "Found same key $key, prev value is ${get(key)}, current is $value" }
+    put(key, value)
+}
+
+inline fun <K, V> MutableMap<K, V>.putIf(key: K, value: V, predicate: (MutableMap<K, V>) -> Boolean) {
+    if (predicate(this)) {
+        put(key, value)
+    }
+}
+
 object RaccoonUtils {
     fun getCurrentTimestampMs() = System.currentTimeMillis()
 

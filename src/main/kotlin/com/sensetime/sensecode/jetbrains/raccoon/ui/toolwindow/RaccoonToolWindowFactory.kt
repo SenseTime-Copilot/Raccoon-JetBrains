@@ -42,8 +42,8 @@ class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
             false
         )
 
-        val historyContentPanel = HistoryContentPanel()
-        val chatContentPanel = ChatContentPanel()
+        val historyContentPanel = HistoryContentPanel(project)
+        val chatContentPanel = ChatContentPanel(project)
         chatContentPanel.eventListener = object : ChatContentPanel.EventListener {
             override fun onSubmit(e: ActionEvent?, conversations: List<ChatConversation>, onFinally: () -> Unit) {
                 val maxNewTokens: Int = RaccoonSettingsState.instance.toolwindowMaxNewTokens

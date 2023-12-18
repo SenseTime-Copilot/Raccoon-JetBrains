@@ -1,6 +1,7 @@
 package com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindow
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.project.Project
 import com.intellij.ui.components.JBScrollPane
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.histories.*
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
@@ -20,6 +21,7 @@ internal fun List<ChatHistory>.toDisplayConversations(): List<ChatConversation> 
     mapNotNull { it.toDisplayConversation() }
 
 class HistoryContentPanel(
+    project: Project,
     var eventListener: EventListener? = null
 ) : JPanel(BorderLayout()), ListDataListener, Disposable, ConversationListPanel.EventListener {
     interface EventListener {
@@ -36,7 +38,7 @@ class HistoryContentPanel(
         }
 
     private val conversationListPanel: ConversationListPanel =
-        ConversationListPanel(this, histories.toDisplayConversations(), this)
+        ConversationListPanel(this, project, histories.toDisplayConversations(), this)
 
     private val clearButton: JButton =
         RaccoonUIUtils.createActionLinkBiggerOn1(RaccoonBundle.message("toolwindow.content.history.button.clear"))

@@ -1,8 +1,8 @@
 package com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindow
 
 import com.intellij.icons.AllIcons
-import com.intellij.ide.BrowserUtil
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.JBColor
 import com.intellij.util.ui.JBFont
@@ -14,7 +14,6 @@ import com.sensetime.sensecode.jetbrains.raccoon.ui.common.RaccoonUIUtils
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.addMouseListenerWithDisposable
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonMarkdown
 import java.awt.BorderLayout
-import java.awt.Color
 import java.awt.Component
 import java.awt.event.ActionEvent
 import java.awt.event.MouseAdapter
@@ -23,7 +22,6 @@ import java.awt.event.MouseListener
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.swing.*
-import javax.swing.event.HyperlinkEvent
 import javax.swing.text.SimpleAttributeSet
 import javax.swing.text.StyleConstants
 
@@ -42,6 +40,7 @@ fun JTextPane.updateMarkDownTextAndStyle(markdownText: String, styleAttrs: Simpl
 
 class ConversationPanel(
     parent: Disposable,
+    project: Project?,
     conversation: ChatConversation,
     eventListener: EventListener? = null
 ) : JPanel(BorderLayout()), MouseListener by object : MouseAdapter() {}, Disposable {
@@ -51,7 +50,7 @@ class ConversationPanel(
     }
 
     private val deleteButton: JButton = RaccoonUIUtils.createIconButton(AllIcons.Actions.DeleteTag)
-    var assistantTextPane: JTextPane? = null
+    var assistantMessagePane: MessagePanel? = null
         private set
     private var eventListener: EventListener? = null
         set(value) {
@@ -67,21 +66,28 @@ class ConversationPanel(
     init {
         add(Box.createVerticalBox().apply {
             add(JSeparator())
-            add(createRoleBox(true, conversation.user.name, conversation.user.timestampMs, deleteButton))
-            add(
-                createContentTextPane(
-                    true,
-                    conversation.user.displayText
-                ).apply { addMouseListenerWithDisposable(this@ConversationPanel, this@ConversationPanel) })
-            assistantTextPane = conversation.assistant?.let { assistantMessage ->
-                add(createRoleBox(false, assistantMessage.name, assistantMessage.timestampMs))
-                createContentTextPane(
-                    false,
+//            val userBackgroundColor = ColorUtil.brighter(this@ConversationPanel.getBackground(), 3)
+            add(createRoleBox(true, conversation.user.name, conversation.user.timestampMs, deleteButton).apply {
+//                background = userBackgroundColor
+//                isOpaque = false
+            })
+            add(MessagePanel(project, conversation.user.displayText).apply {
+//                background = userBackgroundColor
+                addMouseListenerWithDisposable(this@ConversationPanel, this@ConversationPanel)
+            })
+            assistantMessagePane = conversation.assistant?.let { assistantMessage ->
+//                val assistantBackgroundColor = ColorUtil.darker(this@ConversationPanel.getBackground(), 2)
+                add(createRoleBox(false, assistantMessage.name, assistantMessage.timestampMs).apply {
+//                    background = assistantBackgroundColor
+                })
+                MessagePanel(
+                    project,
                     assistantMessage.displayText,
-                    assistantMessage.generateState
-                ).also { assistantPane ->
-                    add(assistantPane)
-                    assistantPane.addMouseListenerWithDisposable(this@ConversationPanel, this@ConversationPanel)
+                    updateAssistantAttributeSet(assistantMessage.generateState)
+                ).also { messagePanel ->
+//                    messagePanel.background = assistantBackgroundColor
+                    messagePanel.addMouseListenerWithDisposable(this@ConversationPanel, this@ConversationPanel)
+                    add(messagePanel)
                 }
             }
             add(JSeparator())
@@ -93,7 +99,7 @@ class ConversationPanel(
     }
 
     override fun dispose() {
-        assistantTextPane = null
+        assistantMessagePane = null
         eventListener = null
     }
 
@@ -139,44 +145,44 @@ class ConversationPanel(
         fun updateAssistantAttributeSet(
             generateState: AssistantMessage.GenerateState,
             attrs: SimpleAttributeSet = SimpleAttributeSet()
-        ): SimpleAttributeSet = attrs.also {
-            val foreground = when (generateState) {
-                AssistantMessage.GenerateState.STOPPED -> JBColor.GRAY
-                AssistantMessage.GenerateState.ERROR -> JBColor.RED
-                else -> JBColor(Color(103, 81, 111), Color(187, 134, 206))
-            }
-            StyleConstants.setForeground(it, foreground)
+        ): SimpleAttributeSet? = when (generateState) {
+            AssistantMessage.GenerateState.STOPPED -> JBColor.GRAY
+            AssistantMessage.GenerateState.ERROR -> JBColor.RED
+            else -> null
+        }?.let { foreground ->
+            StyleConstants.setForeground(attrs, foreground)
+            attrs
         }
 
-        @JvmStatic
-        fun createContentTextPane(
-            isUser: Boolean,
-            displayText: String = "",
-            generateState: AssistantMessage.GenerateState? = null
-        ): JTextPane = JTextPane().apply {
-            isEditable = false
-            contentType = "text/html"
-            border = BorderFactory.createEmptyBorder(10, 10, 10, 16)
-
-            // color and align
-            val attrs = SimpleAttributeSet()
-            if (isUser) {
-                if (!displayText.contains('\n')) {
-                    StyleConstants.setAlignment(attrs, StyleConstants.ALIGN_RIGHT)
-                }
-                StyleConstants.setForeground(attrs, JBColor(Color(77, 111, 151), Color(115, 170, 212)))
-            } else {
-                StyleConstants.setAlignment(attrs, StyleConstants.ALIGN_LEFT)
-                updateAssistantAttributeSet(generateState!!, attrs)
-            }
-            updateMarkDownTextAndStyle(displayText, attrs)
-
-            addHyperlinkListener { e ->
-                if (e.eventType == HyperlinkEvent.EventType.ACTIVATED) {
-                    BrowserUtil.browse(e.url.toURI())
-                }
-            }
-        }
+//        @JvmStatic
+//        fun createContentTextPane(
+//            isUser: Boolean,
+//            displayText: String = "",
+//            generateState: AssistantMessage.GenerateState? = null
+//        ): JTextPane = JTextPane().apply {
+//            isEditable = false
+//            contentType = "text/html"
+//            border = BorderFactory.createEmptyBorder(10, 10, 10, 16)
+//
+//            // color and align
+//            val attrs = SimpleAttributeSet()
+//            if (isUser) {
+//                if (!displayText.contains('\n')) {
+//                    StyleConstants.setAlignment(attrs, StyleConstants.ALIGN_RIGHT)
+//                }
+//                StyleConstants.setForeground(attrs, JBColor(Color(77, 111, 151), Color(115, 170, 212)))
+//            } else {
+//                StyleConstants.setAlignment(attrs, StyleConstants.ALIGN_LEFT)
+//                updateAssistantAttributeSet(generateState!!, attrs)
+//            }
+//            updateMarkDownTextAndStyle(displayText, attrs)
+//
+//            addHyperlinkListener { e ->
+//                if (e.eventType == HyperlinkEvent.EventType.ACTIVATED) {
+//                    BrowserUtil.browse(e.url.toURI())
+//                }
+//            }
+//        }
 
 //        @JvmStatic
 //        fun createMessagePanel(
