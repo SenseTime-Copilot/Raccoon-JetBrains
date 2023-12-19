@@ -9,7 +9,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.persistent.histories.UserMessag
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.topics.SENSE_CODE_TASKS_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonNotification
-import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils
+import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonLanguages
 import kotlin.reflect.KClass
 
 abstract class CodeTaskActionBase : AnAction() {
@@ -40,7 +40,7 @@ abstract class CodeTaskActionBase : AnAction() {
                 sendNewTaskMessage(
                     editor,
                     code,
-                    RaccoonUtils.getMarkdownLanguage(e.getData(CommonDataKeys.PSI_FILE))
+                    RaccoonLanguages.getMarkdownLanguageFromPsiFile(e.getData(CommonDataKeys.PSI_FILE))
                 )
             }
         }

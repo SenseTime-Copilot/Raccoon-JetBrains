@@ -23,11 +23,10 @@ import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.tasks.CodeTaskActionBase
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.RaccoonUIUtils
+import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonLanguages
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
-import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.min
 
@@ -61,7 +60,7 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
                     psiElement,
                     caretOffset - psiElement.textOffset,
                     modelConfig.maxInputTokens
-                ).getMessages(RaccoonUtils.getMarkdownLanguage(psiElement), modelConfig),
+                ).getMessages(RaccoonLanguages.getMarkdownLanguageFromPsiFile(psiFile), modelConfig),
                 modelConfig.temperature,
                 n,
                 modelConfig.stop,

@@ -3,6 +3,7 @@ package com.sensetime.sensecode.jetbrains.raccoon.utils
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.fileTypes.FileTypeRegistry
 import com.intellij.openapi.fileTypes.FileTypes
+import com.intellij.psi.PsiFile
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonResources
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.MapSerializer
@@ -31,7 +32,7 @@ object RaccoonLanguages {
         val fileType: FileType?
             get() = FileTypeRegistry.getInstance().let { fileTypeRegistry ->
                 extensions.firstNotNullOfOrNull { extension ->
-                    fileTypeRegistry.getFileTypeByExtension(extension.trimStart('.')).takeIfNotUnknownType()
+                    fileTypeRegistry.getFileTypeByExtension(extension).takeIfNotUnknownType()
                 } ?: filenames.firstNotNullOfOrNull { filename ->
                     fileTypeRegistry.getFileTypeByFileName(filename).takeIfNotUnknownType()
                 }
@@ -79,8 +80,8 @@ object RaccoonLanguages {
                 }
 
                 language.extensions.forEachIndexed { index, extension ->
-                    val lowercaseExtension = extension.lowercase()
-                    require(lowercaseExtension.startsWith('.')) { "Extension $extension must start with ." }
+                    require(extension.startsWith('.')) { "Extension $extension must start with ." }
+                    val lowercaseExtension = extension.lowercase().trimStart('.')
 
                     tmpExtensionToLanguageMap.putIf(
                         lowercaseExtension, pair
@@ -101,11 +102,18 @@ object RaccoonLanguages {
     private fun FileType.takeIfNotUnknownType(): FileType? = takeIf { it.name != FileTypes.UNKNOWN.name }
 
     @JvmStatic
-    fun getLanguageFromFilename(filename: String): Pair<String, Language>? = filename.lowercase()
-        .let { lowercaseFilename ->
-            filenamesToLanguageMap[filename]
-                ?: File(lowercaseFilename).extension.letIfNotBlank { lowercaseExtension -> extensionToLanguageMap[lowercaseExtension] }
-        }
+    fun getLanguageFromFilename(filename: String): Pair<String, Language>? =
+        filenamesToLanguageMap[filename] ?: File(filename).extension.lowercase()
+            .letIfNotBlank { lowercaseExtension -> extensionToLanguageMap[lowercaseExtension] }
+
+    @JvmStatic
+    private fun isValidMarkdownLanguage(name: String): Boolean = null != getLanguageFromMarkdownLanguage(name)
+
+    @JvmStatic
+    fun getMarkdownLanguageFromPsiFile(psiFile: PsiFile?): String = psiFile?.takeIf { !it.isDirectory }?.run {
+        getLanguageFromFilename(name)?.first ?: language.id.takeIf { isValidMarkdownLanguage(it) }
+        ?: fileType.name.takeIf { isValidMarkdownLanguage(it) }
+    } ?: ""
 
     @JvmStatic
     fun getLanguageFromMarkdownLanguage(markdownLanguage: String): Pair<String, Language>? =

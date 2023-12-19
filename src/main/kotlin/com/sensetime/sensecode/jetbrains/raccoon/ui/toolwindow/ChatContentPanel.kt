@@ -17,7 +17,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonIcons
 import com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonNotification
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.*
-import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils
+import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonLanguages
 import com.sensetime.sensecode.jetbrains.raccoon.utils.ifNullOrBlankElse
 import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
 import java.awt.BorderLayout
@@ -260,7 +260,7 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
                     ModelConfig.DisplayTextTemplate.replaceArgs(
                         ModelConfig.DisplayTextTemplate.markdownCodeTemplate,
                         mapOf(
-                            ModelConfig.DisplayTextTemplate.LANGUAGE to RaccoonUtils.getMarkdownLanguage(
+                            ModelConfig.DisplayTextTemplate.LANGUAGE to RaccoonLanguages.getMarkdownLanguageFromPsiFile(
                                 FileDocumentManager.getInstance().getFile(editor.document)
                                     ?.let { PsiManager.getInstance(project).findFile(it) }),
                             ModelConfig.DisplayTextTemplate.CODE to code

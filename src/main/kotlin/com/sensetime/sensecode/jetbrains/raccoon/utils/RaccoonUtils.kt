@@ -35,6 +35,4 @@ inline fun <K, V> MutableMap<K, V>.putIf(key: K, value: V, predicate: (MutableMa
 
 object RaccoonUtils {
     fun getCurrentTimestampMs() = System.currentTimeMillis()
-
-    fun getMarkdownLanguage(psiElement: PsiElement?): String = psiElement?.language?.id?.lowercase() ?: ""
 }
