@@ -3,6 +3,7 @@ package com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindow.codes.actions
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
@@ -18,11 +19,13 @@ class InsertedAtCursorAction(private val editor: Editor) : AnAction(
             FileEditorManager.getInstance(project).selectedTextEditor?.let { dstEditor ->
                 editor.document.text.letIfNotBlank { code ->
                     dstEditor.selectionModel.let { selectionModel ->
-                        dstEditor.document.replaceString(
-                            selectionModel.selectionStart,
-                            selectionModel.selectionEnd,
-                            code
-                        )
+                        WriteCommandAction.runWriteCommandAction(project) {
+                            dstEditor.document.replaceString(
+                                selectionModel.selectionStart,
+                                selectionModel.selectionEnd,
+                                code
+                            )
+                        }
                         selectionModel.removeSelection()
                         dstEditor.contentComponent.requestFocus()
                     }
