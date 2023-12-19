@@ -14,6 +14,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.ui.common.RaccoonUIUtils
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.addMouseListenerWithDisposable
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonMarkdown
 import java.awt.BorderLayout
+import java.awt.Color
 import java.awt.Component
 import java.awt.event.ActionEvent
 import java.awt.event.MouseAdapter
@@ -71,7 +72,12 @@ class ConversationPanel(
 //                background = userBackgroundColor
 //                isOpaque = false
             })
-            add(MessagePanel(project, conversation.user.displayText).apply {
+            add(MessagePanel(project, conversation.user.displayText, SimpleAttributeSet().also { attrs ->
+                if (!conversation.user.displayText.contains('\n')) {
+                    StyleConstants.setAlignment(attrs, StyleConstants.ALIGN_RIGHT)
+                }
+                StyleConstants.setForeground(attrs, JBColor(Color(77, 111, 151), Color(115, 170, 212)))
+            }).apply {
 //                background = userBackgroundColor
                 addMouseListenerWithDisposable(this@ConversationPanel, this@ConversationPanel)
             })
@@ -148,7 +154,7 @@ class ConversationPanel(
         ): SimpleAttributeSet? = when (generateState) {
             AssistantMessage.GenerateState.STOPPED -> JBColor.GRAY
             AssistantMessage.GenerateState.ERROR -> JBColor.RED
-            else -> null
+            else -> JBColor(Color(103, 81, 111), Color(187, 134, 206))
         }?.let { foreground ->
             StyleConstants.setForeground(attrs, foreground)
             attrs

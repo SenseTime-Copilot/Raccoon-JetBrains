@@ -3,6 +3,7 @@ package com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindow.codes
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.EditorFactory
+import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
@@ -46,6 +47,8 @@ class CodeEditorPanel(
         return super.createEditor().apply {
             permanentHeaderComponent = CodeHeaderPanel(this, languagePair)
             headerComponent = null
+            setHorizontalScrollbarVisible(true)
+            colorsScheme = EditorColorsManager.getInstance().schemeForCurrentUITheme
         }
     }
 
