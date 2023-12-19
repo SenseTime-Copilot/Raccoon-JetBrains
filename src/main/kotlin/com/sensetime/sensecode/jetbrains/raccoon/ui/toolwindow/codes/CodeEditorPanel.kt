@@ -9,6 +9,7 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.testFramework.LightVirtualFile
+import com.intellij.ui.ColorUtil
 import com.intellij.ui.EditorTextField
 import com.intellij.util.ui.JBUI
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.RaccoonUIUtils
@@ -45,10 +46,15 @@ class CodeEditorPanel(
 
     override fun createEditor(): EditorEx {
         return super.createEditor().apply {
-            permanentHeaderComponent = CodeHeaderPanel(this, languagePair)
+            val borderColor = ColorUtil.fromHex("#505050")
+            permanentHeaderComponent = CodeHeaderPanel(this, languagePair).also {
+                it.border = JBUI.Borders.compound(JBUI.Borders.customLine(borderColor, 1, 1, 0, 1), JBUI.Borders.empty(0, RaccoonUIUtils.BIG_GAP_SIZE, 0, RaccoonUIUtils.SMALL_GAP_SIZE))
+            }
             headerComponent = null
             setHorizontalScrollbarVisible(true)
             colorsScheme = EditorColorsManager.getInstance().schemeForCurrentUITheme
+            backgroundColor = colorsScheme.defaultBackground
+            setBorder(JBUI.Borders.customLine(borderColor, 1))
         }
     }
 
