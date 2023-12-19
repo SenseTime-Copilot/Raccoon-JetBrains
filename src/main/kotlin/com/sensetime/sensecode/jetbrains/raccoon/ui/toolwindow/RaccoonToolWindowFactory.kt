@@ -1,5 +1,6 @@
 package com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindow
 
+import com.intellij.ide.BrowserUtil
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.DumbAware
@@ -36,12 +37,6 @@ class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
         }
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        val helpContent = toolWindow.contentManager.factory.createContent(
-            HelpContentPanel(),
-            RaccoonBundle.message("toolwindow.content.help.title"),
-            false
-        )
-
         val historyContentPanel = HistoryContentPanel(project)
         val chatContentPanel = ChatContentPanel(project)
         chatContentPanel.eventListener = object : ChatContentPanel.EventListener {
@@ -102,7 +97,7 @@ class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
             }
 
             override fun onGotoHelpContent(e: ActionEvent?) {
-                toolWindow.contentManager.setSelectedContent(helpContent)
+                BrowserUtil.browse("https://github.com/SenseTime-Copilot/Raccoon-JetBrains/blob/main/README.md")
             }
         }
 
@@ -130,7 +125,6 @@ class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
                 false
             )
         )
-        toolWindow.contentManager.addContent(helpContent)
 
         taskMessageBusConnection = ApplicationManager.getApplication().messageBus.connect().also {
             it.subscribe(SENSE_CODE_TASKS_TOPIC, object : RaccoonTasksListener {
