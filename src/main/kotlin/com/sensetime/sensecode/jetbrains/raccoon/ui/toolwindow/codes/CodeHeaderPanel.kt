@@ -1,6 +1,6 @@
 package com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindow.codes
 
-import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.ex.EditorEx
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonLanguages
 import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
 import java.awt.BorderLayout
@@ -9,7 +9,7 @@ import javax.swing.JLabel
 import javax.swing.JPanel
 
 class CodeHeaderPanel(
-    editor: Editor, languagePair: Pair<String, RaccoonLanguages.Language>?
+    editor: EditorEx, languagePair: Pair<String, RaccoonLanguages.Language>?
 ) : JPanel(BorderLayout()) {
     init {
         add(JLabel(languagePair?.first).apply {

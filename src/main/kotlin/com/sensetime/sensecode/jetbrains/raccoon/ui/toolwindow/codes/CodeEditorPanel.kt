@@ -48,10 +48,13 @@ class CodeEditorPanel(
         return super.createEditor().apply {
             val borderColor = ColorUtil.fromHex("#505050")
             permanentHeaderComponent = CodeHeaderPanel(this, languagePair).also {
-                it.border = JBUI.Borders.compound(JBUI.Borders.customLine(borderColor, 1, 1, 0, 1), JBUI.Borders.empty(0, RaccoonUIUtils.BIG_GAP_SIZE, 0, RaccoonUIUtils.SMALL_GAP_SIZE))
+                it.border = JBUI.Borders.compound(
+                    JBUI.Borders.customLine(borderColor, 1, 1, 0, 1),
+                    JBUI.Borders.empty(0, RaccoonUIUtils.BIG_GAP_SIZE, 0, RaccoonUIUtils.SMALL_GAP_SIZE)
+                )
             }
             headerComponent = null
-            setHorizontalScrollbarVisible(true)
+            settings.isUseSoftWraps = true
             colorsScheme = EditorColorsManager.getInstance().schemeForCurrentUITheme
             backgroundColor = colorsScheme.defaultBackground
             setBorder(JBUI.Borders.customLine(borderColor, 1))
