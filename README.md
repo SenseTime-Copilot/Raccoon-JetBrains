@@ -12,7 +12,7 @@
 1. 在[Raccoon](https://code.sensetime.com)主页下载 JetBrains IDE 插件的离线安装包（通常为`zip`格式）到本地任意目录
 2. 按照如下演示动画指引，在 `Settings` 页面完成安装操作后即可登录使用本插件
 
-![Raccoon-Install](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.7/media/Raccoon-Install.gif)
+![Raccoon-Install](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.8/media/Raccoon-Install.gif)
 
 ## 账号管理/设置
 
@@ -32,17 +32,17 @@
 * 候选建议数量：
   * 设置返回候选条目的数量
 
-![Raccoon-Settings](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.7/media/Raccoon-Settings.gif)
+![Raccoon-Settings](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.8/media/Raccoon-Settings.gif)
 
 ## 代码补全
 
-您可以在编辑器内通过手动或自动方式触发代码补全，一经触发，编辑器状态栏右下的状态栏图标将指示现在的请求状态。
+您可以在编辑器内通过手动（默认的快捷键为 `Ctrl + Alt + /` ）或自动方式触发代码补全，一经触发，编辑器状态栏右下的状态栏图标将指示现在的请求状态。
 
 触发补全事件后，稍等片刻补全内容会以行内补全候选框形式出现，您可以使用 `Tab` 键接受建议。候选数量大于 1, 可以使用 `Alt + [` 及 `Alt + ]` 来进行翻页浏览，确定要接受的建议项后，使用 `Tab` 键插入编辑器。
 
 > 编辑器在触发补全事件后，如遇用户点击 `Esc` 键的或其他移动、输入行为，则会 **取消** 补全操作。
 
-![Raccoon-InlineCompletion](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.7/media/Raccoon-InlineCompletion.gif)
+![Raccoon-InlineCompletion](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.8/media/Raccoon-InlineCompletion.gif)
 
 ## 代码命令
 
@@ -56,8 +56,10 @@
 * Code Correction: `Ctrl + Alt + Shift + F`
 * Refactoring: `Ctrl + Alt + Shift + R`
 
-![Raccoon-Refactoring](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.7/media/Raccoon-Refactoring.gif)
-![Raccoon-CodeCorrection](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.7/media/Raccoon-CodeCorrection.gif)
+在选中代码的状态下，使用快捷键 `Ctrl + Alt + /` （与手动触发代码补全相同），可以弹出代码命令列表便于您快速选择使用。
+
+![Raccoon-Refactoring](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.8/media/Raccoon-Refactoring.gif)
+![Raccoon-CodeCorrection](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.8/media/Raccoon-CodeCorrection.gif)
 
 ## 侧边栏助手
 
@@ -65,6 +67,8 @@
 如在编辑器内有活动的代码文件内容被选中，则会随问题一起发送。
 
 Raccoon 的侧边栏助手中，默认为 `流式输出` 模式，即回答将在产生过程中逐步显示，以便于您提早审阅结果，在这种模式下，您可以随时点击 `Stop` 按钮来终止此次回答。
+
+对于对话中可识别的代码内容，插件将以代码框形式显示，并提供 `自动换行`、 `复制到剪贴板` 和 `插入到当前光标`等便捷按钮, 便于您的查看和操作。
 
 ### 关于上下文
 
@@ -74,8 +78,8 @@ Raccoon 的侧边栏助手中，默认为 `流式输出` 模式，即回答将�
 
 帮助信息和错误提示等非对话内容，不会作为上下文发送。
 
-![Raccoon-Chat](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.7/media/Raccoon-Chat.gif)
-![Raccoon-SelectCode](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.7/media/Raccoon-SelectCode.gif)
+![Raccoon-Chat](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.8/media/Raccoon-Chat.gif)
+![Raccoon-SelectCode](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.8/media/Raccoon-SelectCode.gif)
 
 ## 免责声明
 
