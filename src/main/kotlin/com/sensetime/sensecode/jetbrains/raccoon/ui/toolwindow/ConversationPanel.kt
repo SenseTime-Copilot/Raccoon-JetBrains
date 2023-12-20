@@ -26,18 +26,18 @@ import javax.swing.*
 import javax.swing.text.SimpleAttributeSet
 import javax.swing.text.StyleConstants
 
-fun JTextPane.updateMarkDownText(markdownText: String): JTextPane = apply {
-    text = RaccoonMarkdown.convertMarkdownToHtml(markdownText)
-}
+//fun JTextPane.updateMarkDownText(markdownText: String): JTextPane = apply {
+//    text = RaccoonMarkdown.convertMarkdownToHtml(markdownText)
+//}
+//
+//fun JTextPane.updateStyle(styleAttrs: SimpleAttributeSet): JTextPane = apply {
+//    styledDocument.setParagraphAttributes(0, styledDocument.length, styleAttrs, false)
+//}
 
-fun JTextPane.updateStyle(styleAttrs: SimpleAttributeSet): JTextPane = apply {
-    styledDocument.setParagraphAttributes(0, styledDocument.length, styleAttrs, false)
-}
-
-fun JTextPane.updateMarkDownTextAndStyle(markdownText: String, styleAttrs: SimpleAttributeSet): JTextPane = apply {
-    updateMarkDownText(markdownText)
-    updateStyle(styleAttrs)
-}
+//fun JTextPane.updateMarkDownTextAndStyle(markdownText: String, styleAttrs: SimpleAttributeSet): JTextPane = apply {
+//    updateMarkDownText(markdownText)
+//    updateStyle(styleAttrs)
+//}
 
 class ConversationPanel(
     parent: Disposable,

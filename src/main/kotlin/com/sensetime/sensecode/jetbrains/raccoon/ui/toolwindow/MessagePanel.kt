@@ -48,10 +48,15 @@ class MessagePanel(
         val currentCodeEndIndex = deltaMarkdownText.indexOfFirstNonAsciiWhitespace(currentCodeIndex + 3)
         lastTextPane?.let { textPane ->
             lastRawText.findMarkdownCodeIndex().takeIf { it >= 0 }?.let { prevCodeIndex ->
+                textPane.text = lastRawText.substring(0, prevCodeIndex).let {
+                    if (it.isBlank()) {
+                        it
+                    } else {
+                        RaccoonMarkdown.convertMarkdownToHtml(it)
+                    }
+                }
                 if (prevCodeIndex <= 0) {
-                    remove(textPane)
-                } else {
-                    textPane.text = RaccoonMarkdown.convertMarkdownToHtml(lastRawText.substring(0, prevCodeIndex))
+                    messageBox.remove(textPane)
                 }
                 addCodeEditorPane(
                     lastRawText.substring(prevCodeIndex + 3) + deltaMarkdownText.substring(
@@ -93,7 +98,7 @@ class MessagePanel(
         }
         lastTextPane!!.apply {
             lastRawText += deltaMarkdownText
-            text = RaccoonMarkdown.convertMarkdownToHtml(lastRawText)
+            text = if (lastRawText.isBlank()) lastRawText else RaccoonMarkdown.convertMarkdownToHtml(lastRawText)
         }
     }
 
