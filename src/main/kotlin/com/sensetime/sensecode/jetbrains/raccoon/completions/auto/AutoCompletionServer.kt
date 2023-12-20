@@ -2,7 +2,6 @@ package com.sensetime.sensecode.jetbrains.raccoon.completions.auto
 
 import com.intellij.codeInsight.lookup.LookupManager
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.actionSystem.ActionPlaces
 import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
@@ -95,7 +94,7 @@ class AutoCompletionServer(
         project?.let {
             (FileEditorManager.getInstance(it).selectedTextEditor as? EditorEx)?.let { editor ->
                 RaccoonActionUtils.getAction(ManualTriggerInlineCompletionAction::class)?.let { action ->
-                    ActionUtil.invokeAction(action, editor.dataContext, ActionPlaces.UNKNOWN, null, null)
+                    ActionUtil.invokeAction(action, editor.dataContext, AUTO_COMPLETION_PLACE, null, null)
                 }
             }
         }
@@ -129,5 +128,7 @@ class AutoCompletionServer(
     companion object {
         @JvmStatic
         fun getCurrentTimeMs(): Long = System.nanoTime() / (1000L * 1000L)
+
+        const val AUTO_COMPLETION_PLACE = "RaccoonAutoCompletion"
     }
 }
