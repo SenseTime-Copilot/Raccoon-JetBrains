@@ -9,6 +9,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiManager
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextArea
+import com.intellij.util.ui.JBUI
 import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.histories.*
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
@@ -66,6 +67,8 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
 
     private val userPromptTextArea: JTextArea = JBTextArea().apply {
         lineWrap = true
+        wrapStyleWord = true
+        border = JBUI.Borders.empty(RaccoonUIUtils.MEDIUM_GAP_SIZE, RaccoonUIUtils.SMALL_GAP_SIZE)
         addFocusListenerWithDisposable(this@ChatContentPanel, object : FocusListener {
             override fun focusGained(e: FocusEvent?) {}
             override fun focusLost(e: FocusEvent?) {
