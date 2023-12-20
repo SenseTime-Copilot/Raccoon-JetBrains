@@ -1,6 +1,7 @@
-package com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindows
+package com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindow
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.CollectionListModel
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.histories.ChatConversation
@@ -16,6 +17,7 @@ import javax.swing.event.ListDataListener
 
 class ConversationListPanel(
     parent: Disposable,
+    private val project: Project?,
     conversations: List<ChatConversation>,
     private var eventListener: EventListener? = null
 ) : JPanel(BorderLayout()), ListDataListener, Disposable {
@@ -48,15 +50,21 @@ class ConversationListPanel(
     }
 
     private fun Box.addConversation(index: Int): Component = conversationListModel.items[index].let { conversation ->
-        add(ConversationPanel(this@ConversationListPanel, conversation, object : ConversationPanel.EventListener {
-            override fun onDelete(e: ActionEvent?) {
-                conversationListModel.remove(conversation)
-            }
+        add(
+            ConversationPanel(
+                this@ConversationListPanel,
+                project,
+                conversation,
+                object : ConversationPanel.EventListener {
+                    override fun onDelete(e: ActionEvent?) {
+                        conversationListModel.remove(conversation)
+                    }
 
-            override fun onMouseDoubleClicked(e: MouseEvent?) {
-                eventListener?.onMouseDoubleClicked(e, conversation)
-            }
-        }), index)
+                    override fun onMouseDoubleClicked(e: MouseEvent?) {
+                        eventListener?.onMouseDoubleClicked(e, conversation)
+                    }
+                }), index
+        )
     }
 
     override fun intervalAdded(e: ListDataEvent?) {

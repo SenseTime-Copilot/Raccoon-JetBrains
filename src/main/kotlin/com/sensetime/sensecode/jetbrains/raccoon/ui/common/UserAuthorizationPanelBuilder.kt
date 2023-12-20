@@ -5,6 +5,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.AnimatedIcon
+import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.dsl.gridLayout.VerticalAlign
 import com.intellij.util.messages.SimpleMessageBusConnection
@@ -15,23 +16,24 @@ import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonIcons
 import com.sensetime.sensecode.jetbrains.raccoon.topics.SENSE_CODE_CLIENT_AUTHORIZATION_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonClientAuthorizationListener
+import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
 import kotlinx.coroutines.Job
 import javax.swing.JLabel
 
-//internal fun Panel.akskPasswordRow(item: CodeClient.AkSkSettingsItem): Row =
-//    row(item.label) {
-//        passwordField().bindText(item.getter, item.setter).component.toolTipText = item.toolTipText
-//    }
-//
-//internal fun Panel.akskCollapsibleRow(akskSettings: CodeClient.AkSkSettings): CollapsibleRow =
-//    collapsibleGroup(akskSettings.groupTitle) {
-//        akskSettings.akItem?.let { ak ->
-//            akskPasswordRow(ak)
-//        }
-//        akskPasswordRow(akskSettings.skItem).applyIfNotNull(akskSettings.groupComment?.takeIfNotBlank()) {
-//            rowComment(it)
-//        }
-//    }
+internal fun Panel.akskPasswordRow(item: CodeClient.AkSkSettingsItem): Row =
+    row(item.label) {
+        cell(JBPasswordField()).bindText(item.getter, item.setter).component.toolTipText = item.toolTipText
+    }
+
+internal fun Panel.akskCollapsibleRow(akskSettings: CodeClient.AkSkSettings): CollapsibleRow =
+    collapsibleGroup(akskSettings.groupTitle) {
+        akskSettings.akItem?.let { ak ->
+            akskPasswordRow(ak)
+        }
+        akskPasswordRow(akskSettings.skItem).apply {
+            akskSettings.groupComment?.letIfNotBlank { rowComment(it) }
+        }
+    }
 
 class UserAuthorizationPanelBuilder : Disposable {
     private var loginJob: Job? = null
@@ -101,7 +103,7 @@ class UserAuthorizationPanelBuilder : Disposable {
                 cell(loginButton.button)
                 cell(loginButton.loading)
             }
-            akskGroup = null // akskSettings?.let { akskCollapsibleRow(it) }
+            akskGroup = akskSettings?.let { akskCollapsibleRow(it) }
         }
 
         clientAuthorizationMessageBusConnection = ApplicationManager.getApplication().messageBus.connect().also {

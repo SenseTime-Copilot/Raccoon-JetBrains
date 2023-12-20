@@ -6,6 +6,8 @@ import com.intellij.ide.DataManager
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.ActionPlaces
+import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.util.EditorUtil
@@ -23,11 +25,10 @@ import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.tasks.CodeTaskActionBase
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.RaccoonUIUtils
+import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonLanguages
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
-import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.min
 
@@ -42,80 +43,96 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
         inlineCompletionJob = null
     }
 
+    private var lastCaretOffset: Int = -1
     private fun inlineCompletion(editor: Editor, psiFile: PsiFile?) {
         var caretOffset = editor.caretModel.offset
-        inlineCompletionJob = findPsiElementAt(psiFile, caretOffset)?.let { psiElement ->
-            if (!isWhiteSpacePsi(psiElement) && psiElement.text.length <= 16) {
-                caretOffset = psiElement.endOffset
+        if ((lastCaretOffset == caretOffset) && !isKeyboardShortcutAction) {
+            return
+        }
+        lastCaretOffset = caretOffset
+        inlineCompletionJob =
+            findPsiElementAt(
+                psiFile,
+                caretOffset
+            )?.takeIf {
+                isKeyboardShortcutAction || (null != psiFile?.takeIf {
+                    (caretOffset >= (psiFile.textLength)) || isLineSeparator(
+                        psiFile.text[caretOffset]
+                    )
+                })
             }
-            val completionPreview =
-                CompletionPreview.createInstance(editor, caretOffset)
+                ?.let { psiElement ->
+                    if (!isWhiteSpacePsi(psiElement) && psiElement.text.length <= 16) {
+                        caretOffset = psiElement.endOffset
+                    }
+                    val completionPreview =
+                        CompletionPreview.createInstance(editor, caretOffset)
 
-            val settings = RaccoonSettingsState.instance
-            val n = settings.candidates
-            val (client, clientConfig) = RaccoonClientManager.clientAndConfigPair
-            val modelConfig = clientConfig.inlineModelConfig
-            val codeRequest = CodeRequest(
-                modelConfig.name,
-                getUserContent(
-                    psiElement,
-                    caretOffset - psiElement.textOffset,
-                    modelConfig.maxInputTokens
-                ).getMessages(RaccoonUtils.getMarkdownLanguage(psiElement), modelConfig),
-                modelConfig.temperature,
-                n,
-                modelConfig.stop,
-                modelConfig.getMaxNewTokens(settings.inlineCompletionPreference),
-                clientConfig.inlineApiPath
-            )
-            RaccoonClientManager.launchClientJob {
-                try {
-                    if (n <= 1) {
-                        // stream
-                        client.requestStream(codeRequest) { streamResponse ->
-                            RaccoonUIUtils.invokeOnUIThreadLater {
-                                when (streamResponse) {
-                                    CodeStreamResponse.Done -> completionPreview.done = true
-                                    is CodeStreamResponse.Error -> completionPreview.showError(streamResponse.error)
-                                    is CodeStreamResponse.TokenChoices -> {
-                                        if (null == completionPreview.appendCompletions(
-                                                listOf(
-                                                    streamResponse.choices.firstOrNull()?.token ?: ""
-                                                )
-                                            )
-                                        ) {
-                                            cancel()
+                    val settings = RaccoonSettingsState.instance
+                    val n = settings.candidates
+                    val (client, clientConfig) = RaccoonClientManager.clientAndConfigPair
+                    val modelConfig = clientConfig.inlineModelConfig
+                    val codeRequest = CodeRequest(
+                        modelConfig.name,
+                        getUserContent(
+                            psiElement,
+                            caretOffset - psiElement.textOffset,
+                            modelConfig.maxInputTokens
+                        ).getMessages(RaccoonLanguages.getMarkdownLanguageFromPsiFile(psiFile), modelConfig),
+                        modelConfig.temperature,
+                        n,
+                        modelConfig.stop,
+                        modelConfig.getMaxNewTokens(settings.inlineCompletionPreference),
+                        clientConfig.inlineApiPath
+                    )
+                    RaccoonClientManager.launchClientJob {
+                        try {
+                            if (n <= 1) {
+                                // stream
+                                client.requestStream(codeRequest) { streamResponse ->
+                                    RaccoonUIUtils.invokeOnUIThreadLater {
+                                        when (streamResponse) {
+                                            CodeStreamResponse.Done -> completionPreview.done = true
+                                            is CodeStreamResponse.Error -> completionPreview.showError(streamResponse.error)
+                                            is CodeStreamResponse.TokenChoices -> {
+                                                if (null == completionPreview.appendCompletions(
+                                                        listOf(
+                                                            streamResponse.choices.firstOrNull()?.token ?: ""
+                                                        )
+                                                    )
+                                                ) {
+                                                    cancel()
+                                                }
+                                            }
+
+                                            else -> {}
                                         }
                                     }
-
-                                    else -> {}
+                                }
+                            } else {
+                                client.request(codeRequest).run {
+                                    RaccoonUIUtils.invokeOnUIThreadLater {
+                                        error?.takeIf { it.hasError() }?.let {
+                                            completionPreview.showError(it.getShowError())
+                                        } ?: choices?.let { choices ->
+                                            completionPreview.appendCompletions(choices.map { it.token ?: "" })
+                                        }
+                                    }
                                 }
                             }
-                        }
-                    } else {
-                        client.request(codeRequest).run {
+                        } catch (t: Throwable) {
+                            if (t !is CancellationException) {
+                                RaccoonUIUtils.invokeOnUIThreadLater {
+                                    completionPreview.showError(t.localizedMessage)
+                                }
+                            }
+                        } finally {
                             RaccoonUIUtils.invokeOnUIThreadLater {
-                                error?.takeIf { it.hasError() }?.let {
-                                    completionPreview.showError(it.getShowError())
-                                } ?: choices?.let { choices ->
-                                    completionPreview.appendCompletions(choices.map { it.token ?: "" })
-                                }
+                                completionPreview.done = true
                             }
                         }
-                    }
-                } catch (t: Throwable) {
-                    if (t !is CancellationException) {
-                        RaccoonUIUtils.invokeOnUIThreadLater {
-                            completionPreview.showError(t.localizedMessage)
-                        }
-                    }
-                } finally {
-                    RaccoonUIUtils.invokeOnUIThreadLater {
-                        completionPreview.done = true
                     }
                 }
-            }
-        }
     }
 
     private fun popupCodeTaskActionsGroup(editor: Editor) {
@@ -130,6 +147,12 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
         }
     }
 
+    private var isKeyboardShortcutAction: Boolean = false
+    override fun actionPerformed(e: AnActionEvent) {
+        isKeyboardShortcutAction = (e.place == ActionPlaces.KEYBOARD_SHORTCUT)
+        super.actionPerformed(e)
+    }
+
     override fun getHandler(): CodeInsightActionHandler {
         return CodeInsightActionHandler { _: Project?, editor: Editor, psiFile: PsiFile? ->
             if (!RaccoonSettingsState.instance.isAutoCompleteMode || ((null == CompletionPreview.getInstance(editor)) && (editor.contentComponent.isFocusOwner))) {
@@ -138,7 +161,7 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
                 val selectedText = editor.selectionModel.selectedText
                 if (selectedText.isNullOrBlank()) {
                     inlineCompletion(editor, psiFile)
-                } else if (!RaccoonSettingsState.instance.isAutoCompleteMode) {
+                } else if (isKeyboardShortcutAction) {
                     popupCodeTaskActionsGroup(editor)
                 }
             }
@@ -148,6 +171,9 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
     override fun isValidForLookup(): Boolean = true
 
     companion object {
+        @JvmStatic
+        private fun isLineSeparator(c: Char): Boolean = ((c == '\n') || (c == '\r'))
+
         @JvmStatic
         private fun isWhiteSpacePsi(psiElement: PsiElement?): Boolean {
             return (null == psiElement) || (psiElement is PsiWhiteSpace)
@@ -202,7 +228,7 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
                 var prefixLines = ""
                 var prefixCursor = prefix
                 prefix.lastIndexOf('\n').takeIf { it >= 0 }?.let {
-                    prefixLines = prefix.substring(0, it)
+                    prefixLines = prefix.substring(0, it + 1)
                     prefixCursor = prefix.substring(it + 1)
                 }
                 return mapOf("prefixLines" to prefixLines, "prefixCursor" to prefixCursor, "prefix" to prefix)

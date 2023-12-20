@@ -1,13 +1,15 @@
-package com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindows
+package com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindow
 
 import com.intellij.ide.DataManager
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiManager
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextArea
+import com.intellij.util.ui.JBUI
 import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.histories.*
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
@@ -16,7 +18,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonIcons
 import com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonNotification
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.*
-import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils
+import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonLanguages
 import com.sensetime.sensecode.jetbrains.raccoon.utils.ifNullOrBlankElse
 import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
 import java.awt.BorderLayout
@@ -25,7 +27,8 @@ import javax.swing.*
 import javax.swing.event.ListDataEvent
 import javax.swing.event.ListDataListener
 
-class ChatContentPanel(eventListener: EventListener? = null) : JPanel(BorderLayout()), ListDataListener, Disposable {
+class ChatContentPanel(project: Project?, eventListener: EventListener? = null) : JPanel(BorderLayout()),
+    ListDataListener, Disposable {
     interface EventListener {
         fun onSubmit(
             e: ActionEvent?,
@@ -45,16 +48,16 @@ class ChatContentPanel(eventListener: EventListener? = null) : JPanel(BorderLayo
         }
 
     private val gotoHelpContentButton: JButton =
-        RaccoonUIUtils.createActionLinkBiggerOn1(RaccoonBundle.message("toolwindows.content.chat.assistant.gotoHelp"))
+        RaccoonUIUtils.createActionLinkBiggerOn1(RaccoonBundle.message("toolwindow.content.chat.assistant.gotoHelp"))
 
     private val newChatButton: JButton =
-        RaccoonUIUtils.createActionLinkBiggerOn1(RaccoonBundle.message("toolwindows.content.chat.button.newChat"))
+        RaccoonUIUtils.createActionLinkBiggerOn1(RaccoonBundle.message("toolwindow.content.chat.button.newChat"))
             .apply { addActionListener(this@ChatContentPanel::onNewChat) }
     private val regenerateButton: JButton =
-        RaccoonUIUtils.createActionLinkBiggerOn1(RaccoonBundle.message("toolwindows.content.chat.button.regenerate"))
+        RaccoonUIUtils.createActionLinkBiggerOn1(RaccoonBundle.message("toolwindow.content.chat.button.regenerate"))
             .apply { addActionListener(this@ChatContentPanel::onRegenerate) }
     private val stopRegenerateButton: JButton =
-        RaccoonUIUtils.createActionLinkBiggerOn1(RaccoonBundle.message("toolwindows.content.chat.button.stopGenerate"))
+        RaccoonUIUtils.createActionLinkBiggerOn1(RaccoonBundle.message("toolwindow.content.chat.button.stopGenerate"))
             .apply { isVisible = false }
 
     private val submitButton: JButton = RaccoonUIUtils.createIconButton(RaccoonIcons.TOOLWINDOW_SUBMIT)
@@ -64,6 +67,8 @@ class ChatContentPanel(eventListener: EventListener? = null) : JPanel(BorderLayo
 
     private val userPromptTextArea: JTextArea = JBTextArea().apply {
         lineWrap = true
+        wrapStyleWord = true
+        border = JBUI.Borders.empty(RaccoonUIUtils.MEDIUM_GAP_SIZE, RaccoonUIUtils.SMALL_GAP_SIZE)
         addFocusListenerWithDisposable(this@ChatContentPanel, object : FocusListener {
             override fun focusGained(e: FocusEvent?) {}
             override fun focusLost(e: FocusEvent?) {
@@ -94,7 +99,7 @@ class ChatContentPanel(eventListener: EventListener? = null) : JPanel(BorderLayo
 
     private val conversationListPanel: ConversationListPanel = lastHistoryState.let {
         userPromptTextArea.text = it.userPromptText
-        ConversationListPanel(this, it.conversations)
+        ConversationListPanel(this, project, it.conversations)
     }
 
     private var scrollBar: JScrollBar? = null
@@ -129,13 +134,23 @@ class ChatContentPanel(eventListener: EventListener? = null) : JPanel(BorderLayo
                     add(JSeparator())
                     AssistantMessage(generateState = AssistantMessage.GenerateState.DONE).apply {
                         content = RaccoonBundle.message(
-                            "toolwindows.content.chat.assistant.hello",
+                            "toolwindow.content.chat.assistant.hello",
                             RaccoonClientManager.userName.ifNullOrBlankElse("") { " __@${it}__" },
                             "__${name}__"
                         )
                     }.let {
-                        add(ConversationPanel.createRoleBox(false, it.name, it.timestampMs))
-                        add(ConversationPanel.createContentTextPane(false, it.displayText, it.generateState))
+//                        val assistantBackgroundColor = ColorUtil.darker(this@ChatContentPanel.getBackground(), 2)
+                        add(ConversationPanel.createRoleBox(false, it.name, it.timestampMs).apply {
+//                            background = assistantBackgroundColor
+                        })
+                        add(
+                            MessagePanel(
+                                project,
+                                it.displayText,
+                                ConversationPanel.updateAssistantAttributeSet(it.generateState)
+                            ).apply {
+//                                background = assistantBackgroundColor
+                            })
                     }
 
                     add(Box.createHorizontalBox().apply {
@@ -248,7 +263,7 @@ class ChatContentPanel(eventListener: EventListener? = null) : JPanel(BorderLayo
                     ModelConfig.DisplayTextTemplate.replaceArgs(
                         ModelConfig.DisplayTextTemplate.markdownCodeTemplate,
                         mapOf(
-                            ModelConfig.DisplayTextTemplate.LANGUAGE to RaccoonUtils.getMarkdownLanguage(
+                            ModelConfig.DisplayTextTemplate.LANGUAGE to RaccoonLanguages.getMarkdownLanguageFromPsiFile(
                                 FileDocumentManager.getInstance().getFile(editor.document)
                                     ?.let { PsiManager.getInstance(project).findFile(it) }),
                             ModelConfig.DisplayTextTemplate.CODE to code
@@ -277,18 +292,16 @@ class ChatContentPanel(eventListener: EventListener? = null) : JPanel(BorderLayo
     fun setGenerateState(generateState: AssistantMessage.GenerateState) {
         conversationListPanel.lastConversation?.assistant?.run {
             this.generateState = generateState
-            conversationListPanel.lastConversationPanel?.assistantTextPane?.updateStyle(
-                ConversationPanel.updateAssistantAttributeSet(
-                    generateState
-                )
-            )
+            ConversationPanel.updateAssistantAttributeSet(generateState)?.let {
+                conversationListPanel.lastConversationPanel?.assistantMessagePane?.updateStyle(it)
+            }
         }
     }
 
     fun appendAssistantText(text: String) {
         conversationListPanel.lastConversation?.assistant?.run {
             content += text
-            conversationListPanel.lastConversationPanel?.assistantTextPane?.updateMarkDownText(displayText)
+            conversationListPanel.lastConversationPanel?.assistantMessagePane?.appendMarkdownText(text)
         }
     }
 
@@ -296,10 +309,10 @@ class ChatContentPanel(eventListener: EventListener? = null) : JPanel(BorderLayo
         conversationListPanel.lastConversation?.assistant?.run {
             this.generateState = generateState
             content += text
-            conversationListPanel.lastConversationPanel?.assistantTextPane?.updateMarkDownTextAndStyle(
-                displayText,
-                ConversationPanel.updateAssistantAttributeSet(generateState)
-            )
+            ConversationPanel.updateAssistantAttributeSet(generateState)?.let {
+                conversationListPanel.lastConversationPanel?.assistantMessagePane?.updateStyle(it)
+            }
+            conversationListPanel.lastConversationPanel?.assistantMessagePane?.appendMarkdownText(text)
         }
     }
 
@@ -320,7 +333,7 @@ class ChatContentPanel(eventListener: EventListener? = null) : JPanel(BorderLayo
                     setGenerateState(AssistantMessage.GenerateState.STOPPED)
                 } else {
                     appendAssistantTextAndSetGenerateState(
-                        RaccoonBundle.message("toolwindows.content.chat.assistant.empty.stopped"),
+                        RaccoonBundle.message("toolwindow.content.chat.assistant.empty.stopped"),
                         AssistantMessage.GenerateState.STOPPED
                     )
                 }

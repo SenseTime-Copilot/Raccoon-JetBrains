@@ -1,5 +1,6 @@
-package com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindows
+package com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindow
 
+import com.intellij.ide.BrowserUtil
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.DumbAware
@@ -18,8 +19,6 @@ import com.sensetime.sensecode.jetbrains.raccoon.topics.SENSE_CODE_TASKS_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonTasksListener
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.RaccoonUIUtils
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
 import java.awt.event.ActionEvent
 import java.awt.event.MouseEvent
 import kotlin.coroutines.cancellation.CancellationException
@@ -38,14 +37,8 @@ class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
         }
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        val helpContent = toolWindow.contentManager.factory.createContent(
-            HelpContentPanel(),
-            RaccoonBundle.message("toolwindows.content.help.title"),
-            false
-        )
-
-        val historyContentPanel = HistoryContentPanel()
-        val chatContentPanel = ChatContentPanel()
+        val historyContentPanel = HistoryContentPanel(project)
+        val chatContentPanel = ChatContentPanel(project)
         chatContentPanel.eventListener = object : ChatContentPanel.EventListener {
             override fun onSubmit(e: ActionEvent?, conversations: List<ChatConversation>, onFinally: () -> Unit) {
                 val maxNewTokens: Int = RaccoonSettingsState.instance.toolwindowMaxNewTokens
@@ -104,7 +97,7 @@ class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
             }
 
             override fun onGotoHelpContent(e: ActionEvent?) {
-                toolWindow.contentManager.setSelectedContent(helpContent)
+                BrowserUtil.browse("https://github.com/SenseTime-Copilot/Raccoon-JetBrains/blob/main/README.md")
             }
         }
 
@@ -122,17 +115,16 @@ class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
 
         toolWindow.contentManager.addContent(
             toolWindow.contentManager.factory.createContent(
-                chatContentPanel, RaccoonBundle.message("toolwindows.content.chat.title"), false
+                chatContentPanel, RaccoonBundle.message("toolwindow.content.chat.title"), false
             ).apply { setDisposer(this) }
         )
         toolWindow.contentManager.addContent(
             toolWindow.contentManager.factory.createContent(
                 historyContentPanel,
-                RaccoonBundle.message("toolwindows.content.history.title"),
+                RaccoonBundle.message("toolwindow.content.history.title"),
                 false
             )
         )
-        toolWindow.contentManager.addContent(helpContent)
 
         taskMessageBusConnection = ApplicationManager.getApplication().messageBus.connect().also {
             it.subscribe(SENSE_CODE_TASKS_TOPIC, object : RaccoonTasksListener {
