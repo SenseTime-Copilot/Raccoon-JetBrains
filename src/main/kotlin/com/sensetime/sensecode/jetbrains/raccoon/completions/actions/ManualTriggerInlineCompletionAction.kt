@@ -43,6 +43,9 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
         inlineCompletionJob = null
     }
 
+    private fun getToken(token: String?, isSingleLine: Boolean): String =
+        token?.let { if (isSingleLine) it.trimEnd('\r', '\n') else it } ?: ""
+
     private var lastCaretOffset: Int = -1
     private fun inlineCompletion(editor: Editor, psiFile: PsiFile?) {
         var caretOffset = editor.caretModel.offset
@@ -72,6 +75,8 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
                     val n = settings.candidates
                     val (client, clientConfig) = RaccoonClientManager.clientAndConfigPair
                     val modelConfig = clientConfig.inlineModelConfig
+                    val isSingleLine: Boolean =
+                        (settings.inlineCompletionPreference == ModelConfig.CompletionPreference.SPEED_PRIORITY)
                     val codeRequest = CodeRequest(
                         modelConfig.name,
                         getUserContent(
@@ -81,7 +86,7 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
                         ).getMessages(RaccoonLanguages.getMarkdownLanguageFromPsiFile(psiFile), modelConfig),
                         modelConfig.temperature,
                         n,
-                        modelConfig.stop,
+                        if (isSingleLine) "\n" else modelConfig.stop,
                         modelConfig.getMaxNewTokens(settings.inlineCompletionPreference),
                         clientConfig.inlineApiPath
                     )
@@ -97,7 +102,10 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
                                             is CodeStreamResponse.TokenChoices -> {
                                                 if (null == completionPreview.appendCompletions(
                                                         listOf(
-                                                            streamResponse.choices.firstOrNull()?.token ?: ""
+                                                            getToken(
+                                                                streamResponse.choices.firstOrNull()?.token,
+                                                                isSingleLine
+                                                            )
                                                         )
                                                     )
                                                 ) {
@@ -115,7 +123,12 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
                                         error?.takeIf { it.hasError() }?.let {
                                             completionPreview.showError(it.getShowError())
                                         } ?: choices?.let { choices ->
-                                            completionPreview.appendCompletions(choices.map { it.token ?: "" })
+                                            completionPreview.appendCompletions(choices.map {
+                                                getToken(
+                                                    it.token,
+                                                    isSingleLine
+                                                )
+                                            })
                                         }
                                     }
                                 }
