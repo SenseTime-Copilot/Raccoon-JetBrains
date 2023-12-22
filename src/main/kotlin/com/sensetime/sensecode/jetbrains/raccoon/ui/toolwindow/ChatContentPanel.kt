@@ -190,6 +190,7 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
     }
 
     override fun dispose() {
+        onNewChat(null)
         newChatButton.removeActionListener(this::onNewChat)
         regenerateButton.removeActionListener(this::onRegenerate)
         submitButton.removeActionListener(this::onSubmitButtonClick)
