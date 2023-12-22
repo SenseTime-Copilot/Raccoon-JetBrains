@@ -77,10 +77,7 @@ class ConversationPanel(
                     StyleConstants.setAlignment(attrs, StyleConstants.ALIGN_RIGHT)
                 }
                 StyleConstants.setForeground(attrs, JBColor(Color(77, 111, 151), Color(115, 170, 212)))
-            }).apply {
-//                background = userBackgroundColor
-                addMouseListenerWithDisposable(this@ConversationPanel, this@ConversationPanel)
-            })
+            }, this@ConversationPanel.takeIf { null != eventListener }, this@ConversationPanel))
             assistantMessagePane = conversation.assistant?.let { assistantMessage ->
 //                val assistantBackgroundColor = ColorUtil.darker(this@ConversationPanel.getBackground(), 2)
                 add(createRoleBox(false, assistantMessage.name, assistantMessage.timestampMs).apply {
@@ -89,10 +86,11 @@ class ConversationPanel(
                 MessagePanel(
                     project,
                     assistantMessage.displayText,
-                    updateAssistantAttributeSet(assistantMessage.generateState)
+                    updateAssistantAttributeSet(assistantMessage.generateState),
+                    this@ConversationPanel.takeIf { null != eventListener },
+                    this@ConversationPanel
                 ).also { messagePanel ->
 //                    messagePanel.background = assistantBackgroundColor
-                    messagePanel.addMouseListenerWithDisposable(this@ConversationPanel, this@ConversationPanel)
                     add(messagePanel)
                 }
             }
