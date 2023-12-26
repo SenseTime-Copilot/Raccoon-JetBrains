@@ -21,8 +21,7 @@ fun String.toChatHistory(): ChatHistory =
     RaccoonPersistentJson.decodeFromString(ChatHistory.serializer(), this)
 
 fun List<ChatHistory>.toJsonString(): String =
-    RaccoonPersistentJson.encodeToString(ListSerializer(ChatHistory.serializer()), filter { it.hasData() })
+    RaccoonPersistentJson.encodeToString(ListSerializer(ChatHistory.serializer()), this)
 
 fun String.toChatHistories(): List<ChatHistory> =
-    RaccoonPersistentJson.decodeFromString(ListSerializer(ChatHistory.serializer()), this).filter { it.hasData() }
-
+    RaccoonPersistentJson.decodeFromString(ListSerializer(ChatHistory.serializer()), this)
