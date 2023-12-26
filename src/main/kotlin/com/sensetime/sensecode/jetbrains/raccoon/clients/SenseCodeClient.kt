@@ -202,7 +202,7 @@ class SenseCodeClient : CodeClient() {
     ).await().let { response ->
         var bodyError: String? = null
         response.takeIf { it.isSuccessful }?.body?.let { responseBody ->
-            RaccoonClientJson.decodeFromString(SenseCodeSensitiveResponse.serializer(), responseBody.toString())
+            RaccoonClientJson.decodeFromString(SenseCodeSensitiveResponse.serializer(), responseBody.string())
                 .let { sensitiveResponse ->
                     if (sensitiveResponse.hasError()) {
                         bodyError = sensitiveResponse.getShowError()
