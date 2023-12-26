@@ -9,9 +9,11 @@ import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.dsl.gridLayout.HorizontalAlign
+import com.intellij.util.Urls.newFromEncoded
 import com.intellij.util.ui.UIUtil
 import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
+import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
 import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
 import kotlinx.coroutines.Job
 import java.awt.Component
@@ -149,7 +151,11 @@ class LoginDialog(
         }
         row {
             val webBaseUrl: String = RaccoonClientManager.currentCodeClient.webBaseUrl!!
-            comment(RaccoonBundle.message("login.dialog.text.signup", "$webBaseUrl/register"))
+            comment(RaccoonBundle.message("login.dialog.text.signup",
+                newFromEncoded("$webBaseUrl/register").addParameters(mapOf("utm_source" to "JetBrains ${RaccoonPlugin.ideName}"))
+                    .toExternalForm()
+            )
+            )
             comment(
                 RaccoonBundle.message(
                     "login.dialog.text.forgotPassword",
