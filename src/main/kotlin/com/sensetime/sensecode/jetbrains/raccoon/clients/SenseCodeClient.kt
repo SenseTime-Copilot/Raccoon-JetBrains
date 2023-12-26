@@ -168,7 +168,7 @@ class SenseCodeClient : CodeClient() {
     override fun onOkResponse(response: Response) {
         response.headers("x-raccoon-sensetive").firstOrNull()?.toLongOrNull()?.let { currentSensitiveTime ->
             val startTime = lastSensitiveTime.get()
-            if (currentSensitiveTime > startTime) {
+            if ((currentSensitiveTime * 1000L) > startTime) {
                 val tmpTime = RaccoonUtils.getCurrentTimestampMs()
                 sensitiveJob = RaccoonClientManager.launchClientJob {
                     kotlin.runCatching {
