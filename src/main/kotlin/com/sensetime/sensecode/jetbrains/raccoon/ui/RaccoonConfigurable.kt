@@ -5,10 +5,7 @@ import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.components.JBRadioButton
-import com.intellij.ui.dsl.builder.Cell
-import com.intellij.ui.dsl.builder.bind
-import com.intellij.ui.dsl.builder.panel
-import com.intellij.ui.dsl.builder.selected
+import com.intellij.ui.dsl.builder.*
 import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.completions.actions.ManualTriggerInlineCompletionAction
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
@@ -50,18 +47,21 @@ class RaccoonConfigurable : Configurable, Disposable {
             }.bind(RaccoonSettingsState.instance::isAutoCompleteMode)
 
             indent {
-                buttonsGroup {
-                    row {
-                        radioButton(
-                            RaccoonBundle.message("settings.group.InlineCompletion.TriggerMode.button.Auto.ShortDelay"),
-                            1000
-                        )
-                        radioButton(
-                            RaccoonBundle.message("settings.group.InlineCompletion.TriggerMode.button.Auto.LongDelay"),
-                            3000
-                        )
+                row(RaccoonBundle.message("settings.group.InlineCompletion.TriggerMode.button.Auto.TriggerDelay")) {
+                    val delaySpinner = spinner(
+                        1000..60000,
+                        1000
+                    ).bindIntValue(RaccoonSettingsState.instance::autoCompleteDelayMs).component
+                    label("(${RaccoonBundle.message("settings.group.InlineCompletion.TriggerMode.button.Auto.ms")})").gap(
+                        RightGap.COLUMNS
+                    )
+                    button(RaccoonBundle.message("settings.group.InlineCompletion.TriggerMode.button.Auto.ShortDelay")) {
+                        delaySpinner.number = 1000
                     }
-                }.bind(RaccoonSettingsState.instance::autoCompleteDelayMs)
+                    button(RaccoonBundle.message("settings.group.InlineCompletion.TriggerMode.button.Auto.LongDelay")) {
+                        delaySpinner.number = 3000
+                    }
+                }
             }.visibleIf(autoCompleteButton!!.selected)
 
             buttonsGroup {
