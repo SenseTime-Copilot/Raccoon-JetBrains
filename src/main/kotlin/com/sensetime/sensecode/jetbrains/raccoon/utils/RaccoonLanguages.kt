@@ -32,7 +32,9 @@ object RaccoonLanguages {
         val fileType: FileType?
             get() = FileTypeRegistry.getInstance().let { fileTypeRegistry ->
                 extensions.firstNotNullOfOrNull { extension ->
-                    fileTypeRegistry.getFileTypeByExtension(extension).takeIfNotUnknownType()
+                    fileTypeRegistry.getFileTypeByExtension(
+                        toExtensionNotIncludingDot(extension)
+                    ).takeIfNotUnknownType()
                 } ?: filenames.firstNotNullOfOrNull { filename ->
                     fileTypeRegistry.getFileTypeByFileName(filename).takeIfNotUnknownType()
                 }
@@ -45,6 +47,7 @@ object RaccoonLanguages {
         fun indexOfExtension(extension: String): Int = extensions.indexOfFirst { 0 == it.compareTo(extension, true) }
     }
 
+    private const val DOT = '.'
     private const val LANGUAGES_JSON_PATH = "/languages/languages.json"
     private val nameToLanguageMap: Map<String, Pair<String, Language>>
     private val filenamesToLanguageMap: Map<String, Pair<String, Language>>
@@ -81,7 +84,7 @@ object RaccoonLanguages {
 
                 language.extensions.forEachIndexed { index, extension ->
                     require(extension.startsWith('.')) { "Extension $extension must start with ." }
-                    val lowercaseExtension = extension.lowercase().trimStart('.')
+                    val lowercaseExtension = extension.lowercase()
 
                     tmpExtensionToLanguageMap.putIf(
                         lowercaseExtension, pair
@@ -99,15 +102,10 @@ object RaccoonLanguages {
         extensionToLanguageMap = tmpExtensionToLanguageMap.toMap()
     }
 
-    private fun FileType.takeIfNotUnknownType(): FileType? = takeIf { it.name != FileTypes.UNKNOWN.name }
-
     @JvmStatic
     fun getLanguageFromFilename(filename: String): Pair<String, Language>? =
-        filenamesToLanguageMap[filename] ?: File(filename).extension.lowercase()
-            .letIfNotBlank { lowercaseExtension -> extensionToLanguageMap[lowercaseExtension] }
-
-    @JvmStatic
-    private fun isValidMarkdownLanguage(name: String): Boolean = null != getLanguageFromMarkdownLanguage(name)
+        filenamesToLanguageMap[filename]
+            ?: toExtensionIncludingDot(File(filename).extension.lowercase()).letIfNotBlank { lowercaseExtension -> extensionToLanguageMap[lowercaseExtension] }
 
     @JvmStatic
     fun getMarkdownLanguageFromPsiFile(psiFile: PsiFile?): String = psiFile?.takeIf { !it.isDirectory }?.run {
@@ -118,6 +116,19 @@ object RaccoonLanguages {
     @JvmStatic
     fun getLanguageFromMarkdownLanguage(markdownLanguage: String): Pair<String, Language>? =
         nameToLanguageMap[markdownLanguage.lowercase()]
+
+    @JvmStatic
+    private fun FileType.takeIfNotUnknownType(): FileType? = takeIf { it.name != FileTypes.UNKNOWN.name }
+
+    @JvmStatic
+    private fun isValidMarkdownLanguage(name: String): Boolean = null != getLanguageFromMarkdownLanguage(name)
+
+    @JvmStatic
+    private fun toExtensionIncludingDot(extension: String): String =
+        toExtensionNotIncludingDot(extension).ifNullOrBlankElse("") { DOT.toString() + it }
+
+    @JvmStatic
+    private fun toExtensionNotIncludingDot(extension: String): String = extension.trim().trimStart('.')
 }
 
 fun RaccoonLanguages.Language?.getFileTypeOrDefault(defaultFileType: FileType = RaccoonLanguages.DEFAULT_FILE_TYPE): FileType =

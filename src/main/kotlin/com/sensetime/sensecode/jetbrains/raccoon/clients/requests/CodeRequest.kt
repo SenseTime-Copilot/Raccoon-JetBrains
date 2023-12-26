@@ -3,6 +3,7 @@ package com.sensetime.sensecode.jetbrains.raccoon.clients.requests
 import kotlinx.serialization.Serializable
 
 data class CodeRequest(
+    val id: String?,
     val model: String,
     val messages: List<Message>,
     val temperature: Float,

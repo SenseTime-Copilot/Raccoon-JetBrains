@@ -2,6 +2,7 @@ package com.sensetime.sensecode.jetbrains.raccoon.utils
 
 import com.intellij.ide.plugins.IdeaPluginDescriptor
 import com.intellij.ide.plugins.PluginManagerCore
+import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.extensions.PluginId
 
 object RaccoonPlugin {
@@ -14,4 +15,8 @@ object RaccoonPlugin {
 
     val version: String
         get() = plugin.version
+
+    val ideName: String by lazy {
+        ApplicationInfo.getInstance().versionName
+    }
 }

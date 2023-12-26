@@ -49,6 +49,7 @@ class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
                     try {
                         client.requestStream(
                             CodeRequest(
+                                conversations.getID(),
                                 modelConfig.name,
                                 conversations.toCodeRequestMessage(modelConfig),
                                 modelConfig.temperature,
@@ -109,6 +110,12 @@ class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
                     toolWindow.contentManager.run {
                         setSelectedContent(getContent(it))
                     }
+                }
+            }
+
+            override fun onNotLogin() {
+                toolWindow.contentManager.run {
+                    setSelectedContent(getContent(chatContentPanel))
                 }
             }
         }

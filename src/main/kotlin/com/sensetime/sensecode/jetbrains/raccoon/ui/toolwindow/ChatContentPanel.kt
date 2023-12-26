@@ -3,32 +3,42 @@ package com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindow
 import com.intellij.ide.DataManager
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiManager
+import com.intellij.ui.AncestorListenerAdapter
+import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextArea
+import com.intellij.util.messages.SimpleMessageBusConnection
 import com.intellij.util.ui.JBUI
+import com.sensetime.sensecode.jetbrains.raccoon.clients.CodeClient
 import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.histories.*
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonIcons
+import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_SENSITIVE_TOPIC
+import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonSensitiveListener
 import com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonNotification
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.*
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonLanguages
+import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils
 import com.sensetime.sensecode.jetbrains.raccoon.utils.ifNullOrBlankElse
 import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
+import kotlinx.coroutines.Job
 import java.awt.BorderLayout
 import java.awt.event.*
 import javax.swing.*
+import javax.swing.event.AncestorEvent
 import javax.swing.event.ListDataEvent
 import javax.swing.event.ListDataListener
 
 class ChatContentPanel(project: Project?, eventListener: EventListener? = null) : JPanel(BorderLayout()),
-    ListDataListener, Disposable {
+    RaccoonSensitiveListener, ListDataListener, Disposable {
     interface EventListener {
         fun onSubmit(
             e: ActionEvent?,
@@ -124,6 +134,21 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
             }
         }
 
+    private val loadingLabel: JLabel = JLabel(AnimatedIcon.Big.INSTANCE).apply { isVisible = false }
+    private val buttonJPanel: JPanel
+
+    private var sensitiveJob: Job? = null
+        set(value) {
+            field?.cancel()
+            field = value
+        }
+
+    private var sensitiveBusConnection: SimpleMessageBusConnection? = null
+        set(value) {
+            field?.disconnect()
+            field = value
+        }
+
     init {
         add(UserAuthorizationPanelBuilder().build(this).apply {
             border = BorderFactory.createEmptyBorder(16, 16, 16, 16)
@@ -159,6 +184,7 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
                         border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
                     })
                     add(JSeparator())
+                    add(loadingLabel)
                     add(conversationListPanel)
                     add(Box.createVerticalGlue())
                 },
@@ -168,7 +194,7 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
                 scrollBar = verticalScrollBar
             }, BorderLayout.CENTER
         )
-        add(JPanel(BorderLayout()).apply {
+        buttonJPanel = JPanel(BorderLayout()).apply {
             add(Box.createHorizontalBox().apply {
                 add(newChatButton)
                 add(Box.createHorizontalGlue())
@@ -181,15 +207,54 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
                 add(stopSubmitButton)
             }, BorderLayout.EAST)
             border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
-        }, BorderLayout.SOUTH)
+        }
+        add(buttonJPanel, BorderLayout.SOUTH)
 
         gotoEnd()
         this.eventListener = eventListener
         updateRegenerateButtonVisible()
         conversationListPanel.conversationListModel.addListDataListenerWithDisposable(this, this)
+
+        addAncestorListener(object : AncestorListenerAdapter() {
+            override fun ancestorAdded(event: AncestorEvent?) {
+                sensitiveJob = getStartTime()?.let { startTime ->
+                    startSensitiveFilter()
+                    RaccoonClientManager.launchClientJob {
+                        var sensitiveConversations: Map<String, RaccoonSensitiveListener.SensitiveConversation> =
+                            emptyMap()
+                        try {
+                            sensitiveConversations = it.getSensitiveConversations(startTime)
+                        } catch (e: Throwable) {
+                            if (e is CodeClient.UnauthorizedException) {
+                                invokeOnUIThreadLater { RaccoonNotification.notifyGotoLogin() }
+                            }
+                        } finally {
+                            stopSensitiveFilter(sensitiveConversations)
+                        }
+                    }
+                }
+            }
+        })
+
+        sensitiveBusConnection = ApplicationManager.getApplication().messageBus.connect().also {
+            it.subscribe(RACCOON_SENSITIVE_TOPIC, this)
+        }
+    }
+
+    private fun getStartTime(): String? {
+        var minTime: Long? = null
+        conversationListPanel.conversationListModel.items.forEach { conversation ->
+            if (!conversation.id.isNullOrBlank() && ((null == minTime) || (conversation.user.timestampMs < minTime!!))) {
+                minTime = conversation.user.timestampMs
+            }
+        }
+        return minTime?.toString()
     }
 
     override fun dispose() {
+        sensitiveJob = null
+        sensitiveBusConnection = null
+        onNewChat(null)
         newChatButton.removeActionListener(this::onNewChat)
         regenerateButton.removeActionListener(this::onRegenerate)
         submitButton.removeActionListener(this::onSubmitButtonClick)
@@ -277,7 +342,12 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
         userPromptTextArea.text?.letIfNotBlank { userInputText ->
             UserMessage.createUserMessage(promptType = ModelConfig.FREE_CHAT, text = userInputText + getSelectedCode())
                 ?.let {
-                    conversationListPanel.conversationListModel.add(ChatConversation(it))
+                    conversationListPanel.conversationListModel.add(
+                        ChatConversation(
+                            it,
+                            id = RaccoonUtils.generateUUID()
+                        )
+                    )
                     userPromptTextArea.text = ""
                     startGenerate(e)
                 }
@@ -285,7 +355,7 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
     }
 
     fun newTask(userMessage: UserMessage) {
-        conversationListPanel.conversationListModel.add(ChatConversation(userMessage))
+        conversationListPanel.conversationListModel.add(ChatConversation(userMessage, id = RaccoonUtils.generateUUID()))
         startGenerate()
     }
 
@@ -360,5 +430,42 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
 
     override fun contentsChanged(e: ListDataEvent?) {
         updateLastHistoryState()
+    }
+
+    fun startSensitiveFilter() {
+        loadingLabel.isVisible = true
+        buttonJPanel.isVisible = false
+        conversationListPanel.isVisible = false
+    }
+
+    fun stopSensitiveFilter(sensitiveConversations: Map<String, RaccoonSensitiveListener.SensitiveConversation>) {
+        invokeOnUIThreadLater {
+            runSensitiveFilter(sensitiveConversations)
+            loadingLabel.isVisible = false
+            buttonJPanel.isVisible = true
+            conversationListPanel.isVisible = true
+            gotoEnd()
+        }
+    }
+
+    private fun runSensitiveFilter(sensitiveConversations: Map<String, RaccoonSensitiveListener.SensitiveConversation>) {
+        if (sensitiveConversations.isEmpty()) {
+            return
+        }
+        val indexForRemove: MutableList<Int> = mutableListOf()
+        conversationListPanel.conversationListModel.items.forEachIndexed { index, conversation ->
+            if (null != conversation.id?.takeIf { it.isNotBlank() && sensitiveConversations.containsKey(it) }) {
+                indexForRemove.add(index)
+            }
+        }
+        indexForRemove.reversed().forEach {
+            conversationListPanel.conversationListModel.remove(it)
+        }
+    }
+
+    override fun onNewSensitiveConversations(sensitiveConversations: Map<String, RaccoonSensitiveListener.SensitiveConversation>) {
+        invokeOnUIThreadLater {
+            runSensitiveFilter(sensitiveConversations)
+        }
     }
 }

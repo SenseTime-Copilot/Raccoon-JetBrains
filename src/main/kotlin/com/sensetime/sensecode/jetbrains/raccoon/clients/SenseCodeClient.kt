@@ -1,6 +1,7 @@
 package com.sensetime.sensecode.jetbrains.raccoon.clients
 
 import com.intellij.credentialStore.Credentials
+import com.intellij.openapi.application.ApplicationManager
 import com.sensetime.sensecode.jetbrains.raccoon.clients.models.PenroseModels
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.CodeRequest
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.SenseNovaLLMChatCompletionsRequest
@@ -11,12 +12,20 @@ import com.sensetime.sensecode.jetbrains.raccoon.persistent.letIfFilled
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ClientConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.toClientApiConfigMap
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.toModelConfigMap
+import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_SENSITIVE_TOPIC
+import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonSensitiveListener
+import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils
+import com.sensetime.sensecode.jetbrains.raccoon.utils.ifNullOrBlank
 import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
+import kotlinx.coroutines.Job
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
 import java.util.*
+import java.util.concurrent.atomic.AtomicLong
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
 
@@ -150,13 +159,78 @@ class SenseCodeClient : CodeClient() {
         }
     }
 
+    private var sensitiveJob: Job? = null
+        set(value) {
+            field?.cancel()
+            field = value
+        }
+    private var lastSensitiveTime = AtomicLong(RaccoonUtils.getCurrentTimestampMs())
+    override fun onOkResponse(response: Response) {
+        response.headers("x-raccoon-sensetive").firstOrNull()?.toLongOrNull()?.let { currentSensitiveTime ->
+            val startTime = lastSensitiveTime.get()
+            if ((currentSensitiveTime * 1000L) > startTime) {
+                val tmpTime = RaccoonUtils.getCurrentTimestampMs()
+                sensitiveJob = RaccoonClientManager.launchClientJob {
+                    kotlin.runCatching {
+                        val sensitives = getSensitiveConversations(startTime.toString())
+                        lastSensitiveTime.set(tmpTime)
+                        if (sensitives.isNotEmpty()) {
+                            ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_SENSITIVE_TOPIC)
+                                .onNewSensitiveConversations(sensitives)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun buildSensitiveGetUrl(
+        startTime: String,
+        endTime: String?
+    ): String = getApiEndpoint("/api/plugin/sensetive/v1/sensetives").toHttpUrl().newBuilder().run {
+        addQueryParameter("start_time", startTime)
+        endTime?.letIfNotBlank { addQueryParameter("end_time", it) }
+        RaccoonUtils.machineID?.letIfNotBlank { addQueryParameter("machine_id", it) }
+        build().toString()
+    }
+
+    override suspend fun getSensitiveConversations(
+        startTime: String,
+        endTime: String?
+    ): Map<String, RaccoonSensitiveListener.SensitiveConversation> = okHttpClient.newCall(
+        createRequestBuilderWithToken(buildSensitiveGetUrl(startTime, endTime)).get().build()
+    ).await().let { response ->
+        var bodyError: String? = null
+        response.takeIf { it.isSuccessful }?.body?.let { responseBody ->
+            RaccoonClientJson.decodeFromString(SenseCodeSensitiveResponse.serializer(), responseBody.string())
+                .let { sensitiveResponse ->
+                    if (sensitiveResponse.hasError()) {
+                        bodyError = sensitiveResponse.getShowError()
+                        null
+                    } else {
+                        sensitiveResponse.data?.list?.toSensitiveConversationMap()
+                    }
+                }
+        } ?: throw toErrorException(response) {
+            bodyError ?: it?.body?.string()?.let { bodyString ->
+                RaccoonClientJson.decodeFromString(SenseCodeStatus.serializer(), bodyString).getShowError()
+            }
+        }
+    }
+
     private abstract class SenseNovaClientApi : ClientApi {
         abstract fun getRequestBodyJson(request: CodeRequest, stream: Boolean): String
         override fun addRequestBody(
             requestBuilder: Request.Builder,
             request: CodeRequest,
             stream: Boolean
-        ): Request.Builder = requestBuilder.post(getRequestBodyJson(request, stream).toRequestBody())
+        ): Request.Builder = requestBuilder.run {
+            request.id?.letIfNotBlank { id ->
+                addHeader("x-raccoon-turn-id", id)
+                addHeader("x-raccoon-machine-id", RaccoonUtils.machineID.ifNullOrBlank(RaccoonUtils.DEFAULT_MACHINE_ID))
+            }
+            post(getRequestBodyJson(request, stream).toRequestBody())
+        }
 
         override fun toCodeResponse(body: String, stream: Boolean): CodeResponse =
             RaccoonClientJson.decodeFromString(SenseNovaCodeResponse.serializer(), body).toCodeResponse()
@@ -237,7 +311,8 @@ class SenseCodeClient : CodeClient() {
         const val CLIENT_NAME = "sensecode"
 
         const val BASE_API = "https://code-api.sensetime.com"
-//        const val BASE_API = "http://code-test-api.sensetime.com"
+        const val BASE_API_DEV = "http://code-dev-api.sensetime.com"
+        const val BASE_API_TEST = "http://code-test-api.sensetime.com"
 
         private const val API_LLM_COMPLETIONS = "/api/plugin/nova/v1/proxy/v1/llm/completions"
         private const val API_LLM_CHAT_COMPLETIONS = "/api/plugin/nova/v1/proxy/v1/llm/chat-completions"

@@ -16,7 +16,7 @@ data class ModelConfig(
     private val roleMap: Map<Role, String>? = null
 ) {
     enum class CompletionPreference(val key: String) {
-        SPEED_PRIORITY("settings.CompletionPreference.SpeedPriority"),
+        SPEED_PRIORITY("settings.CompletionPreference.SingleLine"),
         BALANCED("settings.CompletionPreference.Balanced"),
         BEST_EFFORT("settings.CompletionPreference.BestEffort")
     }

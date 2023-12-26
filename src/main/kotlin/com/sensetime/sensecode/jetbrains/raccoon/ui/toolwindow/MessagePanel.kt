@@ -1,12 +1,15 @@
 package com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindow
 
 import com.intellij.ide.BrowserUtil
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
+import com.sensetime.sensecode.jetbrains.raccoon.ui.common.addMouseListenerWithDisposable
 import com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindow.codes.CodeEditorPanel
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonLanguages
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonMarkdown
 import okhttp3.internal.indexOfFirstNonAsciiWhitespace
 import java.awt.BorderLayout
+import java.awt.event.MouseListener
 import javax.swing.BorderFactory
 import javax.swing.Box
 import javax.swing.JPanel
@@ -17,7 +20,8 @@ import javax.swing.text.SimpleAttributeSet
 class MessagePanel(
     private val project: Project?,
     markdownText: String? = null,
-    styleAttrs: SimpleAttributeSet? = null
+    styleAttrs: SimpleAttributeSet? = null,
+    private val parentDisposable: Disposable? = null, private val listener: MouseListener? = null
 ) : JPanel(BorderLayout()) {
     private val messageBox: Box = Box.createVerticalBox()
     private var lastRawText: String = ""
@@ -78,7 +82,16 @@ class MessagePanel(
             language = codeBlockText.substring(0, it).trim()
             code = codeBlockText.substring(it + 1)
         }
-        messageBox.add(CodeEditorPanel(project, code, RaccoonLanguages.getLanguageFromMarkdownLanguage(language)))
+        messageBox.add(
+            CodeEditorPanel(
+                project,
+                code,
+                RaccoonLanguages.getLanguageFromMarkdownLanguage(language)
+            ).apply {
+                parentDisposable?.let {
+                    addMouseListenerWithDisposable(it, listener!!)
+                }
+            })
         lastTextPane = null
         lastRawText = ""
     }
@@ -92,6 +105,9 @@ class MessagePanel(
                     if (e.eventType == HyperlinkEvent.EventType.ACTIVATED) {
                         BrowserUtil.browse(e.url.toURI())
                     }
+                }
+                parentDisposable?.let {
+                    addMouseListenerWithDisposable(it, listener!!)
                 }
             }
             messageBox.add(lastTextPane)

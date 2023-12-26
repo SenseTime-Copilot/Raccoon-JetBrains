@@ -9,6 +9,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.Usage
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.topics.SENSE_CODE_CLIENT_REQUEST_STATE_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonClientRequestStateListener
+import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonSensitiveListener
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.RaccoonUIUtils
 import com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonNotification
 import com.sensetime.sensecode.jetbrains.raccoon.utils.ifNullOrBlank
@@ -90,6 +91,11 @@ abstract class CodeClient {
 
     open fun getAkSkSettings(): AkSkSettings? = null
 
+
+    // sensitive
+    open suspend fun getSensitiveConversations(
+        startTime: String, endTime: String? = null
+    ): Map<String, RaccoonSensitiveListener.SensitiveConversation> = emptyMap()
 
     // request via okhttp3
 
@@ -189,9 +195,13 @@ abstract class CodeClient {
         }
     }
 
+    open fun onOkResponse(response: Response) {
+    }
+
     suspend fun request(request: CodeRequest): CodeResponse = runRequestWrapper(request, false) { id, okHttpRequest ->
         okHttpClient.newCall(okHttpRequest).await().let { response ->
             response.takeIf { it.isSuccessful }?.body?.let {
+                onOkResponse(response)
                 toCodeResponse(request.apiPath, it.string(), false).also { codeResponse ->
                     requestStateTopicPublisher.onDone(id, codeResponse.usage)
                 }
@@ -212,6 +222,7 @@ abstract class CodeClient {
                         super.onOpen(eventSource, response)
 
                         openResponse = response
+                        onOkResponse(response)
                         trySendBlocking(CodeStreamResponse.Connected)
                     }
 

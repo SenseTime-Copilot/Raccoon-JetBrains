@@ -1,6 +1,7 @@
 package com.sensetime.sensecode.jetbrains.raccoon.clients.responses
 
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
+import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonSensitiveListener
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -77,4 +78,25 @@ data class SenseCodeAuth(
 @Serializable
 data class SenseCodeAuthResponse(
     val data: SenseCodeAuth? = null
+) : SenseCodeStatus()
+
+@Serializable
+data class SenseCodeSensitiveConversation(
+    @SerialName("turn_id")
+    val id: String = "",
+    @SerialName("sensetive_type")
+    override val type: String? = null
+) : RaccoonSensitiveListener.SensitiveConversation
+
+@Serializable
+data class SenseCodeSensitives(
+    val list: List<SenseCodeSensitiveConversation> = emptyList()
+)
+
+fun List<SenseCodeSensitiveConversation>.toSensitiveConversationMap(): Map<String, RaccoonSensitiveListener.SensitiveConversation> =
+    filter { it.id.isNotBlank() }.associateBy(SenseCodeSensitiveConversation::id)
+
+@Serializable
+data class SenseCodeSensitiveResponse(
+    val data: SenseCodeSensitives? = null
 ) : SenseCodeStatus()

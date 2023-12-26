@@ -8,10 +8,13 @@ import kotlinx.serialization.Serializable
 data class ChatConversation(
     val user: UserMessage,
     val assistant: AssistantMessage? = AssistantMessage.createPromptAssistantMessage(),
+    val id: String? = null,
 ) {
-    fun toPromptConversation(): ChatConversation = ChatConversation(user)
-    fun toHistoryConversation(): ChatConversation = ChatConversation(user, null)
+    fun toPromptConversation(): ChatConversation = ChatConversation(user, id = id)
+    fun toHistoryConversation(): ChatConversation = ChatConversation(user, null, id)
 }
+
+fun List<ChatConversation>.getID(): String? = lastOrNull()?.id
 
 fun List<ChatConversation>.toCodeRequestMessage(modelConfig: ModelConfig): List<CodeRequest.Message> {
     val userRole = modelConfig.getRoleString(ModelConfig.Role.USER)
