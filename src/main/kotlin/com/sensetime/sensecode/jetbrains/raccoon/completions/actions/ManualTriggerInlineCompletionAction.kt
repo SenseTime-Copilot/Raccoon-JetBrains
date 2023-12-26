@@ -78,6 +78,7 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
                     val isSingleLine: Boolean =
                         (settings.inlineCompletionPreference == ModelConfig.CompletionPreference.SPEED_PRIORITY)
                     val codeRequest = CodeRequest(
+                        null,
                         modelConfig.name,
                         getUserContent(
                             psiElement,
