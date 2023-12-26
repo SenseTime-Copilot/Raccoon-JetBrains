@@ -444,6 +444,7 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
             loadingLabel.isVisible = false
             buttonJPanel.isVisible = true
             conversationListPanel.isVisible = true
+            gotoEnd()
         }
     }
 
