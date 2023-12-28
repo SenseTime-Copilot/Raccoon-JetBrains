@@ -8,6 +8,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.util.messages.SimpleMessageBusConnection
+import com.sensetime.sensecode.jetbrains.raccoon.clients.CodeClient
 import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.CodeRequest
 import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.CodeStreamResponse
@@ -77,7 +78,9 @@ class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
                             }
                         }
                     } catch (t: Throwable) {
-                        if (t !is CancellationException) {
+                        if (t is CodeClient.SensitiveException) {
+                            chatContentPanel.setLastConversationToSensitive(t.localizedMessage)
+                        } else if (t !is CancellationException) {
                             chatContentPanel.appendAssistantTextAndSetGenerateState(
                                 t.localizedMessage,
                                 AssistantMessage.GenerateState.ERROR

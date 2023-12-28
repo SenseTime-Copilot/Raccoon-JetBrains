@@ -109,6 +109,8 @@ abstract class CodeClient {
     class UnauthorizedException(message: String? = null) :
         CodeClientException("Unauthorized${message.ifNullOrBlankElse("!") { ": $it" }}")
 
+    class SensitiveException(message: String = "") : CodeClientException(message)
+
     private val requestStateTopicPublisher: RaccoonClientRequestStateListener
         get() = ApplicationManager.getApplication().messageBus.syncPublisher(SENSE_CODE_CLIENT_REQUEST_STATE_TOPIC)
 
@@ -170,17 +172,25 @@ abstract class CodeClient {
         t: Throwable? = null,
         bodyErrorGetter: (Response?) -> String?
     ): Throwable {
-        val httpCode = response?.code?.let { "Http code: $it" }
-        val clientResponse = response?.takeUnless { it.code in 500..599 }
-        return listOfNotNull(
-            bodyErrorGetter(clientResponse)?.letIfNotBlank { "Details: $it" },
-            t?.let { "Exception: ${it.localizedMessage}" }).ifEmpty {
-            listOfNotNull(
-                httpCode,
-                "Message: ${clientResponse?.message.ifNullOrBlank(Error.UNKNOWN_ERROR)}"
-            )
-        }.joinToString("\n")
-            .let { if (401 == response?.code) UnauthorizedException(it) else CodeClientException(it) }
+        try {
+            val httpCode = response?.code?.let { "Http code: $it" }
+            val clientResponse = response?.takeUnless { it.code in 500..599 }
+            return listOfNotNull(
+                bodyErrorGetter(clientResponse)?.letIfNotBlank { "Details: $it" },
+                t?.let { "Exception: ${it.localizedMessage}" }).ifEmpty {
+                listOfNotNull(
+                    httpCode,
+                    "Message: ${clientResponse?.message.ifNullOrBlank(Error.UNKNOWN_ERROR)}"
+                )
+            }.joinToString("\n")
+                .let { if (401 == response?.code) UnauthorizedException(it) else CodeClientException(it) }
+        } catch (e: Throwable) {
+            return if (e is CodeClientException) {
+                e
+            } else {
+                CodeClientException(e.localizedMessage)
+            }
+        }
     }
 
     protected fun toErrorException(
@@ -190,8 +200,15 @@ abstract class CodeClient {
         t: Throwable? = null
     ): Throwable = toErrorException(response, t) { clientResponse ->
         clientResponse?.body?.string()?.let {
-            kotlin.runCatching { toCodeResponse(apiPath, it, stream).error?.getShowError() }
-                .getOrElse { "Exception: ${it.localizedMessage}" }
+            try {
+                toCodeResponse(apiPath, it, stream).error?.getShowError()
+            } catch (e: Throwable) {
+                if (e is SensitiveException) {
+                    throw e
+                } else {
+                    "Exception: ${e.localizedMessage}"
+                }
+            }
         }
     }
 

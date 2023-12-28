@@ -386,6 +386,16 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
         }
     }
 
+    fun setLastConversationToSensitive(errorMessage: String) {
+        conversationListPanel.conversationListModel.items.lastIndex.takeIf { it >= 0 }?.let { index ->
+            conversationListPanel.conversationListModel.setElementAt(
+                conversationListPanel.conversationListModel.items[index].toSensitiveConversation(
+                    errorMessage
+                ), index
+            )
+        }
+    }
+
     private fun endGenerate() {
         if (stopRegenerateButton.isVisible) {
             updateLastHistoryState()
