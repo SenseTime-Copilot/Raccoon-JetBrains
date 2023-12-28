@@ -4,7 +4,7 @@ Raccoon (**R**accoon is **A**nother **C**ode **CO**-pil**O**t **N**avigator) 是
 
 ## 离线安装插件
 
-1. 在[Raccoon](https://code.sensetime.com)主页下载 JetBrains IDE 插件的离线安装包（通常为`zip`格式）到本地任意目录
+1. 在[Raccoon](https://code.sensetime.com?utm_source=JetBrains%20IntelliJ%20IDEA)主页下载 JetBrains IDE 插件的离线安装包（通常为`zip`格式）到本地任意目录
 2. 按照如下演示动画指引，在 `Settings` 页面完成安装操作后即可登录使用本插件
 
 ![Raccoon-Install](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.8/media/Raccoon-Install.gif)
