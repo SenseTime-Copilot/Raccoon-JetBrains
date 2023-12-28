@@ -3,13 +3,13 @@
 <!-- Plugin description -->
 ## Raccoon (**R**accoon is **A**nother **C**ode **CO**-pil**O**t **N**avigator)
 
-[Raccoon](https://code.sensetime.com) is your AI coding assistant. It provides real-time code completions, code assistant, as well as actions for `Generation`, `Add Test`, `Code Conversion`, `Code Correction` and `Refactoring`. It helps increase your development velocity and enhances your coding experience.
+[Raccoon](https://code.sensetime.com?utm_source=JetBrains%20IntelliJ%20IDEA) is your AI coding assistant. It provides real-time code completions, code assistant, as well as actions for `Generation`, `Add Test`, `Code Conversion`, `Code Correction` and `Refactoring`. It helps increase your development velocity and enhances your coding experience.
 
-[Raccoon](https://code.sensetime.com)，是基于 AI 的代码助手。提供编辑器内代码补全、侧边栏代码助手以及`代码生成`、`测试代码生成`、`代码翻译`、`代码修正`、`代码重构`等命令。可以提升用户编程效率优化开发体验。
+[Raccoon](https://code.sensetime.com?utm_source=JetBrains%20IntelliJ%20IDEA)，是基于 AI 的代码助手。提供编辑器内代码补全、侧边栏代码助手以及`代码生成`、`测试代码生成`、`代码翻译`、`代码修正`、`代码重构`等命令。可以提升用户编程效率优化开发体验。
 
 ## 离线安装插件
 
-1. 在[Raccoon](https://code.sensetime.com)主页下载 JetBrains IDE 插件的离线安装包（通常为`zip`格式）到本地任意目录
+1. 在[Raccoon](https://code.sensetime.com?utm_source=JetBrains%20IntelliJ%20IDEA)主页下载 JetBrains IDE 插件的离线安装包（通常为`zip`格式）到本地任意目录
 2. 按照如下演示动画指引，在 `Settings` 页面完成安装操作后即可登录使用本插件
 
 ![Raccoon-Install](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.8/media/Raccoon-Install.gif)
