@@ -2,6 +2,7 @@ package com.sensetime.sensecode.jetbrains.raccoon.persistent.histories
 
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.CodeRequest
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
+import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -12,6 +13,14 @@ data class ChatConversation(
 ) {
     fun toPromptConversation(): ChatConversation = ChatConversation(user, id = id)
     fun toHistoryConversation(): ChatConversation = ChatConversation(user, null, id)
+    fun toSensitiveConversation(errorMessage: String): ChatConversation = ChatConversation(
+        UserMessage.createUserMessage(
+            user.name,
+            user.promptType,
+            RaccoonBundle.message("toolwindow.content.chat.conversation.sensitive.user.message"),
+            timestampMs = user.timestampMs
+        )!!, AssistantMessage(errorMessage, AssistantMessage.GenerateState.ERROR), id
+    )
 }
 
 fun List<ChatConversation>.getID(): String? = lastOrNull()?.id

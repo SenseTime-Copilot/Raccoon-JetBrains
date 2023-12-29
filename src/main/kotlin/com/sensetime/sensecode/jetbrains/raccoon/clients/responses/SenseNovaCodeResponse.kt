@@ -1,5 +1,6 @@
 package com.sensetime.sensecode.jetbrains.raccoon.clients.responses
 
+import com.sensetime.sensecode.jetbrains.raccoon.clients.CodeClient
 import com.sensetime.sensecode.jetbrains.raccoon.utils.takeIfNotEmpty
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -23,7 +24,7 @@ data class SenseNovaStatus(
     val message: String? = null
 ) : Error {
     override val error: String?
-        get() = listOfNotNull(
+        get() = code?.takeIf { it == 18 }?.let { throw CodeClient.SensitiveException(message ?: "") } ?: listOfNotNull(
             code?.takeIf { 0 != it }?.let { "code: $it" },
             message?.takeIf { it.isNotBlank() && ("ok" != it) }).takeIfNotEmpty()?.joinToString()
 }

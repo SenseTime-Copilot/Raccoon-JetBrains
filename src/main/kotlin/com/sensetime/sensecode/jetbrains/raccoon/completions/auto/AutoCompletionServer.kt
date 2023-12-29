@@ -68,7 +68,7 @@ class AutoCompletionServer(
                 var lastUpdateTime: Long = RaccoonUtils.getCurrentTimestampMs()
                 while (true) {
                     kotlin.runCatching {
-                        delay(5 * 60 * 1000)
+                        delay(2 * 3600 * 1000)
                         val tmpTime = RaccoonUtils.getCurrentTimestampMs()
                         val sensitives =
                             RaccoonClientManager.currentCodeClient.getSensitiveConversations(lastUpdateTime.toString())

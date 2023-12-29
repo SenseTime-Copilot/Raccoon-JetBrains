@@ -152,6 +152,8 @@ class HistoryContentPanel(
 
     private fun onClear(e: ActionEvent?) {
         conversationListPanel.conversationListModel.removeAll()
+        conversationListPanel.repaint()
+        conversationListPanel.revalidate()
     }
 
     override fun intervalAdded(e: ListDataEvent?) {}
