@@ -254,7 +254,6 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
     override fun dispose() {
         sensitiveJob = null
         sensitiveBusConnection = null
-        onNewChat(null)
         newChatButton.removeActionListener(this::onNewChat)
         regenerateButton.removeActionListener(this::onRegenerate)
         submitButton.removeActionListener(this::onSubmitButtonClick)
@@ -291,7 +290,7 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
         gotoEnd()
     }
 
-    private fun onNewChat(e: ActionEvent?) {
+    fun onNewChat(e: ActionEvent?) {
         loadFromHistory()
     }
 

@@ -160,6 +160,8 @@ class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
                 }
             })
         }
+
+        chatContentPanel.onNewChat(null)
     }
 
     override fun dispose() {
