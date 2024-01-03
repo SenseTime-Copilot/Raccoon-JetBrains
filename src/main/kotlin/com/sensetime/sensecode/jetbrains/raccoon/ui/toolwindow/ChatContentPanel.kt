@@ -25,10 +25,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_SENSITIVE_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonSensitiveListener
 import com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonNotification
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.*
-import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonLanguages
-import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils
-import com.sensetime.sensecode.jetbrains.raccoon.utils.ifNullOrBlankElse
-import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
+import com.sensetime.sensecode.jetbrains.raccoon.utils.*
 import kotlinx.coroutines.Job
 import java.awt.BorderLayout
 import java.awt.event.*
@@ -360,8 +357,13 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
 
     fun setGenerateState(generateState: AssistantMessage.GenerateState) {
         conversationListPanel.lastConversation?.assistant?.run {
-            this.generateState = generateState
-            ConversationPanel.updateAssistantAttributeSet(generateState)?.let {
+            val (tmpText, newGenerateState) = updateGenerateState(generateState)
+            tmpText.letIfNotBlank {
+                conversationListPanel.lastConversationPanel?.assistantMessagePane?.appendMarkdownText(
+                    it
+                )
+            }
+            ConversationPanel.updateAssistantAttributeSet(newGenerateState)?.let {
                 conversationListPanel.lastConversationPanel?.assistantMessagePane?.updateStyle(it)
             }
         }
@@ -376,12 +378,14 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
 
     fun appendAssistantTextAndSetGenerateState(text: String, generateState: AssistantMessage.GenerateState) {
         conversationListPanel.lastConversation?.assistant?.run {
-            this.generateState = generateState
             content += text
-            ConversationPanel.updateAssistantAttributeSet(generateState)?.let {
+            val (tmpText, newGenerateState) = updateGenerateState(generateState)
+            conversationListPanel.lastConversationPanel?.assistantMessagePane?.appendMarkdownText(
+                tmpText.takeIfNotBlank() ?: text
+            )
+            ConversationPanel.updateAssistantAttributeSet(newGenerateState)?.let {
                 conversationListPanel.lastConversationPanel?.assistantMessagePane?.updateStyle(it)
             }
-            conversationListPanel.lastConversationPanel?.assistantMessagePane?.appendMarkdownText(text)
         }
     }
 

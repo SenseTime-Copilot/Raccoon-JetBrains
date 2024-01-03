@@ -3,10 +3,10 @@ package com.sensetime.sensecode.jetbrains.raccoon.persistent.histories
 import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
+import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonNotification
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils
-import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -74,7 +74,22 @@ data class AssistantMessage(
         PROMPT("prompt"),
         DONE("done"),
         STOPPED("stopped"),
+        WARNING("warning"),
         ERROR("error")
+    }
+
+    private fun isContentBlank(): Boolean =
+        null == content.firstOrNull { !(it.isWhitespace() || (CharCategory.FORMAT == it.category)) }
+
+    fun updateGenerateState(state: GenerateState): Pair<String, GenerateState> {
+        return if ((GenerateState.DONE == state) && (isContentBlank())) {
+            generateState = GenerateState.WARNING
+            content = RaccoonBundle.message("toolwindow.content.conversation.assistant.empty")
+            Pair(content, generateState)
+        } else {
+            generateState = state
+            Pair("", generateState)
+        }
     }
 
     override val name: String
