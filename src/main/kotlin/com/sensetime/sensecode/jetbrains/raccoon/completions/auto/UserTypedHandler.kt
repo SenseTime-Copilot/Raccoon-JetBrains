@@ -8,7 +8,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonEditorChangedList
 
 class UserTypedHandler : TypedHandlerDelegate() {
     override fun charTyped(c: Char, project: Project, editor: Editor, file: PsiFile): Result {
-        RaccoonEditorChangedListener.onEditorChanged(editor)
+        RaccoonEditorChangedListener.onEditorChanged(RaccoonEditorChangedListener.Type.CHAR_TYPED, editor)
         return super.charTyped(c, project, editor, file)
     }
 }
