@@ -15,6 +15,7 @@ import com.intellij.openapi.editor.event.EditorFactoryListener
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.ex.FocusChangeListener
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.StartupActivity
@@ -82,6 +83,14 @@ class AutoCompletionServer(
                     }
                 }
             }
+
+            project?.let {
+                FileEditorManager.getInstance(it).allEditors.forEach { fileEditor ->
+                    (fileEditor as? TextEditor)?.editor?.let { editor ->
+                        addEditorListener(editor)
+                    }
+                }
+            }
         }
     }
 
@@ -105,15 +114,22 @@ class AutoCompletionServer(
     }
 
     override fun onEditorChanged(type: RaccoonEditorChangedListener.Type, editor: Editor) {
-        lastEditorChangedType.set(type.ordinal)
+        if ((RaccoonEditorChangedListener.Type.DOCUMENT_CHANGED == type) && (lastEditorChangedType.get() == RaccoonEditorChangedListener.Type.ENTER_TYPED.ordinal)) {
+            lastEditorChangedType.set(RaccoonEditorChangedListener.Type.CHAR_TYPED.ordinal)
+        } else {
+            lastEditorChangedType.set(type.ordinal)
+        }
         lastEditorChangedTimeMs.set(getCurrentTimeMs())
     }
 
     override fun editorCreated(event: EditorFactoryEvent) {
         super.editorCreated(event)
+        addEditorListener(event.editor)
+    }
 
-        event.editor.caretModel.addCaretListener(this, this)
-        (event.editor as? EditorEx)?.addFocusListener(this, this)
+    private fun addEditorListener(editor: Editor) {
+        editor.caretModel.addCaretListener(this, this)
+        (editor as? EditorEx)?.addFocusListener(this, this)
     }
 
     private fun triggerCompletion() {
@@ -139,7 +155,11 @@ class AutoCompletionServer(
 
         var waitForTimeMs: Long = autoCompleteDelayMs - max(0, (getCurrentTimeMs() - lastEditorChangedTimeMs.get()))
         if (waitForTimeMs <= 0) {
-            if (RaccoonEditorChangedListener.Type.CHAR_TYPED.ordinal == lastEditorChangedType.get()) {
+            if (lastEditorChangedType.get() in setOf(
+                    RaccoonEditorChangedListener.Type.CHAR_TYPED.ordinal,
+                    RaccoonEditorChangedListener.Type.ENTER_TYPED.ordinal
+                )
+            ) {
                 triggerCompletion()
             }
             waitForTimeMs = autoCompleteDelayMs

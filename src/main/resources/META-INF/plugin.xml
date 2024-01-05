@@ -44,6 +44,8 @@
         <editorFactoryMouseListener
                 implementation="com.sensetime.sensecode.jetbrains.raccoon.completions.auto.EditorChangeDetector"/>
         <typedHandler implementation="com.sensetime.sensecode.jetbrains.raccoon.completions.auto.UserTypedHandler"/>
+        <enterHandlerDelegate
+                implementation="com.sensetime.sensecode.jetbrains.raccoon.completions.auto.UserEnterHandler"/>
 
         <actionPromoter
                 implementation="com.sensetime.sensecode.jetbrains.raccoon.completions.actions.InlineActionsPromoter"/>
