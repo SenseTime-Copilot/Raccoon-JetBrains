@@ -7,6 +7,7 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.ui.JBColor
 import com.intellij.util.ui.JBFont
 import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.UIUtil
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.histories.AssistantMessage
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.histories.ChatConversation
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonIcons
@@ -150,8 +151,8 @@ class ConversationPanel(
             generateState: AssistantMessage.GenerateState,
             attrs: SimpleAttributeSet = SimpleAttributeSet()
         ): SimpleAttributeSet? = when (generateState) {
-            AssistantMessage.GenerateState.STOPPED -> JBColor.GRAY
-            AssistantMessage.GenerateState.ERROR -> JBColor.RED
+            AssistantMessage.GenerateState.STOPPED, AssistantMessage.GenerateState.WARNING -> JBColor.GRAY
+            AssistantMessage.GenerateState.ERROR -> UIUtil.getErrorForeground()
             else -> JBColor(Color(103, 81, 111), Color(187, 134, 206))
         }?.let { foreground ->
             StyleConstants.setForeground(attrs, foreground)

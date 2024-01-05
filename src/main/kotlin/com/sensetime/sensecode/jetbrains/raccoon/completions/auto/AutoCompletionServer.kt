@@ -28,6 +28,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonEditorChangedList
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonActionUtils
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils
 import kotlinx.coroutines.*
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.max
 
@@ -35,7 +36,8 @@ import kotlin.math.max
 class AutoCompletionServer(
     private var project: Project?
 ) : RaccoonEditorChangedListener, EditorFactoryListener, CaretListener, FocusChangeListener, Disposable {
-    private var lastEditorChangedTimeMs: AtomicLong = AtomicLong(getCurrentTimeMs())
+    private val lastEditorChangedType: AtomicInteger = AtomicInteger(-1)
+    private val lastEditorChangedTimeMs: AtomicLong = AtomicLong(getCurrentTimeMs())
     private val autoCompletionCoroutineScope: CoroutineScope =
         CoroutineScope(SupervisorJob() + Dispatchers.IO + CoroutineName("SenseAutoCompletionServer"))
     private var editorChangedMessageBusConnection: SimpleMessageBusConnection? = null
@@ -92,14 +94,18 @@ class AutoCompletionServer(
     }
 
     override fun caretPositionChanged(event: CaretEvent) {
-        RaccoonEditorChangedListener.onEditorChanged(event.editor)
+        RaccoonEditorChangedListener.onEditorChanged(
+            RaccoonEditorChangedListener.Type.CARET_POSITION_CHANGED,
+            event.editor
+        )
     }
 
     override fun focusLost(editor: Editor) {
-        RaccoonEditorChangedListener.onEditorChanged(editor)
+        RaccoonEditorChangedListener.onEditorChanged(RaccoonEditorChangedListener.Type.FOCUS_LOST, editor)
     }
 
-    override fun onEditorChanged(editor: Editor) {
+    override fun onEditorChanged(type: RaccoonEditorChangedListener.Type, editor: Editor) {
+        lastEditorChangedType.set(type.ordinal)
         lastEditorChangedTimeMs.set(getCurrentTimeMs())
     }
 
@@ -133,7 +139,9 @@ class AutoCompletionServer(
 
         var waitForTimeMs: Long = autoCompleteDelayMs - max(0, (getCurrentTimeMs() - lastEditorChangedTimeMs.get()))
         if (waitForTimeMs <= 0) {
-            triggerCompletion()
+            if (RaccoonEditorChangedListener.Type.CHAR_TYPED.ordinal == lastEditorChangedType.get()) {
+                triggerCompletion()
+            }
             waitForTimeMs = autoCompleteDelayMs
         }
         return waitForTimeMs

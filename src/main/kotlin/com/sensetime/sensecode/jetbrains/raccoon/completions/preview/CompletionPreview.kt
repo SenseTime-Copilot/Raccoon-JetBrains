@@ -79,7 +79,7 @@ class CompletionPreview private constructor(
         editor = null
     }
 
-    override fun onEditorChanged(editor: Editor) {
+    override fun onEditorChanged(type: RaccoonEditorChangedListener.Type, editor: Editor) {
         if (editor === this.editor) {
             cancel()
         }

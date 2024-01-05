@@ -2,7 +2,11 @@ package com.sensetime.sensecode.jetbrains.raccoon.completions.preview.render
 
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.colors.EditorFontType
+import com.intellij.ui.ColorUtil
 import com.intellij.ui.JBColor
+import com.intellij.util.ui.UIUtil
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
+import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
 import java.awt.Color
 import java.awt.Font
 import java.awt.GraphicsEnvironment
@@ -19,7 +23,15 @@ object GraphicsUtils {
     private val completionFont: Font? =
         GraphicsEnvironment.getLocalGraphicsEnvironment().allFonts.firstOrNull { -1 == it.canDisplayUpTo("中文") }
 
-    val niceContrastColor: Color = JBColor.GRAY
+    val niceContrastColor: Color
+        get() = kotlin.runCatching {
+            RaccoonSettingsState.instance.inlineCompletionColor.letIfNotBlank {
+                ColorUtil.fromHex(
+                    it
+                )
+            }
+        }.getOrNull() ?: JBColor.GRAY
+
 //    by lazy {
 //        val averageBrightness = (getBrightness(JBColor.background()) + getBrightness(JBColor.foreground())) / 2.0
 //        var currentResult: Color = JBColor.LIGHT_GRAY
