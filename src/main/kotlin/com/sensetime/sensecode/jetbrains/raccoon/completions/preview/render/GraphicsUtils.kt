@@ -30,7 +30,7 @@ object GraphicsUtils {
                     it
                 )
             }
-        }.getOrNull() ?: JBColor.GRAY
+        }.getOrNull() ?: Color(128, 130, 126)
 
 //    by lazy {
 //        val averageBrightness = (getBrightness(JBColor.background()) + getBrightness(JBColor.foreground())) / 2.0
