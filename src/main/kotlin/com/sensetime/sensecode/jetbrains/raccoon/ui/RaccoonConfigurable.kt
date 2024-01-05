@@ -4,10 +4,13 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.util.Disposer
+import com.intellij.ui.ColorPanel
+import com.intellij.ui.ColorUtil
 import com.intellij.ui.components.JBRadioButton
 import com.intellij.ui.dsl.builder.*
 import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.completions.actions.ManualTriggerInlineCompletionAction
+import com.sensetime.sensecode.jetbrains.raccoon.completions.preview.render.GraphicsUtils
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
@@ -19,7 +22,9 @@ import javax.swing.JComponent
 class RaccoonConfigurable : Configurable, Disposable {
     private val userAuthorizationPanel: DialogPanel =
         UserAuthorizationPanelBuilder().build(this, RaccoonClientManager.currentCodeClient.getAkSkSettings())
-
+    private val inlineCompletionColorPanel: ColorPanel = ColorPanel().apply {
+        selectedColor = GraphicsUtils.niceContrastColor
+    }
     private val settingsPanel: DialogPanel = panel {
         row {
             cell(userAuthorizationPanel)
@@ -84,6 +89,10 @@ class RaccoonConfigurable : Configurable, Disposable {
                     }
                 }
             }.bind(RaccoonSettingsState.instance::candidates)
+
+            row(RaccoonBundle.message("settings.group.InlineCompletion.ColorForCompletions.label")) {
+                cell(inlineCompletionColorPanel)
+            }
         }
     }
 
@@ -91,17 +100,26 @@ class RaccoonConfigurable : Configurable, Disposable {
 
     override fun getDisplayName(): String = RaccoonPlugin.NAME
 
-    override fun isModified(): Boolean = settingsPanel.isModified() || userAuthorizationPanel.isModified()
+    private fun isInlineCompletionColorModified(): Boolean =
+        GraphicsUtils.niceContrastColor != inlineCompletionColorPanel.selectedColor
+
+    override fun isModified(): Boolean =
+        settingsPanel.isModified() || userAuthorizationPanel.isModified() || isInlineCompletionColorModified()
 
     override fun apply() {
         settingsPanel.apply()
         userAuthorizationPanel.apply()
+        if (isInlineCompletionColorModified()) {
+            RaccoonSettingsState.instance.inlineCompletionColor =
+                ColorUtil.toHex(inlineCompletionColorPanel.selectedColor!!)
+        }
     }
 
     override fun reset() {
         super.reset()
         settingsPanel.reset()
         userAuthorizationPanel.reset()
+        inlineCompletionColorPanel.selectedColor = GraphicsUtils.niceContrastColor
     }
 
     override fun dispose() {}

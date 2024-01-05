@@ -30,6 +30,8 @@ data class RaccoonSettingsState(
 
     var inlineCompletionPreference: ModelConfig.CompletionPreference = ModelConfig.CompletionPreference.BEST_EFFORT
 
+    var inlineCompletionColor: String = ""
+
     // only for dev
     var toolwindowMaxNewTokens: Int = -1
     private val selectedClientName: String = SenseCodeClient.CLIENT_NAME
