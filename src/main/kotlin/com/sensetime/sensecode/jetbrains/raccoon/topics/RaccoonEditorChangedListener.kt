@@ -11,6 +11,7 @@ val SENSE_CODE_EDITOR_CHANGED_TOPIC =
 interface RaccoonEditorChangedListener {
     enum class Type {
         CHAR_TYPED,
+        ENTER_TYPED,
         MOUSE_PRESSED,
         MOUSE_RELEASED,
         MOUSE_CLICKED,
