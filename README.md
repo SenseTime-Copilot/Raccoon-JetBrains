@@ -23,7 +23,7 @@
 在设置页面中，可以配置编辑器内代码补全的
 
 * 触发方式：
-  * 手动：当按下快捷键时获取补全建议，默认的快捷键为 `Ctrl + Alt + /`
+  * 手动：当按下快捷键时获取补全建议，默认的快捷键为 `Ctrl + Alt + /`（mac: `⌃⌥/`）
   * 自动：当输入停止时获取补全建议，您可以在设置页面切换延迟时间的长短，此时手动触发仍然有效
 * 补全偏好：
   * 行级补全：返回单行的补全建议
@@ -36,9 +36,9 @@
 
 ## 代码补全
 
-您可以在编辑器内通过手动（默认的快捷键为 `Ctrl + Alt + /` ）或自动方式触发代码补全，一经触发，编辑器状态栏右下的状态栏图标将指示现在的请求状态。
+您可以在编辑器内通过手动或自动方式触发代码补全，一经触发，编辑器状态栏右下的状态栏图标将指示现在的请求状态。
 
-触发补全事件后，稍等片刻补全内容会以行内补全候选框形式出现，您可以使用 `Tab` 键接受建议。候选数量大于 1, 可以使用 `Alt + [` 及 `Alt + ]` 来进行翻页浏览，确定要接受的建议项后，使用 `Tab` 键插入编辑器。
+触发补全事件后，稍等片刻补全内容会以行内补全候选框形式出现，您可以使用 `Tab` 键接受建议。候选数量大于 1, 可以使用 `Alt + [` 及 `Alt + ]`（mac: `⌥[` 及 `⌥]`）来进行翻页浏览，确定要接受的建议项后，使用 `Tab` 键插入编辑器。
 
 > 编辑器在触发补全事件后，如遇用户点击 `Esc` 键的或其他移动、输入行为，则会 **取消** 补全操作。
 
@@ -50,13 +50,13 @@
 
 也可在选择指定代码后直接使用快捷键触发命令， 默认快捷键为
 
-* Generation: `Ctrl + Alt + Shift + G`
-* Add Test: `Ctrl + Alt + Shift + U`
-* Code Conversion: `Ctrl + Alt + Shift + X`
-* Code Correction: `Ctrl + Alt + Shift + F`
-* Refactoring: `Ctrl + Alt + Shift + R`
+* Generation: `Ctrl + Alt + Shift + G`（mac: `⌃⌥⇧G`）
+* Add Test: `Ctrl + Alt + Shift + U`（mac: `⌃⌥⇧U`）
+* Code Conversion: `Ctrl + Alt + Shift + X`（mac: `⌃⌥⇧X`）
+* Code Correction: `Ctrl + Alt + Shift + F`（mac: `⌃⌥⇧F`）
+* Refactoring: `Ctrl + Alt + Shift + R`（mac: `⌃⌥⇧R`）
 
-在选中代码的状态下，使用快捷键 `Ctrl + Alt + /` （与手动触发代码补全相同），可以弹出代码命令列表便于您快速选择使用。
+在选中代码的状态下，使用快捷键 `Ctrl + Alt + /` （与手动触发代码补全相同，mac: `⌃⌥/`），可以弹出代码命令列表便于您快速选择使用。
 
 ![Raccoon-Refactoring](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.8/media/Raccoon-Refactoring.gif)
 ![Raccoon-CodeCorrection](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.8/media/Raccoon-CodeCorrection.gif)
