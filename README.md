@@ -1,7 +1,7 @@
 # Raccoon
 
 <p align="center">
-  <img src="media/Raccoon-Logo.svg" width="200">
+  <img src="https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/main/media/Raccoon-Logo.svg" width="200">
 </p>
 
 <p align="center">
