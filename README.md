@@ -7,7 +7,7 @@ Raccoon (**R**accoon is **A**nother **C**ode **CO**-pil**O**t **N**avigator) 是
 1. 在[Raccoon](https://code.sensetime.com?utm_source=JetBrains%20IntelliJ%20IDEA)主页下载 JetBrains IDE 插件的离线安装包（通常为`zip`格式）到本地任意目录
 2. 按照如下演示动画指引，在 `Settings` 页面完成安装操作后即可登录使用本插件
 
-![Raccoon-Install](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.8/media/Raccoon-Install.gif)
+![Raccoon-Install](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/main/media/Raccoon-Install.gif)
 
 ## 账号管理/设置
 
@@ -27,7 +27,7 @@ Raccoon (**R**accoon is **A**nother **C**ode **CO**-pil**O**t **N**avigator) 是
 * 候选建议数量：
   * 设置返回候选条目的数量
 
-![Raccoon-Settings](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.8/media/Raccoon-Settings.gif)
+![Raccoon-Settings](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/main/media/Raccoon-Settings.gif)
 
 ## 代码补全
 
@@ -37,7 +37,7 @@ Raccoon (**R**accoon is **A**nother **C**ode **CO**-pil**O**t **N**avigator) 是
 
 > 编辑器在触发补全事件后，如遇用户点击 `Esc` 键的或其他移动、输入行为，则会 **取消** 补全操作。
 
-![Raccoon-InlineCompletion](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.8/media/Raccoon-InlineCompletion.gif)
+![Raccoon-InlineCompletion](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/main/media/Raccoon-InlineCompletion.gif)
 
 ## 代码命令
 
@@ -53,8 +53,8 @@ Raccoon (**R**accoon is **A**nother **C**ode **CO**-pil**O**t **N**avigator) 是
 
 在选中代码的状态下，使用快捷键 `Ctrl + Alt + /` （与手动触发代码补全相同，mac: `⌃⌥/`），可以弹出代码命令列表便于您快速选择使用。
 
-![Raccoon-Refactoring](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.8/media/Raccoon-Refactoring.gif)
-![Raccoon-CodeCorrection](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.8/media/Raccoon-CodeCorrection.gif)
+![Raccoon-Refactoring](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/main/media/Raccoon-Refactoring.gif)
+![Raccoon-CodeCorrection](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/main/media/Raccoon-CodeCorrection.gif)
 
 ## 侧边栏助手
 
@@ -73,8 +73,8 @@ Raccoon 的侧边栏助手中，默认为 `流式输出` 模式，即回答将�
 
 帮助信息和错误提示等非对话内容，不会作为上下文发送。
 
-![Raccoon-Chat](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.8/media/Raccoon-Chat.gif)
-![Raccoon-SelectCode](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.8/media/Raccoon-SelectCode.gif)
+![Raccoon-Chat](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/main/media/Raccoon-Chat.gif)
+![Raccoon-SelectCode](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/main/media/Raccoon-SelectCode.gif)
 
 ## 免责声明
 
