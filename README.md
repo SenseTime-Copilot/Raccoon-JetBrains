@@ -1,6 +1,12 @@
 # Raccoon
 
-Raccoon (**R**accoon is **A**nother **C**ode **CO**-pil**O**t **N**avigator) 是基于 AI 的代码助手。
+<p align="center">
+  <img src="media/Raccoon-Logo.svg" width="200">
+</p>
+
+<p align="center">
+Raccoon (<b>R</b>accoon is <b>A</b>nother <b>C</b>ode <b>CO</b>-pil<b>O</b>t <b>N</b>avigator) —— 基于 AI 的代码助手
+</p>
 
 ## 离线安装插件
 
