@@ -61,6 +61,10 @@
 ![Raccoon-Refactoring](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.8/media/Raccoon-Refactoring.gif)
 ![Raccoon-CodeCorrection](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.8/media/Raccoon-CodeCorrection.gif)
 
+## 撰写提交信息
+
+如当前项目是一个 Git 仓库，且 IDE 已经启用自带的 Git 插件，在 `Commit` 页面，会看到 `魔棒图标` 按钮，Raccoon 会理解您已选择的更改，并在消息框中撰写合适的 Commit Message 建议。
+
 ## 侧边栏助手
 
 你也可以在 Raccoon 的侧边栏中直接以对话形式向助手提问。
