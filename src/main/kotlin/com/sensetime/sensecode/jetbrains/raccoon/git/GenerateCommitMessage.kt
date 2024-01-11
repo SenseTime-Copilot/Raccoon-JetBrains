@@ -8,12 +8,10 @@ import com.intellij.openapi.diff.impl.patch.UnifiedDiffWriter
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.CheckinProjectPanel
 import com.intellij.openapi.vcs.FilePath
-import com.intellij.openapi.vcs.ProjectLevelVcsManager
 import com.intellij.openapi.vcs.VcsDataKeys
 import com.intellij.openapi.vcs.changes.*
 import com.intellij.openapi.vcs.changes.patch.GitPatchWriter
 import com.intellij.openapi.vcs.changes.patch.PatchWriter
-import com.intellij.openapi.vcs.history.VcsRevisionNumber
 import com.intellij.openapi.vcs.ui.CommitMessage
 import com.intellij.openapi.vcs.ui.Refreshable
 import com.intellij.ui.AncestorListenerAdapter
@@ -35,21 +33,6 @@ import javax.swing.event.AncestorEvent
 import kotlin.coroutines.cancellation.CancellationException
 
 class GenerateCommitMessage : AnAction() {
-    // for compatible: because of FakeRevision is changed 231
-    private class MyFakeRevision(private val project: Project, private val file: FilePath) : ContentRevision {
-        override fun getContent(): String? = file.virtualFile?.let { virtualFile ->
-            ProjectLevelVcsManager.getInstance(project).getVcsFor(virtualFile)?.diffProvider?.createCurrentFileContent(
-                virtualFile
-            )?.content
-        }
-
-        override fun getFile(): FilePath = file
-
-        override fun getRevisionNumber(): VcsRevisionNumber = VcsRevisionNumber.NULL
-
-        override fun toString(): String = file.path
-    }
-
     companion object {
         private fun getCommitMessagePanel(e: AnActionEvent): CommitMessage? =
             e.getData(VcsDataKeys.COMMIT_MESSAGE_CONTROL) as? CommitMessage
@@ -58,7 +41,7 @@ class GenerateCommitMessage : AnAction() {
             e.getData(Refreshable.PANEL_KEY) as? CheckinProjectPanel
 
         private fun List<FilePath>.addToNewChanges(project: Project): List<Change> =
-            filterNot { it.isDirectory || it.isNonLocal }.map { Change(null, MyFakeRevision(project, it)) }
+            filterNot { it.isDirectory || it.isNonLocal }.map { Change(null, CurrentContentRevision(it)) }
 
         // BinaryPatchWriter will write base64 data(large and not necessary)
         private fun writeBinariesDiff(
@@ -127,7 +110,7 @@ class GenerateCommitMessage : AnAction() {
     }
 
     private fun showSuccessMessage(e: AnActionEvent, message: String) {
-        showErrorMessage(e, message)
+//        showErrorMessage(e, message)
     }
 
     override fun actionPerformed(e: AnActionEvent) {
@@ -171,6 +154,11 @@ class GenerateCommitMessage : AnAction() {
                             }
                         }
                     }
+                    commitPanel.component.invokeOnUIThreadLater {
+                        if (commitPanel.commitMessage.isBlank()) {
+                            showErrorMessage(e, RaccoonBundle.message("git.commit.warning.emptyResponse"))
+                        }
+                    }
                 } catch (t: Throwable) {
                     if (t !is CancellationException) {
                         commitPanel.component.invokeOnUIThreadLater {
@@ -178,9 +166,9 @@ class GenerateCommitMessage : AnAction() {
                         }
                     }
                 } finally {
-                    commitPanel.component.invokeOnUIThreadLater {
-                        if (commitPanel.commitMessage.isBlank()) {
-                            showErrorMessage(e, RaccoonBundle.message("git.commit.warning.emptyResponse"))
+                    getCommitMessagePanel(e)?.editorField?.run {
+                        invokeOnUIThreadLater {
+                            editor?.selectionModel?.removeSelection()
                         }
                     }
                 }
