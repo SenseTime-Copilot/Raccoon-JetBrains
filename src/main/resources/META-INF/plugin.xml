@@ -120,5 +120,12 @@
                 text="Accept Inline Completion">
             <keyboard-shortcut first-keystroke="TAB" keymap="$default"/>
         </action>
+
+        <!--        Git-->
+        <action id="com.sensetime.sensecode.jetbrains.raccoon.git.GenerateCommitMessage"
+                class="com.sensetime.sensecode.jetbrains.raccoon.git.GenerateCommitMessage"
+                text="Generate Commit Message" icon="AllIcons.Diff.MagicResolveToolbar">
+            <add-to-group group-id="Vcs.MessageActionGroup" anchor="first"/>
+        </action>
     </actions>
 </idea-plugin>

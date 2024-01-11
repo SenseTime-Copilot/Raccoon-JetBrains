@@ -20,7 +20,7 @@ inline fun <R> String.letIfNotBlank(block: (String) -> R): R? = takeIfNotBlank()
 // List
 
 fun <T> List<T>.takeIfNotEmpty(): List<T>? = takeIf { it.isNotEmpty() }
-
+inline fun <T, R> List<T>.letIfNotEmpty(block: (List<T>) -> R): R? = takeIfNotEmpty()?.let(block)
 
 // Map
 
