@@ -21,7 +21,7 @@ object GraphicsUtils {
                     it
                 )
             }
-        }.getOrNull() ?: Color(128, 130, 126)
+        }.getOrNull() ?: Color(102, 109, 117)
 
     private fun getBrightness(color: Color): Double {
         return sqrt(
