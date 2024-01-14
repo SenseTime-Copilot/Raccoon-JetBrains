@@ -198,7 +198,14 @@ class SenseCodeClient : CodeClient() {
         startTime: String,
         endTime: String?
     ): Map<String, RaccoonSensitiveListener.SensitiveConversation> = okHttpClient.newCall(
-        createRequestBuilderWithToken(buildSensitiveGetUrl(startTime, endTime)).get().build()
+        addAuthorizationWithCheckRefreshToken(
+            createRequestBuilderWithCommonHeader(
+                buildSensitiveGetUrl(
+                    startTime,
+                    endTime
+                )
+            )
+        ).get().build()
     ).await().let { response ->
         var bodyError: String? = null
         response.takeIf { it.isSuccessful }?.body?.let { responseBody ->
@@ -299,13 +306,16 @@ class SenseCodeClient : CodeClient() {
         }
     }.getOrNull()
 
-    override suspend fun addAuthorization(requestBuilder: Request.Builder, utcDate: String): Request.Builder =
+    private suspend fun addAuthorizationWithCheckRefreshToken(requestBuilder: Request.Builder): Request.Builder =
         (checkRefreshToken()?.getPasswordAsString() ?: accessToken)?.let {
             requestBuilder.addHeader(
                 "Authorization",
                 "Bearer $it"
             )
         } ?: throw UnauthorizedException("access token is empty")
+
+    override suspend fun addAuthorization(requestBuilder: Request.Builder, utcDate: String): Request.Builder =
+        addAuthorizationWithCheckRefreshToken(requestBuilder)
 
     companion object {
         const val CLIENT_NAME = "sensecode"
