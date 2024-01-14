@@ -20,12 +20,14 @@ import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.CodeRequest
 import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.CodeStreamResponse
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonNotification
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.invokeOnUIThreadLater
 import com.sensetime.sensecode.jetbrains.raccoon.utils.takeIfNotBlank
 import com.sensetime.sensecode.jetbrains.raccoon.utils.takeIfNotEmpty
 import kotlinx.coroutines.Job
+import java.io.IOException
 import java.io.StringWriter
 import java.io.Writer
 import java.nio.file.Path
@@ -33,7 +35,35 @@ import javax.swing.event.AncestorEvent
 import kotlin.coroutines.cancellation.CancellationException
 
 class GenerateCommitMessage : AnAction() {
+    private class MyStringWriter(private val maxLength: Int) : StringWriter() {
+        private var currentLength = 0
+        private fun checkMaxLength(appendLength: Int) {
+            currentLength += appendLength
+            if (currentLength > maxLength) {
+                throw IOException(RaccoonBundle.message("git.commit.warning.tooLong"))
+            }
+        }
+
+        override fun write(str: String) {
+            checkMaxLength(str.length)
+            super.write(str)
+        }
+
+        override fun write(cbuf: CharArray, off: Int, len: Int) {
+            checkMaxLength(len)
+            super.write(cbuf, off, len)
+        }
+
+        override fun write(str: String, off: Int, len: Int) {
+            checkMaxLength(len)
+            super.write(str, off, len)
+        }
+    }
+
     companion object {
+        private val maxDiffLength =
+            10 * (RaccoonSettingsState.selectedClientConfig.toolwindowModelConfig.maxInputTokens)
+
         private fun getCommitMessagePanel(e: AnActionEvent): CommitMessage? =
             e.getData(VcsDataKeys.COMMIT_MESSAGE_CONTROL) as? CommitMessage
 
@@ -72,7 +102,7 @@ class GenerateCommitMessage : AnAction() {
         val diff: String = requireNotNull(PatchWriter.calculateBaseDirForWritingPatch(project, changes).let { baseDir ->
             IdeaTextPatchBuilder.buildPatch(project, changes, baseDir, false, true).let { patches ->
                 val lineSeparator = "\n"
-                val writer = StringWriter()
+                val writer = MyStringWriter(maxDiffLength)
                 UnifiedDiffWriter.write(null, baseDir, patches, writer, lineSeparator, null, null)
                 writeBinariesDiff(baseDir, patches.mapNotNull { it as? BinaryFilePatch }, writer, lineSeparator)
                 writer.toString()
@@ -128,6 +158,9 @@ class GenerateCommitMessage : AnAction() {
                 (commitWorkflowUi.getIncludedChanges() + commitWorkflowUi.getIncludedUnversionedFiles()
                     .addToNewChanges(project)).takeIfNotEmpty()
             ) { RaccoonBundle.message("git.commit.warning.noChange") }
+            if (changes.size > 100) {
+                throw Exception(RaccoonBundle.message("git.commit.warning.tooLong"))
+            }
             commitPanel.commitMessage = ""
             commitPanel.component.addAncestorListener(object : AncestorListenerAdapter() {
                 override fun ancestorRemoved(event: AncestorEvent?) {
