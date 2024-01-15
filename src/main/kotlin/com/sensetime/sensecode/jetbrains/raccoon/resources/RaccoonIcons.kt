@@ -39,5 +39,5 @@ object RaccoonIcons {
     val TOOLWINDOW_STOP = IconLoader.getIcon("$TOOLWINDOW_DIR/stop", RaccoonIcons::class.java)
 
     @JvmField
-    val TOOLWINDOW_RACCOON = IconLoader.getIcon("$TOOLWINDOW_DIR/Raccoon", RaccoonIcons::class.java)
+    val TOOLWINDOW_RACCOON = IconLoader.getIcon("$TOOLWINDOW_DIR/Raccoon.svg", RaccoonIcons::class.java)
 }
