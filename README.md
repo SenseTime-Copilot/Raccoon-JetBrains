@@ -8,12 +8,15 @@
 Raccoon (<b>R</b>accoon is <b>A</b>nother <b>C</b>ode <b>CO</b>-pil<b>O</b>t <b>N</b>avigator) —— 基于 AI 的代码助手
 </p>
 
-## 离线安装插件
+## 安装与注册
 
-1. 在[Raccoon](https://code.sensetime.com?utm_source=JetBrains%20IntelliJ%20IDEA)主页下载 JetBrains IDE 插件的离线安装包（通常为`zip`格式）到本地任意目录
-2. 按照如下演示动画指引，在 `Settings` 页面完成安装操作后即可登录使用本插件
+可以从以下位置获取 Raccoon 插件：
 
-![Raccoon-Install](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/main/media/Raccoon-Install.gif)
+* [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=SenseTime.raccoon)
+* [JetBrains Plugin](https://plugins.jetbrains.com/plugin/23216-raccoon)
+
+通过 [code.sensetime.com](https://code.sensetime.com) 注册账号开始使用。
+
 
 ## 账号管理/设置
 
@@ -21,7 +24,7 @@ Raccoon (<b>R</b>accoon is <b>A</b>nother <b>C</b>ode <b>CO</b>-pil<b>O</b>t <b>
 
 > 如果您还没有账号或忘记密码，可以点击登录对话框下方链接跳转到网页端进行注册或重置密码操作
 
-在设置页面中，可以配置编辑器内代码补全的
+在 Raccoon 设置页面中（通过点击 IDE 状态栏右下的图标，可以快速进入设置页面），可以配置编辑器内代码补全的
 
 * 触发方式：
   * 手动：当按下快捷键时获取补全建议，默认的快捷键为 `Ctrl + Alt + /`（mac: `⌃⌥/`）
@@ -29,17 +32,20 @@ Raccoon (<b>R</b>accoon is <b>A</b>nother <b>C</b>ode <b>CO</b>-pil<b>O</b>t <b>
 * 补全偏好：
   * 行级补全：返回单行的补全建议
   * 平衡：兼顾响应速度和补全建议长度
-  * 最大长度：最大可能的返回尽可能长的补全建议
+  * 最大长度：由模型在最大允许范围内自行确定返回内容
 * 候选建议数量：
   * 设置返回候选条目的数量
+* 代码补全的显示颜色：
+
+在 IDE 的快捷键设置页面，您可以修改本插件的所有快捷键映射
 
 ![Raccoon-Settings](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/main/media/Raccoon-Settings.gif)
 
 ## 代码补全
 
-您可以在编辑器内通过手动或自动方式触发代码补全，一经触发，编辑器状态栏右下的状态栏图标将指示现在的请求状态。
+您可以在编辑器内通过手动或自动方式触发代码补全，一经触发，编辑器状态栏右下的图标将指示现在的请求状态。
 
-触发补全事件后，稍等片刻补全内容会以行内补全候选框形式出现，您可以使用 `Tab` 键接受建议。候选数量大于 1, 可以使用 `Alt + [` 及 `Alt + ]`（mac: `⌥[` 及 `⌥]`）来进行翻页浏览，确定要接受的建议项后，使用 `Tab` 键插入编辑器。
+触发补全事件后，稍等片刻补全内容会以行内补全候选框形式出现，您可以使用 `Tab` 键接受建议。候选数量大于 1，可以使用 `Alt + [` 及 `Alt + ]`（mac: `⌥[` 及 `⌥]`）来进行翻页浏览，确定要接受的建议项后，使用 `Tab` 键插入编辑器。
 
 > 编辑器在触发补全事件后，如遇用户点击 `Esc` 键的或其他移动、输入行为，则会 **取消** 补全操作。
 
@@ -61,6 +67,12 @@ Raccoon (<b>R</b>accoon is <b>A</b>nother <b>C</b>ode <b>CO</b>-pil<b>O</b>t <b>
 
 ![Raccoon-Refactoring](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/main/media/Raccoon-Refactoring.gif)
 ![Raccoon-CodeCorrection](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/main/media/Raccoon-CodeCorrection.gif)
+
+## 撰写提交信息
+
+如当前项目是一个 Git 仓库，且 IDE 已经启用自带的 Git 插件，在 `Commit` 页面，会看到 `魔棒图标` 按钮，Raccoon 会理解您已选择的更改，并在消息框中撰写合适的 Commit Message 建议。
+
+![Raccoon-Settings](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/main/media/Raccoon-GitCommitMessage.gif)
 
 ## 侧边栏助手
 
