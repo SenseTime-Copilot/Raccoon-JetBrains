@@ -7,20 +7,13 @@
 
 [Raccoon](https://code.sensetime.com?utm_source=JetBrains%20IntelliJ%20IDEA)，是基于 AI 的代码助手。提供编辑器内代码补全、侧边栏代码助手以及`代码生成`、`测试代码生成`、`代码翻译`、`代码修正`、`代码重构`等命令。可以提升用户编程效率优化开发体验。
 
-## 离线安装插件
-
-1. 在[Raccoon](https://code.sensetime.com?utm_source=JetBrains%20IntelliJ%20IDEA)主页下载 JetBrains IDE 插件的离线安装包（通常为`zip`格式）到本地任意目录
-2. 按照如下演示动画指引，在 `Settings` 页面完成安装操作后即可登录使用本插件
-
-![Raccoon-Install](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.8/media/Raccoon-Install.gif)
-
 ## 账号管理/设置
 
 您可以在 Raccoon 代码助手 侧边栏视图或设置界面上方，点击 `Log in` / `登录` 按钮在弹出的对话框使用 手机号 + 密码 进行登录，点击 `Log out` / `登出` 按钮退出登录
 
 > 如果您还没有账号或忘记密码，可以点击登录对话框下方链接跳转到网页端进行注册或重置密码操作
 
-在设置页面中，可以配置编辑器内代码补全的
+在 Raccoon 设置页面中（通过点击 IDE 状态栏右下的图标，可以快速进入设置页面），可以配置编辑器内代码补全的
 
 * 触发方式：
   * 手动：当按下快捷键时获取补全建议，默认的快捷键为 `Ctrl + Alt + /`（mac: `⌃⌥/`）
@@ -28,21 +21,24 @@
 * 补全偏好：
   * 行级补全：返回单行的补全建议
   * 平衡：兼顾响应速度和补全建议长度
-  * 最大长度：最大可能的返回尽可能长的补全建议
+  * 最大长度：由模型在最大允许范围内自行确定返回内容
 * 候选建议数量：
   * 设置返回候选条目的数量
+* 代码补全的显示颜色：
 
-![Raccoon-Settings](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.8/media/Raccoon-Settings.gif)
+在 IDE 的快捷键设置页面，您可以修改本插件的所有快捷键映射
+
+![Raccoon-Settings](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.9/media/Raccoon-Settings.gif)
 
 ## 代码补全
 
-您可以在编辑器内通过手动或自动方式触发代码补全，一经触发，编辑器状态栏右下的状态栏图标将指示现在的请求状态。
+您可以在编辑器内通过手动或自动方式触发代码补全，一经触发，编辑器状态栏右下的图标将指示现在的请求状态。
 
-触发补全事件后，稍等片刻补全内容会以行内补全候选框形式出现，您可以使用 `Tab` 键接受建议。候选数量大于 1, 可以使用 `Alt + [` 及 `Alt + ]`（mac: `⌥[` 及 `⌥]`）来进行翻页浏览，确定要接受的建议项后，使用 `Tab` 键插入编辑器。
+触发补全事件后，稍等片刻补全内容会以行内补全候选框形式出现，您可以使用 `Tab` 键接受建议。候选数量大于 1，可以使用 `Alt + [` 及 `Alt + ]`（mac: `⌥[` 及 `⌥]`）来进行翻页浏览，确定要接受的建议项后，使用 `Tab` 键插入编辑器。
 
 > 编辑器在触发补全事件后，如遇用户点击 `Esc` 键的或其他移动、输入行为，则会 **取消** 补全操作。
 
-![Raccoon-InlineCompletion](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.8/media/Raccoon-InlineCompletion.gif)
+![Raccoon-InlineCompletion](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.9/media/Raccoon-InlineCompletion.gif)
 
 ## 代码命令
 
@@ -58,12 +54,14 @@
 
 在选中代码的状态下，使用快捷键 `Ctrl + Alt + /` （与手动触发代码补全相同，mac: `⌃⌥/`），可以弹出代码命令列表便于您快速选择使用。
 
-![Raccoon-Refactoring](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.8/media/Raccoon-Refactoring.gif)
-![Raccoon-CodeCorrection](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.8/media/Raccoon-CodeCorrection.gif)
+![Raccoon-Refactoring](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.9/media/Raccoon-Refactoring.gif)
+![Raccoon-CodeCorrection](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.9/media/Raccoon-CodeCorrection.gif)
 
 ## 撰写提交信息
 
 如当前项目是一个 Git 仓库，且 IDE 已经启用自带的 Git 插件，在 `Commit` 页面，会看到 `魔棒图标` 按钮，Raccoon 会理解您已选择的更改，并在消息框中撰写合适的 Commit Message 建议。
+
+![Raccoon-Settings](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.9/media/Raccoon-GitCommitMessage.gif)
 
 ## 侧边栏助手
 
@@ -82,8 +80,8 @@ Raccoon 的侧边栏助手中，默认为 `流式输出` 模式，即回答将�
 
 帮助信息和错误提示等非对话内容，不会作为上下文发送。
 
-![Raccoon-Chat](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.8/media/Raccoon-Chat.gif)
-![Raccoon-SelectCode](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.8/media/Raccoon-SelectCode.gif)
+![Raccoon-Chat](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.9/media/Raccoon-Chat.gif)
+![Raccoon-SelectCode](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/v0.9/media/Raccoon-SelectCode.gif)
 
 ## 免责声明
 
