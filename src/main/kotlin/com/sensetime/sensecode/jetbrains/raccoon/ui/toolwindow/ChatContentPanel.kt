@@ -366,6 +366,9 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
             ConversationPanel.updateAssistantAttributeSet(newGenerateState)?.let {
                 conversationListPanel.lastConversationPanel?.assistantMessagePane?.updateStyle(it)
             }
+            conversationListPanel.lastConversationPanel?.assistantMessagePane?.checkGenerateStateForStatistics(
+                newGenerateState
+            )
         }
     }
 
