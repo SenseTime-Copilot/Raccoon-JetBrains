@@ -13,6 +13,7 @@ import com.intellij.refactoring.rename.inplace.InplaceRefactoring
 import com.intellij.util.messages.SimpleMessageBusConnection
 import com.sensetime.sensecode.jetbrains.raccoon.completions.preview.render.CompletionInlays
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
+import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_STATISTICS_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.SENSE_CODE_EDITOR_CHANGED_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonEditorChangedListener
 import com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonNotification
@@ -145,6 +146,8 @@ class CompletionPreview private constructor(
                     it.caretModel.moveToOffset(offset + completion.length)
                 }
             }
+            ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_STATISTICS_TOPIC)
+                .onInlineCompletionAccepted()
         }
     }
 

@@ -23,6 +23,7 @@ import com.intellij.util.messages.SimpleMessageBusConnection
 import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.completions.actions.ManualTriggerInlineCompletionAction
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
+import com.sensetime.sensecode.jetbrains.raccoon.statistics.RaccoonStatisticsServer
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_SENSITIVE_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.SENSE_CODE_EDITOR_CHANGED_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonEditorChangedListener
@@ -83,6 +84,8 @@ class AutoCompletionServer(
                     }
                 }
             }
+
+            RaccoonStatisticsServer.launchStatisticsTask(autoCompletionCoroutineScope)
 
             project?.let {
                 FileEditorManager.getInstance(it).allEditors.forEach { fileEditor ->

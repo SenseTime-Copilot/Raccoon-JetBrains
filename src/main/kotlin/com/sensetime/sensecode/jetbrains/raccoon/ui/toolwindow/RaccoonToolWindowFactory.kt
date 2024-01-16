@@ -16,8 +16,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.persistent.histories.*
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
-import com.sensetime.sensecode.jetbrains.raccoon.topics.SENSE_CODE_TASKS_TOPIC
-import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonTasksListener
+import com.sensetime.sensecode.jetbrains.raccoon.topics.*
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.RaccoonUIUtils
 import kotlinx.coroutines.Job
 import java.awt.event.ActionEvent
@@ -48,6 +47,8 @@ class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
 
                 chatJob = RaccoonClientManager.launchClientJob {
                     try {
+                        ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_STATISTICS_TOPIC)
+                            .onToolWindowRequest()
                         client.requestStream(
                             CodeRequest(
                                 conversations.getID(),

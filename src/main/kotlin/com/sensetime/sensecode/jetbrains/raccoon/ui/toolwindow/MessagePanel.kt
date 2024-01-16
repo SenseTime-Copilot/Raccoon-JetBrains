@@ -2,7 +2,10 @@ package com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindow
 
 import com.intellij.ide.BrowserUtil
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.histories.AssistantMessage
+import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_STATISTICS_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.addMouseListenerWithDisposable
 import com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindow.codes.CodeEditorPanel
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonLanguages
@@ -37,6 +40,13 @@ class MessagePanel(
     fun updateStyle(styleAttrs: SimpleAttributeSet) {
         messageBox.components.mapNotNull { it as? JTextPane }
             .forEach { it.styledDocument.apply { setParagraphAttributes(0, length, styleAttrs, false) } }
+    }
+
+    fun checkGenerateStateForStatistics(generateState: AssistantMessage.GenerateState) {
+        if ((generateState == AssistantMessage.GenerateState.DONE) && (messageBox.components.any { it is CodeEditorPanel })) {
+            ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_STATISTICS_TOPIC)
+                .onToolWindowResponseCode()
+        }
     }
 
     fun appendMarkdownText(deltaMarkdownText: String) {

@@ -24,6 +24,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.completions.preview.CompletionP
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.tasks.CodeTaskActionBase
+import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_STATISTICS_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.RaccoonUIUtils
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonLanguages
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
@@ -93,6 +94,8 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
                     )
                     RaccoonClientManager.launchClientJob {
                         try {
+                            ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_STATISTICS_TOPIC)
+                                .onInlineCompletionRequest()
                             if (n <= 1) {
                                 // stream
                                 client.requestStream(codeRequest) { streamResponse ->
