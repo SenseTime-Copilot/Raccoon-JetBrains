@@ -18,6 +18,7 @@ import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.io.path.Path
 
 object RaccoonStatisticsServer : RaccoonStatisticsListener {
@@ -49,9 +50,12 @@ object RaccoonStatisticsServer : RaccoonStatisticsListener {
             for (columnIndex in usagesChannel) {
                 kotlin.runCatching {
                     appendToColumnIndex(columnIndex)
+                }.onFailure { e ->
+                    if (e is CancellationException) {
+                        throw e
+                    }
                 }
             }
-
         }.invokeOnCompletion {
             usagesMessageBusConnection.disconnect()
             usagesChannel.close()
