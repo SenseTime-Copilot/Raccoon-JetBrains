@@ -5,9 +5,9 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
-import com.intellij.util.messages.SimpleMessageBusConnection
 import com.sensetime.sensecode.jetbrains.raccoon.clients.CodeClient
 import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.CodeRequest
@@ -27,12 +27,6 @@ class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
     private var chatJob: Job? = null
         set(value) {
             field.takeIf { true == it?.isActive }?.cancel()
-            field = value
-        }
-
-    private var taskMessageBusConnection: SimpleMessageBusConnection? = null
-        set(value) {
-            field?.disconnect()
             field = value
         }
 
@@ -137,7 +131,7 @@ class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
             )
         )
 
-        taskMessageBusConnection = ApplicationManager.getApplication().messageBus.connect().also {
+        project.messageBus.connect().also {
             it.subscribe(SENSE_CODE_TASKS_TOPIC, object : RaccoonTasksListener {
                 override fun onNewTask(userMessage: UserMessage) {
                     toolWindow.contentManager.run {
@@ -160,6 +154,7 @@ class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
                     }
                 }
             })
+            Disposer.register(this) { it.disconnect() }
         }
 
         chatContentPanel.onNewChat(null)
@@ -167,6 +162,5 @@ class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
 
     override fun dispose() {
         chatJob = null
-        taskMessageBusConnection = null
     }
 }

@@ -3,8 +3,8 @@ package com.sensetime.sensecode.jetbrains.raccoon.tasks
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.project.Project
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.histories.UserMessage
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.topics.SENSE_CODE_TASKS_TOPIC
@@ -23,25 +23,26 @@ abstract class CodeTaskActionBase : AnAction() {
         )
 
     protected fun sendNewTaskMessage(
-        code: String, language: String, args: Map<String, String>? = null
+        project: Project, code: String, language: String, args: Map<String, String>? = null
     ) {
         UserMessage.createUserMessage(promptType = key, code = code, language = language, args = args)?.let {
-            ApplicationManager.getApplication().messageBus.syncPublisher(SENSE_CODE_TASKS_TOPIC).onNewTask(it)
+            project.messageBus.syncPublisher(SENSE_CODE_TASKS_TOPIC).onNewTask(it)
         }
     }
 
-    protected open fun sendNewTaskMessage(editor: Editor, code: String, language: String) {
-        sendNewTaskMessage(code, language)
+    protected open fun sendNewTaskMessage(project: Project, editor: Editor, code: String, language: String) {
+        sendNewTaskMessage(project, code, language)
     }
 
     override fun actionPerformed(e: AnActionEvent) {
         e.getData(CommonDataKeys.EDITOR)?.let { editor ->
-            getEditorSelectedText(editor)?.let { code ->
-                sendNewTaskMessage(
-                    editor,
-                    code,
-                    RaccoonLanguages.getMarkdownLanguageFromPsiFile(e.getData(CommonDataKeys.PSI_FILE))
-                )
+            e.project?.let { p ->
+                getEditorSelectedText(editor)?.let { code ->
+                    sendNewTaskMessage(
+                        p, editor, code,
+                        RaccoonLanguages.getMarkdownLanguageFromPsiFile(e.getData(CommonDataKeys.PSI_FILE))
+                    )
+                }
             }
         }
     }
