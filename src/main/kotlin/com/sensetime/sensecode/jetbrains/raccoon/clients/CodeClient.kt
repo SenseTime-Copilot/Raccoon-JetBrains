@@ -49,7 +49,11 @@ internal suspend fun Call.await(): Response =
 
         continuation.invokeOnCancellation {
             // Ignore cancel exception
-            runCatching { cancel() }
+            runCatching { cancel() }.onFailure { e ->
+                if (e is CancellationException) {
+                    throw e
+                }
+            }
         }
     }
 

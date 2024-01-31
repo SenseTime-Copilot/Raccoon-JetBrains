@@ -28,6 +28,7 @@ import java.util.*
 import java.util.concurrent.atomic.AtomicLong
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
+import kotlin.coroutines.cancellation.CancellationException
 
 class SenseCodeClient : CodeClient() {
     override val name: String
@@ -178,6 +179,10 @@ class SenseCodeClient : CodeClient() {
                             ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_SENSITIVE_TOPIC)
                                 .onNewSensitiveConversations(sensitives)
                         }
+                    }.onFailure { e ->
+                        if (e is CancellationException) {
+                            throw e
+                        }
                     }
                 }
             }
@@ -303,6 +308,10 @@ class SenseCodeClient : CodeClient() {
                     }
                 }
             }
+        }
+    }.onFailure { e ->
+        if (e is CancellationException) {
+            throw e
         }
     }.getOrNull()
 

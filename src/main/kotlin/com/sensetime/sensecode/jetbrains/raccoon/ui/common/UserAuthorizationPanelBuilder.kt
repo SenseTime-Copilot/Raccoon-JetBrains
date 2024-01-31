@@ -19,6 +19,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonClientAuthorizati
 import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
 import kotlinx.coroutines.Job
 import javax.swing.JLabel
+import kotlin.coroutines.cancellation.CancellationException
 
 internal fun Panel.akskPasswordRow(item: CodeClient.AkSkSettingsItem): Row =
     row(item.label) {
@@ -61,8 +62,13 @@ class UserAuthorizationPanelBuilder : Disposable {
     private val loginButton: LoadingButton = RaccoonUIUtils.createActionLinkBiggerOn1().let { loginActionLink ->
         LoadingButton(this, loginActionLink, JLabel(AnimatedIcon.Big.INSTANCE)) { _, onCompletion ->
             loginJob = if (alreadyLoggedIn) {
-                RaccoonClientManager.launchClientJob { kotlin.runCatching { it.logout() } }
-                    .apply { invokeOnCompletion { onCompletion() } }
+                RaccoonClientManager.launchClientJob {
+                    kotlin.runCatching { it.logout() }.onFailure { e ->
+                        if (e is CancellationException) {
+                            throw e
+                        }
+                    }
+                }.apply { invokeOnCompletion { onCompletion() } }
             } else {
                 LoginDialog(null, loginActionLink).showAndGet()
                 onCompletion()
