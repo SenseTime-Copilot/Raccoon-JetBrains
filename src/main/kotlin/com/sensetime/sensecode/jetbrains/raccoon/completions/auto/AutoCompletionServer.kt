@@ -64,6 +64,10 @@ class AutoCompletionServer(
                             waitForTimeMs.set(tryTriggerCompletion())
                         }
                         delay(waitForTimeMs.get())
+                    }.onFailure { e ->
+                        if (e is CancellationException) {
+                            throw e
+                        }
                     }
                 }
             }
@@ -80,6 +84,10 @@ class AutoCompletionServer(
                         if (sensitives.isNotEmpty()) {
                             ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_SENSITIVE_TOPIC)
                                 .onNewSensitiveConversations(sensitives)
+                        }
+                    }.onFailure { e ->
+                        if (e is CancellationException) {
+                            throw e
                         }
                     }
                 }
