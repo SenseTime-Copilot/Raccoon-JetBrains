@@ -9,7 +9,7 @@ import java.awt.Rectangle
 class BlockElementRenderer(private val blockText: List<String>) : EditorCustomElementRenderer {
     override fun calcWidthInPixels(inlay: Inlay<*>): Int {
         val metrics = inlay.editor.let { it.contentComponent.getFontMetrics(GraphicsUtils.getFont(it)) }
-        return blockText.maxOfOrNull { metrics.stringWidth(it) }!!
+        return (blockText.maxOfOrNull { metrics.stringWidth(it) }?.takeIf { it >= 0 }) ?: 0
     }
 
     override fun calcHeightInPixels(inlay: Inlay<*>): Int {
