@@ -329,7 +329,7 @@ class SenseCodeClient : CodeClient() {
     companion object {
         const val CLIENT_NAME = "sensecode"
 
-        const val BASE_API = "https://code-api.sensetime.com"
+        const val BASE_API = "https://raccoon-api.sensetime.com"
         const val BASE_API_DEV = "http://code-dev-api.sensetime.com"
         const val BASE_API_TEST = "http://code-test-api.sensetime.com"
 
