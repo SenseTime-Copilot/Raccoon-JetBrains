@@ -329,14 +329,14 @@ class SenseCodeClient : CodeClient() {
     companion object {
         const val CLIENT_NAME = "sensecode"
 
-        const val BASE_API = "https://code-api.sensetime.com"
+        const val BASE_API = "https://raccoon-api.sensetime.com"
         const val BASE_API_DEV = "http://code-dev-api.sensetime.com"
         const val BASE_API_TEST = "http://code-test-api.sensetime.com"
 
         private const val API_LLM_COMPLETIONS = "/api/plugin/nova/v1/proxy/v1/llm/completions"
         private const val API_LLM_CHAT_COMPLETIONS = "/api/plugin/nova/v1/proxy/v1/llm/chat-completions"
-        private const val PTC_CODE_S_MODEL_NAME = "nova-ptc-s-v1-codecompletion"
-        private const val PTC_CODE_L_MODEL_NAME = "nova-ptc-l-v1-code"
+        private const val PTC_CODE_S_MODEL_NAME = "SenseChat-CodeCompletion-Lite"
+        private const val PTC_CODE_L_MODEL_NAME = "SenseChat-Code"
 
         private var accessTokenCredentials: Credentials?
             get() = RaccoonCredentialsManager.getAccessToken(CLIENT_NAME)
