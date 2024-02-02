@@ -20,7 +20,7 @@ Raccoon (<b>R</b>accoon is <b>A</b>nother <b>C</b>ode <b>CO</b>-pil<b>O</b>t <b>
 * [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=SenseTime.raccoon)
 * [JetBrains Plugin](https://plugins.jetbrains.com/plugin/23216-raccoon)
 
-通过 [raccoon.sensetime.com](https://raccoon.sensetime.com) 注册账号开始使用。
+通过 [raccoon.sensetime.com](https://raccoon.sensetime.com?utm_source=JetBrains%20IntelliJ%20IDEA) 注册账号开始使用。
 
 
 ## 账号管理/设置
