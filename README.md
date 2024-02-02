@@ -10,12 +10,17 @@ Raccoon (<b>R</b>accoon is <b>A</b>nother <b>C</b>ode <b>CO</b>-pil<b>O</b>t <b>
 
 ## 安装与注册
 
-可以从以下位置获取 Raccoon 插件：
+推荐您通过 IDE 自带的商店（Settings... -> Plugins -> Marketplace）搜索并安装 Raccoon 插件
+> 您可以参考下面演示动画在 IDE 上进行安装和卸载插件的操作
+
+![Raccoon-InstallAndUninstall](https://raw.githubusercontent.com/SenseTime-Copilot/Raccoon-JetBrains/main/media/Raccoon-InstallAndUninstall.gif)
+
+您也可以从以下位置获取 Raccoon 插件：
 
 * [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=SenseTime.raccoon)
 * [JetBrains Plugin](https://plugins.jetbrains.com/plugin/23216-raccoon)
 
-通过 [code.sensetime.com](https://code.sensetime.com) 注册账号开始使用。
+通过 [raccoon.sensetime.com](https://raccoon.sensetime.com) 注册账号开始使用。
 
 
 ## 账号管理/设置
