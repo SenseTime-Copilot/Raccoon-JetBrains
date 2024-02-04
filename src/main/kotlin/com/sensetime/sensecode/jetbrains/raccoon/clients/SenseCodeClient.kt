@@ -50,7 +50,7 @@ class SenseCodeClient : CodeClient() {
         val phone: String,
         val password: String,
         @SerialName("nation_code")
-        val nationCode: String = "86"
+        val nationCode: String
     )
 
     private fun encrypt(src: ByteArray): String = Cipher.getInstance("AES/CFB/NoPadding").let { cipher ->
@@ -81,8 +81,8 @@ class SenseCodeClient : CodeClient() {
     private fun cvtPassword(src: CharArray): String =
         ByteArray(src.size) { src[it].code.toByte() }.let { pwd -> encrypt(pwd).also { Arrays.fill(pwd, 0) } }
 
-    override suspend fun login(phone: String, password: CharArray) {
-        val loginData = LoginData(cvtPhone(phone), cvtPassword(password))
+    override suspend fun login(nationCode: String, phone: String, password: CharArray) {
+        val loginData = LoginData(cvtPhone(phone), cvtPassword(password), nationCode)
         val loginJsonString = RaccoonClientJson.encodeToString(LoginData.serializer(), loginData)
         okHttpClient.newCall(
             createRequestBuilderWithCommonHeader(getApiEndpoint("/api/plugin/auth/v1/login_with_password")).post(

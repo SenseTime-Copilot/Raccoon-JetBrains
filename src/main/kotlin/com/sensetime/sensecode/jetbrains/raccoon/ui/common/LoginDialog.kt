@@ -1,12 +1,14 @@
 package com.sensetime.sensecode.jetbrains.raccoon.ui.common
 
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.ColorUtil
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.components.JBTextField
+import com.intellij.ui.dsl.builder.RightGap
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.dsl.gridLayout.HorizontalAlign
 import com.intellij.util.Urls.newFromEncoded
@@ -28,6 +30,7 @@ class LoginDialog(
 ) : DialogWrapper(
     project, parent, false, IdeModalityType.PROJECT
 ) {
+    private var phoneNationCodeComboBox: ComboBox<String>? = null
     private var phoneField: JBTextField? = null
     private var passwordField: JBPasswordField? = null
 
@@ -78,7 +81,7 @@ class LoginDialog(
         loginJob = RaccoonClientManager.launchClientJob {
             kotlin.runCatching {
                 passwordField!!.password.let { pwd ->
-                    it.login(phoneField!!.text, pwd)
+                    it.login((phoneNationCodeComboBox!!.selectedItem as String).trimStart('+'), phoneField!!.text, pwd)
                     Arrays.fill(pwd, '0')
                 }
             }.let { result ->
@@ -99,7 +102,8 @@ class LoginDialog(
     }
 
     override fun createCenterPanel(): JComponent = panel {
-        row(RaccoonBundle.message("login.dialog.label.phone") + " +86") {
+        row(RaccoonBundle.message("login.dialog.label.phone")) {
+            phoneNationCodeComboBox = comboBox(listOf("+86", "+852", "+853")).gap(RightGap.SMALL).component
             phoneField = textField().validationOnApply {
                 if (PHONE_NUMBER_LENGTH != it.text.length) {
                     error(
@@ -151,10 +155,12 @@ class LoginDialog(
         }
         row {
             val webBaseUrl: String = RaccoonClientManager.currentCodeClient.webBaseUrl!!
-            comment(RaccoonBundle.message("login.dialog.text.signup",
-                newFromEncoded("$webBaseUrl/register").addParameters(mapOf("utm_source" to "JetBrains ${RaccoonPlugin.ideName}"))
-                    .toExternalForm()
-            )
+            comment(
+                RaccoonBundle.message(
+                    "login.dialog.text.signup",
+                    newFromEncoded("$webBaseUrl/register").addParameters(mapOf("utm_source" to "JetBrains ${RaccoonPlugin.ideName}"))
+                        .toExternalForm()
+                )
             )
             comment(
                 RaccoonBundle.message(
