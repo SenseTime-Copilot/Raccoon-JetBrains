@@ -3,6 +3,7 @@ package com.sensetime.sensecode.jetbrains.raccoon.clients.models
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.tasks.*
+import kotlin.math.min
 
 object PenroseModels {
     @JvmStatic
@@ -16,7 +17,7 @@ object PenroseModels {
         mapOf(
             ModelConfig.CompletionPreference.SPEED_PRIORITY to 128,
             ModelConfig.CompletionPreference.BALANCED to 256,
-            ModelConfig.CompletionPreference.BEST_EFFORT to (tokenLimit - maxInputTokens)
+            ModelConfig.CompletionPreference.BEST_EFFORT to min(1024, (tokenLimit - maxInputTokens))
         ), promptTemplates, systemPrompt, roleMap
     )
 
