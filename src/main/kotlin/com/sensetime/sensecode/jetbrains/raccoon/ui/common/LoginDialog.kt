@@ -105,7 +105,7 @@ class LoginDialog(
         row(RaccoonBundle.message("login.dialog.label.phone")) {
             phoneNationCodeComboBox = comboBox(listOf("+86", "+852", "+853")).gap(RightGap.SMALL).component
             phoneField = textField().validationOnApply {
-                if (it.text.length < MIN_PHONE_NUMBER_LENGTH) {
+                if (it.text.length !in MIN_PHONE_NUMBER_LENGTH..MAX_PHONE_NUMBER_LENGTH) {
                     error(
                         RaccoonBundle.message(
                             "login.dialog.input.validation.invalid",
@@ -137,13 +137,24 @@ class LoginDialog(
                     Arrays.fill(pwd, '0')
                     pwd.size
                 }
-                if (length < MIN_PASSWORD_LENGTH) error(
-                    RaccoonBundle.message(
-                        "login.dialog.input.validation.tooShort",
-                        RaccoonBundle.message("login.dialog.label.password"),
-                        MIN_PASSWORD_LENGTH
+                if (length < MIN_PASSWORD_LENGTH) {
+                    error(
+                        RaccoonBundle.message(
+                            "login.dialog.input.validation.tooShort",
+                            RaccoonBundle.message("login.dialog.label.password"),
+                            MIN_PASSWORD_LENGTH
+                        )
                     )
-                ) else null
+                } else if (length > MAX_PASSWORD_LENGTH) {
+                    error(
+                        RaccoonBundle.message(
+                            "login.dialog.input.validation.invalid",
+                            RaccoonBundle.message("login.dialog.label.password")
+                        )
+                    )
+                } else {
+                    null
+                }
             }.horizontalAlign(HorizontalAlign.FILL).component.apply {
                 document.addDocumentListener(object : DocumentAdapter() {
                     override fun textChanged(e: DocumentEvent) {
@@ -175,6 +186,8 @@ class LoginDialog(
 
     companion object {
         private const val MIN_PASSWORD_LENGTH = 8
+        private const val MAX_PASSWORD_LENGTH = 1024
         private const val MIN_PHONE_NUMBER_LENGTH = 6
+        private const val MAX_PHONE_NUMBER_LENGTH = 32
     }
 }
