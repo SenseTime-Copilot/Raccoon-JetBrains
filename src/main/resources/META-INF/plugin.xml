@@ -6,7 +6,7 @@
 
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.lang</depends>
-    <resource-bundle>i18n.messages</resource-bundle>
+    <resource-bundle>messages.RaccoonBundle</resource-bundle>
 
     <applicationListeners>
         <listener class="com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager$CredentialsListener"

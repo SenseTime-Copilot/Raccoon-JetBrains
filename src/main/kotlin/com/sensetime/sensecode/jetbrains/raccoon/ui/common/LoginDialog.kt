@@ -1,12 +1,14 @@
 package com.sensetime.sensecode.jetbrains.raccoon.ui.common
 
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.ColorUtil
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.components.JBTextField
+import com.intellij.ui.dsl.builder.RightGap
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.dsl.gridLayout.HorizontalAlign
 import com.intellij.util.Urls.newFromEncoded
@@ -28,6 +30,7 @@ class LoginDialog(
 ) : DialogWrapper(
     project, parent, false, IdeModalityType.PROJECT
 ) {
+    private var phoneNationCodeComboBox: ComboBox<String>? = null
     private var phoneField: JBTextField? = null
     private var passwordField: JBPasswordField? = null
 
@@ -78,7 +81,7 @@ class LoginDialog(
         loginJob = RaccoonClientManager.launchClientJob {
             kotlin.runCatching {
                 passwordField!!.password.let { pwd ->
-                    it.login(phoneField!!.text, pwd)
+                    it.login((phoneNationCodeComboBox!!.selectedItem as String).trimStart('+'), phoneField!!.text, pwd)
                     Arrays.fill(pwd, '0')
                 }
             }.let { result ->
@@ -99,14 +102,14 @@ class LoginDialog(
     }
 
     override fun createCenterPanel(): JComponent = panel {
-        row(RaccoonBundle.message("login.dialog.label.phone") + " +86") {
+        row(RaccoonBundle.message("login.dialog.label.phone")) {
+            phoneNationCodeComboBox = comboBox(listOf("+86", "+852", "+853")).gap(RightGap.SMALL).component
             phoneField = textField().validationOnApply {
-                if (PHONE_NUMBER_LENGTH != it.text.length) {
+                if (it.text.length !in MIN_PHONE_NUMBER_LENGTH..MAX_PHONE_NUMBER_LENGTH) {
                     error(
                         RaccoonBundle.message(
-                            "login.dialog.input.validation.length",
-                            RaccoonBundle.message("login.dialog.label.phone"),
-                            PHONE_NUMBER_LENGTH
+                            "login.dialog.input.validation.invalid",
+                            RaccoonBundle.message("login.dialog.label.phone")
                         )
                     )
                 } else if (it.text.any { c -> !c.isDigit() }) {
@@ -134,13 +137,24 @@ class LoginDialog(
                     Arrays.fill(pwd, '0')
                     pwd.size
                 }
-                if (length < MIN_PASSWORD_LENGTH) error(
-                    RaccoonBundle.message(
-                        "login.dialog.input.validation.tooShort",
-                        RaccoonBundle.message("login.dialog.label.password"),
-                        MIN_PASSWORD_LENGTH
+                if (length < MIN_PASSWORD_LENGTH) {
+                    error(
+                        RaccoonBundle.message(
+                            "login.dialog.input.validation.tooShort",
+                            RaccoonBundle.message("login.dialog.label.password"),
+                            MIN_PASSWORD_LENGTH
+                        )
                     )
-                ) else null
+                } else if (length > MAX_PASSWORD_LENGTH) {
+                    error(
+                        RaccoonBundle.message(
+                            "login.dialog.input.validation.invalid",
+                            RaccoonBundle.message("login.dialog.label.password")
+                        )
+                    )
+                } else {
+                    null
+                }
             }.horizontalAlign(HorizontalAlign.FILL).component.apply {
                 document.addDocumentListener(object : DocumentAdapter() {
                     override fun textChanged(e: DocumentEvent) {
@@ -151,10 +165,12 @@ class LoginDialog(
         }
         row {
             val webBaseUrl: String = RaccoonClientManager.currentCodeClient.webBaseUrl!!
-            comment(RaccoonBundle.message("login.dialog.text.signup",
-                newFromEncoded("$webBaseUrl/register").addParameters(mapOf("utm_source" to "JetBrains ${RaccoonPlugin.ideName}"))
-                    .toExternalForm()
-            )
+            comment(
+                RaccoonBundle.message(
+                    "login.dialog.text.signup",
+                    newFromEncoded("$webBaseUrl/register").addParameters(mapOf("utm_source" to "JetBrains ${RaccoonPlugin.ideName}"))
+                        .toExternalForm()
+                )
             )
             comment(
                 RaccoonBundle.message(
@@ -170,6 +186,8 @@ class LoginDialog(
 
     companion object {
         private const val MIN_PASSWORD_LENGTH = 8
-        private const val PHONE_NUMBER_LENGTH = 11
+        private const val MAX_PASSWORD_LENGTH = 1024
+        private const val MIN_PHONE_NUMBER_LENGTH = 6
+        private const val MAX_PHONE_NUMBER_LENGTH = 32
     }
 }

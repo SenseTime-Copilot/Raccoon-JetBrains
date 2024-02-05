@@ -6,7 +6,7 @@ import org.jetbrains.annotations.NonNls
 import org.jetbrains.annotations.PropertyKey
 
 @NonNls
-private const val BUNDLE = "i18n.messages"
+private const val BUNDLE = "messages.RaccoonBundle"
 
 object RaccoonBundle {
     private val bundle = DynamicBundle(RaccoonBundle::class.java, BUNDLE)
