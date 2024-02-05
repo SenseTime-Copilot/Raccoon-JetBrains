@@ -105,12 +105,11 @@ class LoginDialog(
         row(RaccoonBundle.message("login.dialog.label.phone")) {
             phoneNationCodeComboBox = comboBox(listOf("+86", "+852", "+853")).gap(RightGap.SMALL).component
             phoneField = textField().validationOnApply {
-                if (PHONE_NUMBER_LENGTH != it.text.length) {
+                if (it.text.length < MIN_PHONE_NUMBER_LENGTH) {
                     error(
                         RaccoonBundle.message(
-                            "login.dialog.input.validation.length",
-                            RaccoonBundle.message("login.dialog.label.phone"),
-                            PHONE_NUMBER_LENGTH
+                            "login.dialog.input.validation.invalid",
+                            RaccoonBundle.message("login.dialog.label.phone")
                         )
                     )
                 } else if (it.text.any { c -> !c.isDigit() }) {
@@ -176,6 +175,6 @@ class LoginDialog(
 
     companion object {
         private const val MIN_PASSWORD_LENGTH = 8
-        private const val PHONE_NUMBER_LENGTH = 11
+        private const val MIN_PHONE_NUMBER_LENGTH = 6
     }
 }
