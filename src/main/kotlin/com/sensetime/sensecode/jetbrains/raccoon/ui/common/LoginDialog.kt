@@ -16,6 +16,7 @@ import com.intellij.util.ui.UIUtil
 import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
+import com.sensetime.sensecode.jetbrains.raccoon.utils.ifNullOrBlankElse
 import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
 import kotlinx.coroutines.Job
 import java.awt.Component
@@ -164,18 +165,22 @@ class LoginDialog(
             }
         }
         row {
-            val webBaseUrl: String = RaccoonClientManager.currentCodeClient.webBaseUrl!!
+            val loginBaseUrl = "${RaccoonClientManager.currentCodeClient.webBaseUrl!!}/login"
+            val loginBaseParameters: Map<String, String> = mapOf("utm_source" to "JetBrains ${RaccoonPlugin.ideName}")
+            // trick for lang in <a> url will parse to %E2%8C%A9
+            val loginUrlLang: String =
+                RaccoonBundle.message("login.dialog.link.web.lang").ifNullOrBlankElse("") { "&amp;lang=$it" }
             comment(
                 RaccoonBundle.message(
                     "login.dialog.text.signup",
-                    newFromEncoded("$webBaseUrl/register").addParameters(mapOf("utm_source" to "JetBrains ${RaccoonPlugin.ideName}"))
-                        .toExternalForm()
+                    newFromEncoded(loginBaseUrl).addParameters(loginBaseParameters).toExternalForm() + loginUrlLang
                 )
             )
             comment(
                 RaccoonBundle.message(
                     "login.dialog.text.forgotPassword",
-                    "$webBaseUrl/reset-password"
+                    newFromEncoded(loginBaseUrl).addParameters(loginBaseParameters + Pair("step", "forgot-password"))
+                        .toExternalForm() + loginUrlLang
                 )
             ).horizontalAlign(HorizontalAlign.RIGHT)
         }
