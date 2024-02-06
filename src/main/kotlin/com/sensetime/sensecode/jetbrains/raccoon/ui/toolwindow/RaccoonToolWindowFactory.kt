@@ -8,6 +8,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
+import com.intellij.util.Urls
 import com.sensetime.sensecode.jetbrains.raccoon.clients.CodeClient
 import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.CodeRequest
@@ -18,6 +19,8 @@ import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSett
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.topics.*
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.RaccoonUIUtils
+import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
+import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
 import kotlinx.coroutines.Job
 import java.awt.event.ActionEvent
 import java.awt.event.MouseEvent
@@ -96,7 +99,14 @@ class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
             }
 
             override fun onGotoHelpContent(e: ActionEvent?) {
-                BrowserUtil.browse("https://github.com/SenseTime-Copilot/Raccoon-JetBrains/blob/main/README.md")
+                BrowserUtil.browse(
+                    Urls.newFromEncoded("https://raccoon.sensetime.com/code/docs")
+                        .addParameters(buildMap<String, String> {
+                            put("ide", "jetBrains")
+                            put("utm_source", "JetBrains ${RaccoonPlugin.ideName}")
+                            RaccoonBundle.message("login.dialog.link.web.lang").letIfNotBlank { put("lang", it) }
+                        }).toExternalForm()
+                )
             }
         }
 

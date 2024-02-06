@@ -22,10 +22,10 @@ object PenroseModels {
     )
 
     @JvmStatic
-    private fun createModelSCodeTaskPrompt(taskType: String, custom: String = ""): ModelConfig.DisplayTextTemplate =
+    private fun createModelSCodeTaskPrompt(taskType: String, text: String): ModelConfig.DisplayTextTemplate =
         ModelConfig.DisplayTextTemplate(
-            "\n### Instruction:\nTask type: ${taskType}. ${RaccoonBundle.message("completions.task.prompt.penrose.explanation")}.${custom}\n\n### Input:\n${ModelConfig.DisplayTextTemplate.markdownCodeTemplate}\n",
-            "### $taskType\n${custom}\n${ModelConfig.DisplayTextTemplate.markdownCodeTemplate}\n"
+            "$text\n\n${ModelConfig.DisplayTextTemplate.markdownCodeTemplate}",
+            "### $taskType\n${text}\n${ModelConfig.DisplayTextTemplate.markdownCodeTemplate}"
         )
 
     @JvmStatic
@@ -56,17 +56,29 @@ object PenroseModels {
         name, 0.4f, stop, maxInputTokens, tokenLimit,
         mapOf(
             ModelConfig.FREE_CHAT to ModelConfig.DisplayTextTemplate(ModelConfig.DisplayTextTemplate.textExpression),
-            CodeTaskActionBase.getActionKey(Generation::class) to createModelSCodeTaskPrompt("code generation"),
-            CodeTaskActionBase.getActionKey(AddTest::class) to createModelSCodeTaskPrompt("test sample generation"),
+            CodeTaskActionBase.getActionKey(Generation::class) to createModelSCodeTaskPrompt(
+                RaccoonBundle.message("action.com.sensetime.sensecode.jetbrains.raccoon.tasks.Generation.text"),
+                RaccoonBundle.message("completions.task.prompt.penrose.Generation")
+            ),
+            CodeTaskActionBase.getActionKey(AddTest::class) to createModelSCodeTaskPrompt(
+                RaccoonBundle.message("action.com.sensetime.sensecode.jetbrains.raccoon.tasks.AddTest.text"),
+                RaccoonBundle.message("completions.task.prompt.penrose.AddTest")
+            ),
             CodeTaskActionBase.getActionKey(CodeConversion::class) to createModelSCodeTaskPrompt(
-                "code language conversion",
+                RaccoonBundle.message("action.com.sensetime.sensecode.jetbrains.raccoon.tasks.CodeConversion.text"),
                 RaccoonBundle.message(
-                    "completions.task.prompt.penrose.language.convert",
+                    "completions.task.prompt.penrose.CodeConversion",
                     CodeConversion.dstLanguageExpression
                 )
             ),
-            CodeTaskActionBase.getActionKey(CodeCorrection::class) to createModelSCodeTaskPrompt("code error correction"),
-            CodeTaskActionBase.getActionKey(Refactoring::class) to createModelSCodeTaskPrompt("code refactoring and optimization")
+            CodeTaskActionBase.getActionKey(CodeCorrection::class) to createModelSCodeTaskPrompt(
+                RaccoonBundle.message("action.com.sensetime.sensecode.jetbrains.raccoon.tasks.CodeCorrection.text"),
+                RaccoonBundle.message("completions.task.prompt.penrose.CodeCorrection")
+            ),
+            CodeTaskActionBase.getActionKey(Refactoring::class) to createModelSCodeTaskPrompt(
+                RaccoonBundle.message("action.com.sensetime.sensecode.jetbrains.raccoon.tasks.Refactoring.text"),
+                RaccoonBundle.message("completions.task.prompt.penrose.Refactoring")
+            )
         ) + promptTemplates, systemPrompt, roleMap
     )
 }
