@@ -304,6 +304,7 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
                 if (isRegenerate) {
                     setElementAt(items.last().toPromptConversation(), items.lastIndex)
                 }
+                gotoEnd()
                 listener.onSubmit(e, items, this@ChatContentPanel::endGenerate)
             }
         }
