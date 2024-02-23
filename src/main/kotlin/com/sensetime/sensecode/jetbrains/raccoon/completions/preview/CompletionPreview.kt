@@ -20,7 +20,8 @@ import com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonNotification
 
 class CompletionPreview private constructor(
     tmpEditor: Editor,
-    private val offset: Int
+    private val offset: Int,
+    private val language: String
 ) : RaccoonEditorChangedListener, Disposable {
     private var currentIndex: Int = 0
         set(value) {
@@ -48,11 +49,16 @@ class CompletionPreview private constructor(
     var done: Boolean = false
         set(value) {
             field = value
-            if (value && currentCompletion.isNullOrEmpty()) {
-                RaccoonNotification.popupNoCompletionSuggestionMessage(
-                    editor,
-                    RaccoonSettingsState.instance.isAutoCompleteMode
-                )
+            if (value) {
+                if (currentCompletion.isNullOrEmpty()) {
+                    RaccoonNotification.popupNoCompletionSuggestionMessage(
+                        editor,
+                        RaccoonSettingsState.instance.isAutoCompleteMode
+                    )
+                } else {
+                    ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_STATISTICS_TOPIC)
+                        .onInlineCompletionFinished(language)
+                }
             }
         }
     private var editorChangedMessageBusConnection: SimpleMessageBusConnection? = null
@@ -141,13 +147,13 @@ class CompletionPreview private constructor(
             val tmpEditor = editor
             cancel()
             tmpEditor?.let {
-                currentCompletion?.let { completion ->
+                currentCompletion?.takeIf { it.isNotEmpty() }?.let { completion ->
                     it.document.insertString(offset, completion)
                     it.caretModel.moveToOffset(offset + completion.length)
+                    ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_STATISTICS_TOPIC)
+                        .onInlineCompletionAccepted(language)
                 }
             }
-            ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_STATISTICS_TOPIC)
-                .onInlineCompletionAccepted()
         }
     }
 
@@ -160,9 +166,9 @@ class CompletionPreview private constructor(
         }
 
         @JvmStatic
-        fun createInstance(editor: Editor, offset: Int): CompletionPreview {
+        fun createInstance(editor: Editor, offset: Int, language: String): CompletionPreview {
             getInstance(editor)?.cancel()
-            return CompletionPreview(editor, offset)
+            return CompletionPreview(editor, offset, language)
         }
     }
 }

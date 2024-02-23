@@ -6,10 +6,17 @@ import com.intellij.util.messages.Topic
 val RACCOON_STATISTICS_TOPIC = Topic.create("RaccoonStatisticsTopic", RaccoonStatisticsListener::class.java)
 
 interface RaccoonStatisticsListener {
-    fun onToolWindowRequest()
-    fun onToolWindowResponseCode()
-    fun onToolWindowCodeAccepted()
+    fun onGenerateGitCommitMessageFinished()
 
-    fun onInlineCompletionRequest()
-    fun onInlineCompletionAccepted()
+    fun onInlineCompletionFinished(language: String)
+    fun onInlineCompletionAccepted(language: String)
+
+    fun onToolWindowNewSession()
+    fun onToolWindowQuestionSubmitted()
+    fun onToolWindowAnswerFinished()
+    fun onToolWindowRegenerateFinished()
+
+    fun onToolWindowCodeGenerated(language: List<String>)
+    fun onToolWindowCodeCopied(language: String)
+    fun onToolWindowCodeInserted(language: String)
 }

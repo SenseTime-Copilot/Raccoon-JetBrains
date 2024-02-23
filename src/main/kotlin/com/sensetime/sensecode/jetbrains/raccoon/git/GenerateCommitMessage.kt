@@ -2,6 +2,7 @@ package com.sensetime.sensecode.jetbrains.raccoon.git
 
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diff.impl.patch.BinaryFilePatch
 import com.intellij.openapi.diff.impl.patch.IdeaTextPatchBuilder
 import com.intellij.openapi.diff.impl.patch.UnifiedDiffWriter
@@ -22,6 +23,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.CodeStreamRes
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
+import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_STATISTICS_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonNotification
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.invokeOnUIThreadLater
 import com.sensetime.sensecode.jetbrains.raccoon.utils.takeIfNotBlank
@@ -175,6 +177,9 @@ class GenerateCommitMessage : AnAction() {
                             when (streamResponse) {
                                 CodeStreamResponse.Done -> if (commitPanel.commitMessage.isNotBlank()) {
                                     showSuccessMessage(e, RaccoonBundle.message("git.commit.success.generatedDone"))
+                                    ApplicationManager.getApplication().messageBus.syncPublisher(
+                                        RACCOON_STATISTICS_TOPIC
+                                    ).onGenerateGitCommitMessageFinished()
                                 }
 
                                 is CodeStreamResponse.Error -> showErrorMessage(e, streamResponse.error)

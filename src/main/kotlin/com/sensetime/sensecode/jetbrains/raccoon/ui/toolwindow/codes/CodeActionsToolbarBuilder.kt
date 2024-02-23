@@ -10,10 +10,10 @@ import com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindow.codes.actions.Ins
 import com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindow.codes.actions.ToggleSoftWrapAction
 
 class CodeActionsToolbarBuilder {
-    fun build(editor: EditorEx): ActionToolbar = DefaultCompactActionGroup().apply {
+    fun build(editor: EditorEx, language: String): ActionToolbar = DefaultCompactActionGroup().apply {
         add(ToggleSoftWrapAction(editor))
-        add(CopyToClipboardAction(editor))
-        add(InsertedAtCursorAction(editor))
+        add(CopyToClipboardAction(editor, language))
+        add(InsertedAtCursorAction(editor, language))
     }.let {
         ActionManager.getInstance().createActionToolbar(ActionPlaces.NAVIGATION_BAR_TOOLBAR, it, true)
     }.apply {

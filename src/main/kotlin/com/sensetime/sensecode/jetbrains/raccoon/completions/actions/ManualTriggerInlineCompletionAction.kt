@@ -24,7 +24,6 @@ import com.sensetime.sensecode.jetbrains.raccoon.completions.preview.CompletionP
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.tasks.CodeTaskActionBase
-import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_STATISTICS_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.RaccoonUIUtils
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonLanguages
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
@@ -69,8 +68,9 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
                     if (!isWhiteSpacePsi(psiElement) && psiElement.text.length <= 16) {
                         caretOffset = psiElement.endOffset
                     }
+                    val language = RaccoonLanguages.getMarkdownLanguageFromPsiFile(psiFile)
                     val completionPreview =
-                        CompletionPreview.createInstance(editor, caretOffset)
+                        CompletionPreview.createInstance(editor, caretOffset, language)
 
                     val settings = RaccoonSettingsState.instance
                     val n = settings.candidates
@@ -85,7 +85,7 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
                             psiElement,
                             caretOffset - psiElement.textOffset,
                             modelConfig.maxInputTokens
-                        ).getMessages(RaccoonLanguages.getMarkdownLanguageFromPsiFile(psiFile), modelConfig),
+                        ).getMessages(language, modelConfig),
                         modelConfig.temperature,
                         n,
                         if (isSingleLine) "\n" else modelConfig.stop,
@@ -94,8 +94,6 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
                     )
                     RaccoonClientManager.launchClientJob {
                         try {
-                            ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_STATISTICS_TOPIC)
-                                .onInlineCompletionRequest()
                             if (n <= 1) {
                                 // stream
                                 client.requestStream(codeRequest) { streamResponse ->
