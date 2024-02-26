@@ -14,12 +14,9 @@ import com.sensetime.sensecode.jetbrains.raccoon.completions.preview.render.Grap
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
-import com.sensetime.sensecode.jetbrains.raccoon.statistics.RaccoonStatisticsServer
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.UserAuthorizationPanelBuilder
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonActionUtils
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
-import java.awt.Desktop
-import java.io.File
 import javax.swing.JComponent
 
 class RaccoonConfigurable : Configurable, Disposable {
@@ -95,16 +92,6 @@ class RaccoonConfigurable : Configurable, Disposable {
 
             row(RaccoonBundle.message("settings.group.InlineCompletion.ColorForCompletions.label")) {
                 cell(inlineCompletionColorPanel)
-            }
-        }
-        if (RaccoonStatisticsServer.IS_ENABLE) {
-            row {
-                label(RaccoonBundle.message("settings.group.statistics.label")).gap(RightGap.COLUMNS)
-                button(RaccoonBundle.message("settings.group.statistics.button.export")) {
-                    kotlin.runCatching {
-                        Desktop.getDesktop().open(File(RaccoonStatisticsServer.rootDir))
-                    }
-                }
             }
         }
     }

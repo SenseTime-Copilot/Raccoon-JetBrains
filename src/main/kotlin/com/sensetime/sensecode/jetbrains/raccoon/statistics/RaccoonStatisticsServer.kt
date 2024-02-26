@@ -1,145 +1,215 @@
 package com.sensetime.sensecode.jetbrains.raccoon.statistics
 
+import com.intellij.ide.util.RunOnceUtil
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.PathManager
+import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.service
+import com.intellij.openapi.diagnostic.debug
+import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.diagnostic.trace
+import com.intellij.util.messages.MessageBusConnection
+import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
+import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.BehaviorMetrics
+import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.CodeCompletionAcceptUsage
+import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.DialogCodeAcceptUsage
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_STATISTICS_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonStatisticsListener
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils
-import com.sensetime.sensecode.jetbrains.raccoon.utils.ifNullOrBlank
-import com.sensetime.sensecode.jetbrains.raccoon.utils.takeIfNotBlank
-import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.launch
-import java.io.BufferedReader
-import java.io.File
-import java.io.FileReader
-import java.io.FileWriter
-import java.nio.charset.Charset
-import java.nio.charset.StandardCharsets
-import java.text.SimpleDateFormat
-import java.util.*
-import kotlin.coroutines.cancellation.CancellationException
-import kotlin.io.path.Path
 
-object RaccoonStatisticsServer : RaccoonStatisticsListener {
-    private enum class UsagesType(val columnIndex: Int) {
-        TOOLWINDOW_REQUEST(0),
-        TOOLWINDOW_RESPONSE_CODE(1),
-        TOOLWINDOW_CODE_ACCEPTED(2),
-        INLINE_COMPLETION_REQUEST(4),
-        INLINE_COMPLETION_ACCEPTED(5),
+
+private val LOG = logger<RaccoonStatisticsServer>()
+
+@Service(Service.Level.APP)
+class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
+    private var cachedStatisticsCount: Int = 0
+    private var lastUploadTimeMs: Long = RaccoonUtils.getSteadyTimestampMs()
+    private var lastBehaviorMetrics: BehaviorMetrics = BehaviorMetrics()
+    private val metricsChannel = Channel<BehaviorMetrics>(Channel.UNLIMITED)
+    private var statisticsMessageBusConnection: MessageBusConnection? = null
+
+    private var timerJob: Job? = null
+    private var uploadJob: Job? = null
+    private val statisticsCoroutineScope: CoroutineScope =
+        CoroutineScope(SupervisorJob() + Dispatchers.IO + CoroutineName("RaccoonStatisticsServer"))
+
+    companion object {
+        @JvmStatic
+        fun getInstance(): RaccoonStatisticsServer = service()
+
+        private const val MAX_CACHE_COUNT: Int = 1000
+        private const val MAX_INTERVAL_MS: Long = 3600L * 1000L
     }
 
-    const val IS_ENABLE: Boolean = false
-    val rootDir: String = Path(PathManager.getLogPath(), "raccoon", "statistics").toString()
-    private val fileCharset: Charset = StandardCharsets.UTF_8
-    private val usagesChannel = Channel<Int>(Channel.UNLIMITED)
-    private fun getDateString(): String = SimpleDateFormat("yyyy-MM-dd").format(Date())
-    private const val HEADER =
-        "日期, 用户名, 代码对话次数, 代码对话-代码生成次数, 代码对话-复制次数, 代码对话-收藏次数, 代码对话-今日代码采用率, 代码补全次数, 代码采用次数, 代码补全-今日代码采用率\n"
+    fun onProjectOpened() {
+        RunOnceUtil.runOnceForApp(RaccoonStatisticsServer::class.qualifiedName!!, this::startTask)
+    }
 
-    fun launchStatisticsTask(coroutineScope: CoroutineScope) {
-        if (!IS_ENABLE) {
-            return
-        }
-        File(rootDir).mkdirs()
-        val usagesMessageBusConnection = ApplicationManager.getApplication().messageBus.connect().also {
+    fun onProjectClosed() {
+        updateBehaviorMetrics(true)
+    }
+
+    private fun startTask() {
+        LOG.trace { "startTask in" }
+        require(null == timerJob) { "startTask(timerJob) must run once only!" }
+        require(null == uploadJob) { "startTask(uploadJob) must run once only!" }
+        require(null == statisticsMessageBusConnection) { "startTask(statisticsMessageBusConnection) must run once only!" }
+
+        statisticsMessageBusConnection = ApplicationManager.getApplication().messageBus.connect().also {
             it.subscribe(RACCOON_STATISTICS_TOPIC, this)
         }
-        coroutineScope.launch {
-            for (columnIndex in usagesChannel) {
+
+        timerJob = statisticsCoroutineScope.launch {
+            while (true) {
+                delay(MAX_INTERVAL_MS)
+                updateBehaviorMetrics()
+            }
+        }
+
+        uploadJob = statisticsCoroutineScope.launch {
+            for (metrics in metricsChannel) {
                 kotlin.runCatching {
-                    appendToColumnIndex(columnIndex)
+                    while (true) {
+                        LOG.debug { "start uploadBehaviorMetrics" }
+                        if (RaccoonClientManager.currentCodeClient.uploadBehaviorMetrics(metrics)) {
+                            LOG.debug { "run uploadBehaviorMetrics ok" }
+                            break
+                        }
+                        LOG.debug { "run uploadBehaviorMetrics failed" }
+                        delay(60000)
+                    }
+                    LOG.debug { "run uploadBehaviorMetrics finished" }
                 }.onFailure { e ->
                     if (e is CancellationException) {
+                        LOG.debug(e)
                         throw e
+                    } else {
+                        LOG.warn(e)
                     }
                 }
             }
-        }.invokeOnCompletion {
-            usagesMessageBusConnection.disconnect()
-            usagesChannel.close()
+            LOG.debug { "uploadJob finished" }
+        }
+        LOG.trace { "startTask out" }
+    }
+
+    override fun dispose() {
+        LOG.trace { "dispose in" }
+        timerJob?.cancel()
+        statisticsMessageBusConnection?.disconnect()
+        metricsChannel.close()
+        LOG.debug { "start wait uploadJob" }
+        runBlocking {
+            withTimeoutOrNull(3000L) {
+                uploadJob?.join()
+                LOG.debug { "uploadJob stopped ok" }
+            }
+        }
+        LOG.debug { "end wait uploadJob" }
+        statisticsCoroutineScope.cancel()
+        LOG.trace { "dispose out" }
+    }
+
+    private fun sendCurrentMetrics() {
+        if (cachedStatisticsCount >= 0) {
+            metricsChannel.trySend(lastBehaviorMetrics)
+            lastBehaviorMetrics = BehaviorMetrics()
+        }
+        cachedStatisticsCount = 0
+        lastUploadTimeMs = RaccoonUtils.getSteadyTimestampMs()
+    }
+
+    private fun updateBehaviorMetrics(
+        forceUpload: Boolean = false,
+        updateOnUIThread: ((BehaviorMetrics) -> Unit)? = null
+    ) {
+        ApplicationManager.getApplication().invokeLater {
+            updateOnUIThread?.let {
+                it.invoke(lastBehaviorMetrics)
+                cachedStatisticsCount += 1
+            }
+            if (forceUpload || (cachedStatisticsCount >= MAX_CACHE_COUNT) || ((RaccoonUtils.getSteadyTimestampMs() - lastUploadTimeMs) >= MAX_INTERVAL_MS)) {
+                sendCurrentMetrics()
+            }
         }
     }
 
-    private fun loadUsageFile(file: File): String? {
-        var fr: FileReader? = null
-        var br: BufferedReader? = null
-        val result: String? = kotlin.runCatching {
-            fr = FileReader(file, fileCharset)
-            br = BufferedReader(fr!!)
-            br?.readLines()?.getOrNull(1)
-        }.getOrNull()
-        fr?.close()
-        br?.close()
-        return result
-    }
-
-    private fun parseUsagesString(usagesString: String?): Pair<List<Int>, List<Float>> = kotlin.runCatching {
-        val expectedSize = 10
-        usagesString?.takeIfNotBlank()?.split(',')?.takeIf { it.size == expectedSize }?.map { it.trim() }?.run {
-            Pair((subList(2, 6) + subList(7, 9)).map { it.toInt() }, listOf(get(6), get(9)).map { it.toFloat() })
-        }!!
-    }.getOrDefault(Pair(listOf(0, 0, 0, 0, 0, 0), listOf(0F, 0F)))
-
-    private fun incrementColumnIndex(
-        usages: Pair<List<Int>, List<Float>>,
-        columnIndex: Int
-    ): Pair<List<Int>, List<Float>> {
-        val usagesCountList = usages.first.toMutableList()
-        val usagesRateList = usages.second.toMutableList()
-        usagesCountList[columnIndex] += 1
-        usagesCountList[UsagesType.TOOLWINDOW_RESPONSE_CODE.columnIndex].let {
-            usagesRateList[0] =
-                if (it <= 0) 0F else (usagesCountList[UsagesType.TOOLWINDOW_CODE_ACCEPTED.columnIndex].toFloat() / it.toFloat())
-        }
-        usagesCountList[UsagesType.INLINE_COMPLETION_REQUEST.columnIndex].let {
-            usagesRateList[1] =
-                if (it <= 0) 0F else (usagesCountList[UsagesType.INLINE_COMPLETION_ACCEPTED.columnIndex].toFloat() / it.toFloat())
-        }
-        return Pair(usagesCountList, usagesRateList)
-    }
-
-    private fun toUsagesString(date: String, pair: Pair<List<Int>, List<Float>>): String = HEADER +
-            (listOf(date, RaccoonUtils.machineID.ifNullOrBlank(RaccoonUtils.DEFAULT_MACHINE_ID)) + pair.first.subList(
-                0,
-                4
-            )
-                .map { "$it" } + pair.second[0] + pair.first.subList(4, 6)
-                .map { "$it" } + pair.second[1]).joinToString(", ")
-
-    private fun appendToColumnIndex(columnIndex: Int) {
-        var fw: FileWriter? = null
-        val date: String = requireNotNull(getDateString().takeIfNotBlank())
-        val file = File(requireNotNull(rootDir.takeIfNotBlank()), "${date}_usage.csv")
-        try {
-            val usagesString =
-                toUsagesString(date, incrementColumnIndex(parseUsagesString(loadUsageFile(file)), columnIndex))
-            File(rootDir).mkdirs()
-            fw = FileWriter(file, fileCharset)
-            fw.write(usagesString)
-        } finally {
-            fw?.close()
+    override fun onGenerateGitCommitMessageFinished() {
+        updateBehaviorMetrics {
+            it.commitMessageMetric.commitMessage.usageNumber += 1
         }
     }
 
-    override fun onToolWindowRequest() {
-        usagesChannel.trySend(UsagesType.TOOLWINDOW_REQUEST.columnIndex)
+    override fun onInlineCompletionFinished(language: String) {
+        updateBehaviorMetrics {
+            it.codeCompletionMetric.codeCompletionUsages.acceptUsagesMap.metricsMap.getOrDefault(
+                language,
+                CodeCompletionAcceptUsage()
+            ).generateNumber += 1
+        }
     }
 
-    override fun onToolWindowResponseCode() {
-        usagesChannel.trySend(UsagesType.TOOLWINDOW_RESPONSE_CODE.columnIndex)
+    override fun onInlineCompletionAccepted(language: String) {
+        updateBehaviorMetrics {
+            it.codeCompletionMetric.codeCompletionUsages.acceptUsagesMap.metricsMap.getOrDefault(
+                language,
+                CodeCompletionAcceptUsage()
+            ).acceptNumber += 1
+        }
     }
 
-    override fun onToolWindowCodeAccepted() {
-        usagesChannel.trySend(UsagesType.TOOLWINDOW_CODE_ACCEPTED.columnIndex)
+    override fun onToolWindowNewSession() {
+        updateBehaviorMetrics {
+            it.dialogMetric.dialogUsages.windowUsages.sessionNumber += 1
+        }
     }
 
-    override fun onInlineCompletionRequest() {
-        usagesChannel.trySend(UsagesType.INLINE_COMPLETION_REQUEST.columnIndex)
+    override fun onToolWindowQuestionSubmitted() {
+        updateBehaviorMetrics {
+            it.dialogMetric.dialogUsages.windowUsages.questionNumber += 1
+        }
     }
 
-    override fun onInlineCompletionAccepted() {
-        usagesChannel.trySend(UsagesType.INLINE_COMPLETION_ACCEPTED.columnIndex)
+    override fun onToolWindowAnswerFinished() {
+        updateBehaviorMetrics {
+            it.dialogMetric.dialogUsages.windowUsages.answerNumber += 1
+        }
+    }
+
+    override fun onToolWindowRegenerateFinished() {
+        updateBehaviorMetrics {
+            it.dialogMetric.dialogUsages.windowUsages.regenerateNumber += 1
+        }
+    }
+
+    override fun onToolWindowCodeGenerated(languages: List<String>) {
+        updateBehaviorMetrics {
+            for (language in languages) {
+                it.dialogMetric.dialogUsages.acceptUsagesMap.metricsMap.getOrDefault(
+                    language,
+                    DialogCodeAcceptUsage()
+                ).generateNumber += 1
+            }
+        }
+    }
+
+    override fun onToolWindowCodeCopied(language: String) {
+        updateBehaviorMetrics {
+            it.dialogMetric.dialogUsages.acceptUsagesMap.metricsMap.getOrDefault(
+                language,
+                DialogCodeAcceptUsage()
+            ).copyNumber += 1
+        }
+    }
+
+    override fun onToolWindowCodeInserted(language: String) {
+        updateBehaviorMetrics {
+            it.dialogMetric.dialogUsages.acceptUsagesMap.metricsMap.getOrDefault(
+                language,
+                DialogCodeAcceptUsage()
+            ).insertNumber += 1
+        }
     }
 }

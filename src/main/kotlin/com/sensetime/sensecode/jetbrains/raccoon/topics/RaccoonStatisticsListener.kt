@@ -16,7 +16,7 @@ interface RaccoonStatisticsListener {
     fun onToolWindowAnswerFinished()
     fun onToolWindowRegenerateFinished()
 
-    fun onToolWindowCodeGenerated(language: List<String>)
+    fun onToolWindowCodeGenerated(languages: List<String>)
     fun onToolWindowCodeCopied(language: String)
     fun onToolWindowCodeInserted(language: String)
 }
