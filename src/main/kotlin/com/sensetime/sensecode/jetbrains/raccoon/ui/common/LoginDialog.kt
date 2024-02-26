@@ -32,6 +32,7 @@ class LoginDialog(
     project, parent, false, IdeModalityType.PROJECT
 ) {
     private var phoneNationCodeComboBox: ComboBox<String>? = null
+    private var emailField: JBTextField? = null
     private var phoneField: JBTextField? = null
     private var passwordField: JBPasswordField? = null
 
@@ -82,7 +83,15 @@ class LoginDialog(
         loginJob = RaccoonClientManager.launchClientJob {
             kotlin.runCatching {
                 passwordField!!.password.let { pwd ->
-                    it.login((phoneNationCodeComboBox!!.selectedItem as String).trimStart('+'), phoneField!!.text, pwd)
+                    if (IS_TOB) {
+                        it.login(emailField!!.text, pwd)
+                    } else {
+                        it.login(
+                            (phoneNationCodeComboBox!!.selectedItem as String).trimStart('+'),
+                            phoneField!!.text,
+                            pwd
+                        )
+                    }
                     Arrays.fill(pwd, '0')
                 }
             }.let { result ->
@@ -103,34 +112,60 @@ class LoginDialog(
     }
 
     override fun createCenterPanel(): JComponent = panel {
-        row(RaccoonBundle.message("login.dialog.label.phone")) {
-            phoneNationCodeComboBox = comboBox(listOf("+86", "+852", "+853")).gap(RightGap.SMALL).component
-            phoneField = textField().validationOnApply {
-                if (it.text.length !in MIN_PHONE_NUMBER_LENGTH..MAX_PHONE_NUMBER_LENGTH) {
-                    error(
-                        RaccoonBundle.message(
-                            "login.dialog.input.validation.invalid",
-                            RaccoonBundle.message("login.dialog.label.phone")
+        if (IS_TOB) {
+            row(RaccoonBundle.message("login.dialog.label.email")) {
+                emailField = textField().validationOnApply {
+                    val atIndex = it.text.indexOf('@')
+                    val dotIndex = it.text.indexOf('.')
+                    if ((atIndex < 1) || (dotIndex <= (atIndex + 1)) || (dotIndex >= it.text.lastIndex)) {
+                        error(
+                            RaccoonBundle.message(
+                                "login.dialog.input.validation.invalid",
+                                RaccoonBundle.message("login.dialog.label.email")
+                            )
                         )
-                    )
-                } else if (it.text.any { c -> !c.isDigit() }) {
-                    error(
-                        RaccoonBundle.message(
-                            "login.dialog.input.validation.onlyDigits",
-                            RaccoonBundle.message("login.dialog.label.phone")
-                        )
-                    )
-                } else {
-                    null
-                }
-            }.horizontalAlign(HorizontalAlign.FILL).component.apply {
-                document.addDocumentListener(object : DocumentAdapter() {
-                    override fun textChanged(e: DocumentEvent) {
-                        loginErrorText = null
+                    } else {
+                        null
                     }
-                })
+                }.horizontalAlign(HorizontalAlign.FILL).component.apply {
+                    document.addDocumentListener(object : DocumentAdapter() {
+                        override fun textChanged(e: DocumentEvent) {
+                            loginErrorText = null
+                        }
+                    })
+                }
+            }
+        } else {
+            row(RaccoonBundle.message("login.dialog.label.phone")) {
+                phoneNationCodeComboBox = comboBox(listOf("+86", "+852", "+853")).gap(RightGap.SMALL).component
+                phoneField = textField().validationOnApply {
+                    if (it.text.length !in MIN_PHONE_NUMBER_LENGTH..MAX_PHONE_NUMBER_LENGTH) {
+                        error(
+                            RaccoonBundle.message(
+                                "login.dialog.input.validation.invalid",
+                                RaccoonBundle.message("login.dialog.label.phone")
+                            )
+                        )
+                    } else if (it.text.any { c -> !c.isDigit() }) {
+                        error(
+                            RaccoonBundle.message(
+                                "login.dialog.input.validation.onlyDigits",
+                                RaccoonBundle.message("login.dialog.label.phone")
+                            )
+                        )
+                    } else {
+                        null
+                    }
+                }.horizontalAlign(HorizontalAlign.FILL).component.apply {
+                    document.addDocumentListener(object : DocumentAdapter() {
+                        override fun textChanged(e: DocumentEvent) {
+                            loginErrorText = null
+                        }
+                    })
+                }
             }
         }
+
         row(RaccoonBundle.message("login.dialog.label.password")) {
             passwordField = cell(JBPasswordField()).validationOnApply {
                 val length = it.password.let { pwd ->
@@ -164,25 +199,39 @@ class LoginDialog(
                 })
             }
         }
-        row {
-            val loginBaseUrl = "${RaccoonClientManager.currentCodeClient.webBaseUrl!!}/login"
-            val loginBaseParameters: Map<String, String> = mapOf("utm_source" to "JetBrains ${RaccoonPlugin.ideName}")
-            // trick for lang in <a> url will parse to %E2%8C%A9
-            val loginUrlLang: String =
-                RaccoonBundle.message("login.dialog.link.web.lang").ifNullOrBlankElse("") { "&amp;lang=$it" }
-            comment(
-                RaccoonBundle.message(
-                    "login.dialog.text.signup",
-                    newFromEncoded(loginBaseUrl).addParameters(loginBaseParameters).toExternalForm() + loginUrlLang
+        if (IS_TOB) {
+            row {
+                comment(
+                    RaccoonBundle.message("login.dialog.text.forgotPassword.toB")
+                ).horizontalAlign(HorizontalAlign.RIGHT)
+            }
+        } else {
+            row {
+                val loginBaseUrl = "${RaccoonClientManager.currentCodeClient.webBaseUrl!!}/login"
+                val loginBaseParameters: Map<String, String> =
+                    mapOf("utm_source" to "JetBrains ${RaccoonPlugin.ideName}")
+                // trick for lang in <a> url will parse to %E2%8C%A9
+                val loginUrlLang: String =
+                    RaccoonBundle.message("login.dialog.link.web.lang").ifNullOrBlankElse("") { "&amp;lang=$it" }
+                comment(
+                    RaccoonBundle.message(
+                        "login.dialog.text.signup",
+                        newFromEncoded(loginBaseUrl).addParameters(loginBaseParameters).toExternalForm() + loginUrlLang
+                    )
                 )
-            )
-            comment(
-                RaccoonBundle.message(
-                    "login.dialog.text.forgotPassword",
-                    newFromEncoded(loginBaseUrl).addParameters(loginBaseParameters + Pair("step", "forgot-password"))
-                        .toExternalForm() + loginUrlLang
-                )
-            ).horizontalAlign(HorizontalAlign.RIGHT)
+                comment(
+                    RaccoonBundle.message(
+                        "login.dialog.text.forgotPassword",
+                        newFromEncoded(loginBaseUrl).addParameters(
+                            loginBaseParameters + Pair(
+                                "step",
+                                "forgot-password"
+                            )
+                        )
+                            .toExternalForm() + loginUrlLang
+                    )
+                ).horizontalAlign(HorizontalAlign.RIGHT)
+            }
         }
         row {
             loginErrorEditorPane = text("").component
@@ -190,6 +239,7 @@ class LoginDialog(
     }
 
     companion object {
+        private const val IS_TOB = false
         private const val MIN_PASSWORD_LENGTH = 8
         private const val MAX_PASSWORD_LENGTH = 1024
         private const val MIN_PHONE_NUMBER_LENGTH = 6

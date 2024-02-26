@@ -76,6 +76,10 @@ abstract class CodeClient {
         throw NotImplementedError("")
     }
 
+    open suspend fun login(email: String, password: CharArray) {
+        throw NotImplementedError("")
+    }
+
     open suspend fun logout() {
         throw NotImplementedError("")
     }

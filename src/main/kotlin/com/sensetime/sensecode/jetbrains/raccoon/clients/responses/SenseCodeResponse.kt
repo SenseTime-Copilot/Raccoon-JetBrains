@@ -39,7 +39,9 @@ open class SenseCodeStatus : Error {
                 200007 -> RaccoonBundle.message("client.sensecode.response.error.userApplicationReview")
                 200008 -> RaccoonBundle.message("client.sensecode.response.error.userApplicationRejected")
                 200009 -> RaccoonBundle.message("client.sensecode.response.error.userDisabled")
+                200013 -> RaccoonBundle.message("client.sensecode.response.error.invalidEmailOrPassword")
                 200101 -> RaccoonBundle.message("client.sensecode.response.error.tryLoginLimit")
+                200105 -> RaccoonBundle.message("client.sensecode.response.error.tryLoginLimit.email")
                 else -> null
             } ?: message?.takeIf { m -> m.isNotBlank() && ("ok" != m) && ("success" != m) }?.let { details ?: it }
         }

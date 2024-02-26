@@ -55,6 +55,12 @@ class SenseCodeClient : CodeClient() {
         val nationCode: String
     )
 
+    @Serializable
+    private data class LoginEmailData(
+        val email: String,
+        val password: String
+    )
+
     private fun encrypt(src: ByteArray): String = Cipher.getInstance("AES/CFB/NoPadding").let { cipher ->
         cipher.init(
             Cipher.ENCRYPT_MODE,
@@ -88,6 +94,35 @@ class SenseCodeClient : CodeClient() {
         val loginJsonString = RaccoonClientJson.encodeToString(LoginData.serializer(), loginData)
         okHttpClient.newCall(
             createRequestBuilderWithCommonHeader(getApiEndpoint("/api/plugin/auth/v1/login_with_password")).post(
+                loginJsonString.toRequestBody()
+            ).build()
+        ).await().let { response ->
+            var bodyError: String? = null
+            response.takeIf { it.isSuccessful }?.body?.let { responseBody ->
+                RaccoonClientJson.decodeFromString(SenseCodeAuthResponse.serializer(), responseBody.string())
+                    .let { authResponse ->
+                        if (authResponse.hasError()) {
+                            bodyError = authResponse.getShowError()
+                            null
+                        } else {
+                            authResponse.data?.let { authData ->
+                                updateLoginResult(authData.accessToken, authData.refreshToken)
+                            }
+                        }
+                    }
+            } ?: throw toErrorException(response) {
+                bodyError ?: it?.body?.string()?.let { bodyString ->
+                    RaccoonClientJson.decodeFromString(SenseCodeStatus.serializer(), bodyString).getShowError()
+                }
+            }
+        }
+    }
+
+    override suspend fun login(email: String, password: CharArray) {
+        val loginData = LoginEmailData(email, cvtPassword(password))
+        val loginJsonString = RaccoonClientJson.encodeToString(LoginEmailData.serializer(), loginData)
+        okHttpClient.newCall(
+            createRequestBuilderWithCommonHeader(getApiEndpoint("/api/plugin/auth/v1/login_with_email_password")).post(
                 loginJsonString.toRequestBody()
             ).build()
         ).await().let { response ->

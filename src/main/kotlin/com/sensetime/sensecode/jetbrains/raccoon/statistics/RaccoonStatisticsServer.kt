@@ -78,7 +78,7 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
                             break
                         }
                         LOG.debug { "run uploadBehaviorMetrics failed" }
-                        delay(60000)
+                        delay(MAX_INTERVAL_MS)
                     }
                     LOG.debug { "run uploadBehaviorMetrics finished" }
                 }.onFailure { e ->
