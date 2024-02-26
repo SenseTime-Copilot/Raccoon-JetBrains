@@ -1,6 +1,7 @@
 package com.sensetime.sensecode.jetbrains.raccoon.clients
 
 import com.intellij.openapi.application.ApplicationManager
+import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.BehaviorMetrics
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.CodeRequest
 import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.CodeResponse
 import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.CodeStreamResponse
@@ -100,6 +101,8 @@ abstract class CodeClient {
     open suspend fun getSensitiveConversations(
         startTime: String, endTime: String? = null
     ): Map<String, RaccoonSensitiveListener.SensitiveConversation> = emptyMap()
+
+    abstract suspend fun uploadBehaviorMetrics(behaviorMetrics: BehaviorMetrics): Boolean
 
     // request via okhttp3
 
