@@ -36,11 +36,14 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
         CoroutineScope(SupervisorJob() + Dispatchers.IO + CoroutineName("RaccoonStatisticsServer"))
 
     companion object {
+        private const val MAX_CACHE_COUNT: Int = 1000
+        private const val MAX_INTERVAL_MS: Long = 3600L * 1000L
+
         @JvmStatic
         fun getInstance(): RaccoonStatisticsServer = service()
 
-        private const val MAX_CACHE_COUNT: Int = 1000
-        private const val MAX_INTERVAL_MS: Long = 3600L * 1000L
+        @JvmStatic
+        private fun cvtLanguage(language: String): String = language.ifBlank { "Unknown" }
     }
 
     fun onProjectOpened() {
@@ -145,7 +148,7 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
     override fun onInlineCompletionFinished(language: String) {
         updateBehaviorMetrics {
             it.codeCompletionMetric.codeCompletionUsages.acceptUsagesMap.metricsMap.getOrDefault(
-                language,
+                cvtLanguage(language),
                 CodeCompletionAcceptUsage()
             ).generateNumber += 1
         }
@@ -154,7 +157,7 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
     override fun onInlineCompletionAccepted(language: String) {
         updateBehaviorMetrics {
             it.codeCompletionMetric.codeCompletionUsages.acceptUsagesMap.metricsMap.getOrDefault(
-                language,
+                cvtLanguage(language),
                 CodeCompletionAcceptUsage()
             ).acceptNumber += 1
         }
@@ -188,7 +191,7 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
         updateBehaviorMetrics {
             for (language in languages) {
                 it.dialogMetric.dialogUsages.acceptUsagesMap.metricsMap.getOrDefault(
-                    language,
+                    cvtLanguage(language),
                     DialogCodeAcceptUsage()
                 ).generateNumber += 1
             }
@@ -198,7 +201,7 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
     override fun onToolWindowCodeCopied(language: String) {
         updateBehaviorMetrics {
             it.dialogMetric.dialogUsages.acceptUsagesMap.metricsMap.getOrDefault(
-                language,
+                cvtLanguage(language),
                 DialogCodeAcceptUsage()
             ).copyNumber += 1
         }
@@ -207,7 +210,7 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
     override fun onToolWindowCodeInserted(language: String) {
         updateBehaviorMetrics {
             it.dialogMetric.dialogUsages.acceptUsagesMap.metricsMap.getOrDefault(
-                language,
+                cvtLanguage(language),
                 DialogCodeAcceptUsage()
             ).insertNumber += 1
         }
