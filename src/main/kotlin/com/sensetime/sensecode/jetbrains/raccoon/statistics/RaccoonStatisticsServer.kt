@@ -1,6 +1,5 @@
 package com.sensetime.sensecode.jetbrains.raccoon.statistics
 
-import com.intellij.ide.util.RunOnceUtil
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
@@ -16,6 +15,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.DialogCodeAcce
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_STATISTICS_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonStatisticsListener
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils
+import com.sensetime.sensecode.jetbrains.raccoon.utils.getOrPutDefault
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 
@@ -47,7 +47,11 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
     }
 
     fun onProjectOpened() {
-        RunOnceUtil.runOnceForApp(RaccoonStatisticsServer::class.qualifiedName!!, this::startTask)
+        ApplicationManager.getApplication().invokeLater {
+            if (null == uploadJob) {
+                startTask()
+            }
+        }
     }
 
     fun onProjectClosed() {
@@ -116,7 +120,7 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
     }
 
     private fun sendCurrentMetrics() {
-        if (cachedStatisticsCount >= 0) {
+        if (cachedStatisticsCount > 0) {
             metricsChannel.trySend(lastBehaviorMetrics)
             lastBehaviorMetrics = BehaviorMetrics()
         }
@@ -147,7 +151,7 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
 
     override fun onInlineCompletionFinished(language: String) {
         updateBehaviorMetrics {
-            it.codeCompletionMetric.codeCompletionUsages.acceptUsagesMap.metricsMap.getOrDefault(
+            it.codeCompletionMetric.codeCompletionUsages.acceptUsagesMap.metricsMap.getOrPutDefault(
                 cvtLanguage(language),
                 CodeCompletionAcceptUsage()
             ).generateNumber += 1
@@ -156,7 +160,7 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
 
     override fun onInlineCompletionAccepted(language: String) {
         updateBehaviorMetrics {
-            it.codeCompletionMetric.codeCompletionUsages.acceptUsagesMap.metricsMap.getOrDefault(
+            it.codeCompletionMetric.codeCompletionUsages.acceptUsagesMap.metricsMap.getOrPutDefault(
                 cvtLanguage(language),
                 CodeCompletionAcceptUsage()
             ).acceptNumber += 1
@@ -190,7 +194,7 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
     override fun onToolWindowCodeGenerated(languages: List<String>) {
         updateBehaviorMetrics {
             for (language in languages) {
-                it.dialogMetric.dialogUsages.acceptUsagesMap.metricsMap.getOrDefault(
+                it.dialogMetric.dialogUsages.acceptUsagesMap.metricsMap.getOrPutDefault(
                     cvtLanguage(language),
                     DialogCodeAcceptUsage()
                 ).generateNumber += 1
@@ -200,7 +204,7 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
 
     override fun onToolWindowCodeCopied(language: String) {
         updateBehaviorMetrics {
-            it.dialogMetric.dialogUsages.acceptUsagesMap.metricsMap.getOrDefault(
+            it.dialogMetric.dialogUsages.acceptUsagesMap.metricsMap.getOrPutDefault(
                 cvtLanguage(language),
                 DialogCodeAcceptUsage()
             ).copyNumber += 1
@@ -209,7 +213,7 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
 
     override fun onToolWindowCodeInserted(language: String) {
         updateBehaviorMetrics {
-            it.dialogMetric.dialogUsages.acceptUsagesMap.metricsMap.getOrDefault(
+            it.dialogMetric.dialogUsages.acceptUsagesMap.metricsMap.getOrPutDefault(
                 cvtLanguage(language),
                 DialogCodeAcceptUsage()
             ).insertNumber += 1

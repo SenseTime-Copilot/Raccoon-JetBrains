@@ -25,6 +25,8 @@ inline fun <T, R> List<T>.letIfNotEmpty(block: (List<T>) -> R): R? = takeIfNotEm
 
 // Map
 
+fun <K, V> MutableMap<K, V>.getOrPutDefault(key: K, value: V): V = get(key) ?: value.also { put(key, it) }
+
 fun <K, V> MutableMap<K, V>.putUnique(key: K, value: V) {
     require(!containsKey(key)) { "Found same key $key, prev value is ${get(key)}, current is $value" }
     put(key, value)
