@@ -20,6 +20,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.utils.ifNullOrBlankElse
 import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
 import kotlinx.coroutines.Job
 import java.awt.Component
+import java.awt.Dimension
 import java.util.*
 import javax.swing.JComponent
 import javax.swing.JEditorPane
@@ -133,6 +134,8 @@ class LoginDialog(
                             loginErrorText = null
                         }
                     })
+                    // larger for show email
+                    minimumSize = Dimension((preferredSize.width * 1.5).toInt(), minimumSize.height)
                 }
             }
         } else {
