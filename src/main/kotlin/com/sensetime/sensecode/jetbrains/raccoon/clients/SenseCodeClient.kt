@@ -382,6 +382,7 @@ class SenseCodeClient : CodeClient() {
         const val BASE_API = "https://raccoon-api.sensetime.com"
         const val BASE_API_DEV = "http://code-dev-api.sensetime.com"
         const val BASE_API_TEST = "http://code-test-api.sensetime.com"
+        const val BASE_API_TEST_TOB = "http://raccoon-2b-test-api.sensetime.com"
 
         private const val API_LLM_COMPLETIONS = "/api/plugin/nova/v1/proxy/v1/llm/completions"
         private const val API_LLM_CHAT_COMPLETIONS = "/api/plugin/nova/v1/proxy/v1/llm/chat-completions"
