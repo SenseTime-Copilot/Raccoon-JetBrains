@@ -45,7 +45,11 @@ class MessagePanel(
 
     fun checkGenerateStateForStatistics(generateState: AssistantMessage.GenerateState) {
         if (generateState == AssistantMessage.GenerateState.DONE) {
-            messageBox.components.mapNotNull { (it as? CodeEditorPanel)?.languagePair?.first }.letIfNotEmpty {
+            messageBox.components.mapNotNull {
+                (it as? CodeEditorPanel)?.let { codeEditorPanel ->
+                    codeEditorPanel.languagePair?.first ?: ""
+                }
+            }.letIfNotEmpty {
                 ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_STATISTICS_TOPIC)
                     .onToolWindowCodeGenerated(it)
             }
