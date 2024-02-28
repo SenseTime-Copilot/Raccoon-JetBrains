@@ -50,12 +50,12 @@ object RaccoonCredentialsManager {
         setClientAkSk(name, Credentials(getClientAk(name), sk))
     }
 
-    fun getDeviceID(): String? =
-        getPasswordSafe(createDeviceIDCredentialAttributes())?.getPasswordAsString()
-
-    fun setDeviceID(id: String? = null) {
-        setPasswordSafe(createDeviceIDCredentialAttributes(), Credentials("deviceID", id))
-    }
+//    fun getDeviceID(): String? =
+//        getPasswordSafe(createDeviceIDCredentialAttributes())?.getPasswordAsString()
+//
+//    fun setDeviceID(id: String? = null) {
+//        setPasswordSafe(createDeviceIDCredentialAttributes(), Credentials("deviceID", id))
+//    }
 
     private fun createCredentialAttributes(key: String): CredentialAttributes =
         CredentialAttributes(generateServiceName("${RaccoonPlugin.NAME} Attributes", key))
@@ -63,8 +63,8 @@ object RaccoonCredentialsManager {
     private fun createClientAuthCredentialAttributes(name: String, key: String): CredentialAttributes =
         createCredentialAttributes("client.auth.$name.$key")
 
-    private fun createDeviceIDCredentialAttributes(): CredentialAttributes =
-        createCredentialAttributes("device.id")
+//    private fun createDeviceIDCredentialAttributes(): CredentialAttributes =
+//        createCredentialAttributes("device.id")
 
     private fun getPasswordSafe(attributes: CredentialAttributes): Credentials? =
         kotlin.runCatching { PasswordSafe.instance.get(attributes) }.getOrNull()
