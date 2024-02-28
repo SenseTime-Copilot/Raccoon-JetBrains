@@ -4,6 +4,7 @@ import com.intellij.credentialStore.CredentialAttributes
 import com.intellij.credentialStore.Credentials
 import com.intellij.credentialStore.generateServiceName
 import com.intellij.ide.passwordSafe.PasswordSafe
+import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.ApplicationManager
 import com.sensetime.sensecode.jetbrains.raccoon.topics.SENSE_CODE_CREDENTIALS_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
@@ -58,7 +59,12 @@ object RaccoonCredentialsManager {
 //    }
 
     private fun createCredentialAttributes(key: String): CredentialAttributes =
-        CredentialAttributes(generateServiceName("${RaccoonPlugin.NAME} Attributes", key))
+        CredentialAttributes(
+            generateServiceName(
+                "${ApplicationInfo.getInstance().build.asString()} ${RaccoonPlugin.NAME}",
+                key
+            )
+        )
 
     private fun createClientAuthCredentialAttributes(name: String, key: String): CredentialAttributes =
         createCredentialAttributes("client.auth.$name.$key")
