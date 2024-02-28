@@ -1,7 +1,7 @@
 package com.sensetime.sensecode.jetbrains.raccoon.utils
 
+import com.intellij.openapi.application.PermanentInstallationID
 import com.intellij.openapi.util.SystemInfo
-import com.sensetime.sensecode.jetbrains.raccoon.persistent.RaccoonCredentialsManager
 import java.util.UUID.randomUUID
 
 
@@ -37,11 +37,11 @@ inline fun <K, V> MutableMap<K, V>.putIf(key: K, value: V, predicate: (MutableMa
 
 object RaccoonUtils {
     fun getCurrentTimestampMs() = System.currentTimeMillis()
-    fun getCurrentTimestampS() = getCurrentTimestampMs() / 1000L
+//    fun getCurrentTimestampS() = getCurrentTimestampMs() / 1000L
 
     const val DEFAULT_MACHINE_ID = "raccoon-jetbrains-machine-id-0000"
     fun generateUUID(): String = randomUUID().toString()
-    val machineID: String? = kotlin.runCatching { getOrGenerateDeviceId() }.getOrNull()
+    val machineID: String? = kotlin.runCatching { "${getOSChar()}-${PermanentInstallationID.get()}" }.getOrNull()
 
 
     private fun getOSChar(): Char {
@@ -51,13 +51,13 @@ object RaccoonUtils {
         return '0'
     }
 
-    private fun generateDeviceId(): String = "${getCurrentTimestampS()}-${getOSChar()}-${randomUUID()}"
-    private fun getOrGenerateDeviceId(): String? {
-        var result = RaccoonCredentialsManager.getDeviceID()
-        if (result.isNullOrBlank()) {
-            RaccoonCredentialsManager.setDeviceID(generateDeviceId())
-            result = RaccoonCredentialsManager.getDeviceID()
-        }
-        return result
-    }
+//    private fun generateDeviceId(): String = "${getCurrentTimestampS()}-${getOSChar()}-${randomUUID()}"
+//    private fun getOrGenerateDeviceId(): String? {
+//        var result = RaccoonCredentialsManager.getDeviceID()
+//        if (result.isNullOrBlank()) {
+//            RaccoonCredentialsManager.setDeviceID(generateDeviceId())
+//            result = RaccoonCredentialsManager.getDeviceID()
+//        }
+//        return result
+//    }
 }
