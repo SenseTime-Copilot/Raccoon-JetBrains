@@ -149,12 +149,12 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
         }
     }
 
-    override fun onInlineCompletionFinished(language: String) {
+    override fun onInlineCompletionFinished(language: String, candidates: Int) {
         updateBehaviorMetrics {
             it.codeCompletionMetric.codeCompletionUsages.acceptUsagesMap.metricsMap.getOrPutDefault(
                 cvtLanguage(language),
                 CodeCompletionAcceptUsage()
-            ).generateNumber += 1
+            ).generateNumber += candidates
         }
     }
 

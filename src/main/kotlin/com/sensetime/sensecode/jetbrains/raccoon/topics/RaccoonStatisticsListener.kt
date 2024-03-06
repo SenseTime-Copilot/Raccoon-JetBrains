@@ -8,7 +8,7 @@ val RACCOON_STATISTICS_TOPIC = Topic.create("RaccoonStatisticsTopic", RaccoonSta
 interface RaccoonStatisticsListener {
     fun onGenerateGitCommitMessageFinished()
 
-    fun onInlineCompletionFinished(language: String)
+    fun onInlineCompletionFinished(language: String, candidates: Int)
     fun onInlineCompletionAccepted(language: String)
 
     fun onToolWindowNewSession()

@@ -57,7 +57,7 @@ class CompletionPreview private constructor(
                     )
                 } else {
                     ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_STATISTICS_TOPIC)
-                        .onInlineCompletionFinished(language)
+                        .onInlineCompletionFinished(language, (completions?.size) ?: 1)
                 }
             }
         }
