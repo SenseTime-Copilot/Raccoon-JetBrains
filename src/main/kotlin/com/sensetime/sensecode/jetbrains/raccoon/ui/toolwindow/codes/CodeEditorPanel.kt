@@ -21,7 +21,7 @@ import java.time.format.DateTimeFormatter
 
 class CodeEditorPanel(
     project: Project?, code: String,
-    private val languagePair: Pair<String, RaccoonLanguages.Language>?,
+    val languagePair: Pair<String, RaccoonLanguages.Language>?,
     isOneLineMode: Boolean = false
 ) : EditorTextField(
     createDocumentFromCode(code, languagePair),

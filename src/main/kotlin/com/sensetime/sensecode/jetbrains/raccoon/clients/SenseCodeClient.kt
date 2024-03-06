@@ -3,6 +3,7 @@ package com.sensetime.sensecode.jetbrains.raccoon.clients
 import com.intellij.credentialStore.Credentials
 import com.intellij.openapi.application.ApplicationManager
 import com.sensetime.sensecode.jetbrains.raccoon.clients.models.PenroseModels
+import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.BehaviorMetrics
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.CodeRequest
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.SenseNovaLLMChatCompletionsRequest
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.SenseNovaLLMCompletionsRequest
@@ -24,6 +25,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
+import java.io.IOException
 import java.util.*
 import java.util.concurrent.atomic.AtomicLong
 import javax.crypto.Cipher
@@ -51,6 +53,12 @@ class SenseCodeClient : CodeClient() {
         val password: String,
         @SerialName("nation_code")
         val nationCode: String
+    )
+
+    @Serializable
+    private data class LoginEmailData(
+        val email: String,
+        val password: String
     )
 
     private fun encrypt(src: ByteArray): String = Cipher.getInstance("AES/CFB/NoPadding").let { cipher ->
@@ -86,6 +94,35 @@ class SenseCodeClient : CodeClient() {
         val loginJsonString = RaccoonClientJson.encodeToString(LoginData.serializer(), loginData)
         okHttpClient.newCall(
             createRequestBuilderWithCommonHeader(getApiEndpoint("/api/plugin/auth/v1/login_with_password")).post(
+                loginJsonString.toRequestBody()
+            ).build()
+        ).await().let { response ->
+            var bodyError: String? = null
+            response.takeIf { it.isSuccessful }?.body?.let { responseBody ->
+                RaccoonClientJson.decodeFromString(SenseCodeAuthResponse.serializer(), responseBody.string())
+                    .let { authResponse ->
+                        if (authResponse.hasError()) {
+                            bodyError = authResponse.getShowError()
+                            null
+                        } else {
+                            authResponse.data?.let { authData ->
+                                updateLoginResult(authData.accessToken, authData.refreshToken)
+                            }
+                        }
+                    }
+            } ?: throw toErrorException(response) {
+                bodyError ?: it?.body?.string()?.let { bodyString ->
+                    RaccoonClientJson.decodeFromString(SenseCodeStatus.serializer(), bodyString).getShowError()
+                }
+            }
+        }
+    }
+
+    override suspend fun login(email: String, password: CharArray) {
+        val loginData = LoginEmailData(email, cvtPassword(password))
+        val loginJsonString = RaccoonClientJson.encodeToString(LoginEmailData.serializer(), loginData)
+        okHttpClient.newCall(
+            createRequestBuilderWithCommonHeader(getApiEndpoint("/api/plugin/auth/v1/login_with_email_password")).post(
                 loginJsonString.toRequestBody()
             ).build()
         ).await().let { response ->
@@ -165,12 +202,12 @@ class SenseCodeClient : CodeClient() {
             field?.cancel()
             field = value
         }
-    private var lastSensitiveTime = AtomicLong(RaccoonUtils.getCurrentTimestampMs())
+    private var lastSensitiveTime = AtomicLong(RaccoonUtils.getSystemTimestampMs())
     override fun onOkResponse(response: Response) {
         response.headers("x-raccoon-sensetive").firstOrNull()?.toLongOrNull()?.let { currentSensitiveTime ->
             val startTime = lastSensitiveTime.get()
             if ((currentSensitiveTime * 1000L) > startTime) {
-                val tmpTime = RaccoonUtils.getCurrentTimestampMs()
+                val tmpTime = RaccoonUtils.getSystemTimestampMs()
                 sensitiveJob = RaccoonClientManager.launchClientJob {
                     kotlin.runCatching {
                         val sensitives = getSensitiveConversations(startTime.toString())
@@ -229,6 +266,19 @@ class SenseCodeClient : CodeClient() {
             }
         }
     }
+
+    override suspend fun uploadBehaviorMetrics(behaviorMetrics: BehaviorMetrics): Boolean =
+        try {
+            okHttpClient.newCall(
+                addAuthorizationWithCheckRefreshToken(
+                    createRequestBuilderWithCommonHeader(
+                        getApiEndpoint("/api/plugin/b/v1/m")
+                    )
+                ).post(behaviorMetrics.toJsonString().toRequestBody()).build()
+            ).await().isSuccessful
+        } catch (e: IOException) {
+            false
+        }
 
     private abstract class SenseNovaClientApi : ClientApi {
         abstract fun getRequestBodyJson(request: CodeRequest, stream: Boolean): String
@@ -332,6 +382,7 @@ class SenseCodeClient : CodeClient() {
         const val BASE_API = "https://raccoon-api.sensetime.com"
         const val BASE_API_DEV = "http://code-dev-api.sensetime.com"
         const val BASE_API_TEST = "http://code-test-api.sensetime.com"
+        const val BASE_API_TEST_TOB = "http://raccoon-2b-test-api.sensetime.com"
 
         private const val API_LLM_COMPLETIONS = "/api/plugin/nova/v1/proxy/v1/llm/completions"
         private const val API_LLM_CHAT_COMPLETIONS = "/api/plugin/nova/v1/proxy/v1/llm/chat-completions"

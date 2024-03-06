@@ -48,7 +48,7 @@ data class UserMessage(
             code: String? = null,
             language: String? = null,
             args: Map<String, String>? = null,
-            timestampMs: Long = RaccoonUtils.getCurrentTimestampMs()
+            timestampMs: Long = RaccoonUtils.getSystemTimestampMs()
         ): UserMessage? = if (name.isNullOrBlank()) {
             RaccoonNotification.notifyGotoLogin()
             null
@@ -68,7 +68,7 @@ data class AssistantMessage(
     var content: String = "",
     @SerialName("state")
     var generateState: GenerateState = GenerateState.PROMPT,
-    override val timestampMs: Long = RaccoonUtils.getCurrentTimestampMs()
+    override val timestampMs: Long = RaccoonUtils.getSystemTimestampMs()
 ) : DisplayMessage {
     enum class GenerateState(val code: String) {
         PROMPT("prompt"),

@@ -1,6 +1,7 @@
 package com.sensetime.sensecode.jetbrains.raccoon.utils
 
 import com.intellij.openapi.application.PermanentInstallationID
+import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.util.SystemInfo
 import java.util.UUID.randomUUID
 
@@ -24,6 +25,8 @@ inline fun <T, R> List<T>.letIfNotEmpty(block: (List<T>) -> R): R? = takeIfNotEm
 
 // Map
 
+fun <K, V> MutableMap<K, V>.getOrPutDefault(key: K, value: V): V = get(key) ?: value.also { put(key, it) }
+
 fun <K, V> MutableMap<K, V>.putUnique(key: K, value: V) {
     require(!containsKey(key)) { "Found same key $key, prev value is ${get(key)}, current is $value" }
     put(key, value)
@@ -36,13 +39,16 @@ inline fun <K, V> MutableMap<K, V>.putIf(key: K, value: V, predicate: (MutableMa
 }
 
 object RaccoonUtils {
-    fun getCurrentTimestampMs() = System.currentTimeMillis()
-//    fun getCurrentTimestampS() = getCurrentTimestampMs() / 1000L
+    fun getSteadyTimestampMs(): Long = System.nanoTime() / (1000L * 1000L)
+    fun getSystemTimestampMs() = System.currentTimeMillis()
+    fun getSystemTimestampS(): Long = getSystemTimestampMs() / 1000L
 
     const val DEFAULT_MACHINE_ID = "raccoon-jetbrains-machine-id-0000"
     fun generateUUID(): String = randomUUID().toString()
     val machineID: String? = kotlin.runCatching { "${getOSChar()}-${PermanentInstallationID.get()}" }.getOrNull()
 
+    val userAgent: String =
+        "${RaccoonPlugin.NAME}/${RaccoonPlugin.version} (${SystemInfo.getOsNameAndVersion()} ${SystemInfo.OS_ARCH}) ${ApplicationInfo.getInstance().versionName}/${ApplicationInfo.getInstance().strictVersion} (${ApplicationInfo.getInstance().apiVersion})"
 
     private fun getOSChar(): Char {
         if (SystemInfo.isWindows) return '1'
@@ -51,7 +57,7 @@ object RaccoonUtils {
         return '0'
     }
 
-//    private fun generateDeviceId(): String = "${getCurrentTimestampS()}-${getOSChar()}-${randomUUID()}"
+//    private fun generateDeviceId(): String = "${getSystemTimestampS()}-${getOSChar()}-${randomUUID()}"
 //    private fun getOrGenerateDeviceId(): String? {
 //        var result = RaccoonCredentialsManager.getDeviceID()
 //        if (result.isNullOrBlank()) {

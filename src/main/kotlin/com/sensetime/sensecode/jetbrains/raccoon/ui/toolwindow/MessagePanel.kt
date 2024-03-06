@@ -10,6 +10,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.ui.common.addMouseListenerWithD
 import com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindow.codes.CodeEditorPanel
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonLanguages
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonMarkdown
+import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotEmpty
 import okhttp3.internal.indexOfFirstNonAsciiWhitespace
 import java.awt.BorderLayout
 import java.awt.event.MouseListener
@@ -43,9 +44,15 @@ class MessagePanel(
     }
 
     fun checkGenerateStateForStatistics(generateState: AssistantMessage.GenerateState) {
-        if ((generateState == AssistantMessage.GenerateState.DONE) && (messageBox.components.any { it is CodeEditorPanel })) {
-            ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_STATISTICS_TOPIC)
-                .onToolWindowResponseCode()
+        if (generateState == AssistantMessage.GenerateState.DONE) {
+            messageBox.components.mapNotNull {
+                (it as? CodeEditorPanel)?.let { codeEditorPanel ->
+                    codeEditorPanel.languagePair?.first ?: ""
+                }
+            }.letIfNotEmpty {
+                ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_STATISTICS_TOPIC)
+                    .onToolWindowCodeGenerated(it)
+            }
         }
     }
 

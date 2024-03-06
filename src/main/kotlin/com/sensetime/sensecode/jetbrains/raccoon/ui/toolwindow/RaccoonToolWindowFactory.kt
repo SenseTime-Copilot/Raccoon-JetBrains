@@ -44,8 +44,6 @@ class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
 
                 chatJob = RaccoonClientManager.launchClientJob {
                     try {
-                        ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_STATISTICS_TOPIC)
-                            .onToolWindowRequest()
                         client.requestStream(
                             CodeRequest(
                                 conversations.getID(),

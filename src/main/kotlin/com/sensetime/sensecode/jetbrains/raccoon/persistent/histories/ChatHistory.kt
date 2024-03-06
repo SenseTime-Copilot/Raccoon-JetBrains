@@ -9,7 +9,7 @@ import kotlinx.serialization.builtins.ListSerializer
 data class ChatHistory(
     var userPromptText: String = "",
     val conversations: List<ChatConversation> = emptyList(),
-    val timestampMs: Long = RaccoonUtils.getCurrentTimestampMs()
+    val timestampMs: Long = RaccoonUtils.getSystemTimestampMs()
 ) {
     fun hasData(): Boolean = (true == conversations.firstOrNull()?.user?.hasData())
 }

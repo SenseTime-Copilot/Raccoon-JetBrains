@@ -73,11 +73,11 @@ class AutoCompletionServer(
             }
 
             autoCompletionCoroutineScope.launch {
-                var lastUpdateTime: Long = RaccoonUtils.getCurrentTimestampMs()
+                var lastUpdateTime: Long = RaccoonUtils.getSystemTimestampMs()
                 while (true) {
                     kotlin.runCatching {
                         delay(2 * 3600 * 1000)
-                        val tmpTime = RaccoonUtils.getCurrentTimestampMs()
+                        val tmpTime = RaccoonUtils.getSystemTimestampMs()
                         val sensitives =
                             RaccoonClientManager.currentCodeClient.getSensitiveConversations(lastUpdateTime.toString())
                         lastUpdateTime = tmpTime
@@ -93,7 +93,7 @@ class AutoCompletionServer(
                 }
             }
 
-            RaccoonStatisticsServer.launchStatisticsTask(autoCompletionCoroutineScope)
+            RaccoonStatisticsServer.getInstance().onProjectOpened()
 
             project?.let {
                 FileEditorManager.getInstance(it).allEditors.forEach { fileEditor ->
@@ -106,6 +106,7 @@ class AutoCompletionServer(
     }
 
     override fun dispose() {
+        RaccoonStatisticsServer.getInstance().onProjectClosed()
         ApplicationManager.getApplication().invokeLater {
             autoCompletionCoroutineScope.cancel()
             editorChangedMessageBusConnection = null

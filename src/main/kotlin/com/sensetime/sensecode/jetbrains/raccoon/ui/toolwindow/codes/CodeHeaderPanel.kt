@@ -19,6 +19,6 @@ class CodeHeaderPanel(
                 }.onSuccess { foreground = it }
             }
         }, BorderLayout.LINE_START)
-        add(CodeActionsToolbarBuilder().build(editor).component, BorderLayout.LINE_END)
+        add(CodeActionsToolbarBuilder().build(editor, languagePair?.first ?: "").component, BorderLayout.LINE_END)
     }
 }
