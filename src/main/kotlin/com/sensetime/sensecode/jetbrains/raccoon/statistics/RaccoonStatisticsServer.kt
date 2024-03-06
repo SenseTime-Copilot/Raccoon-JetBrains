@@ -36,8 +36,8 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
         CoroutineScope(SupervisorJob() + Dispatchers.IO + CoroutineName("RaccoonStatisticsServer"))
 
     companion object {
-        private const val MAX_CACHE_COUNT: Int = 1000
-        private const val MAX_INTERVAL_MS: Long = 3600L * 1000L
+        private const val MAX_CACHE_COUNT: Int = 100
+        private const val MAX_INTERVAL_MS: Long = 600L * 1000L
 
         @JvmStatic
         fun getInstance(): RaccoonStatisticsServer = service()
