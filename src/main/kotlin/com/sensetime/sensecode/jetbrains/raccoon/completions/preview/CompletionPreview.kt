@@ -48,8 +48,7 @@ class CompletionPreview private constructor(
 
     var done: Boolean = false
         set(value) {
-            field = value
-            if (value) {
+            if (!field && value) {
                 if (currentCompletion.isNullOrEmpty()) {
                     RaccoonNotification.popupNoCompletionSuggestionMessage(
                         editor,
@@ -60,6 +59,7 @@ class CompletionPreview private constructor(
                         .onInlineCompletionFinished(language, (completions?.size) ?: 1)
                 }
             }
+            field = value
         }
     private var editorChangedMessageBusConnection: SimpleMessageBusConnection? = null
         set(value) {
