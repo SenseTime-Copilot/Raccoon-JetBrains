@@ -185,7 +185,7 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
         }
     }
 
-    override fun onToolWindowRegenerateFinished() {
+    override fun onToolWindowRegenerateClicked() {
         updateBehaviorMetrics {
             it.dialogMetric.dialogUsages.windowUsages.regenerateNumber += 1
         }

@@ -292,8 +292,6 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
         loadFromHistory()
     }
 
-    private var isLastRegenerate: Boolean? = null
-
     private fun startGenerate(e: ActionEvent? = null, isRegenerate: Boolean = false) {
         eventListener?.let { listener ->
             conversationListPanel.conversationListModel.takeUnless { it.isEmpty }?.run {
@@ -303,7 +301,6 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
                 submitButton.isVisible = false
                 stopSubmitButton.isVisible = true
                 userPromptTextArea.isEditable = false
-                isLastRegenerate = isRegenerate
 
                 if (isRegenerate) {
                     setElementAt(items.last().toPromptConversation(), items.lastIndex)
@@ -317,6 +314,9 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
                         ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_STATISTICS_TOPIC)
                             .onToolWindowNewSession()
                     }
+                } else {
+                    ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_STATISTICS_TOPIC)
+                        .onToolWindowRegenerateClicked()
                 }
             }
         }
@@ -382,14 +382,9 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
             conversationListPanel.lastConversationPanel?.assistantMessagePane?.checkGenerateStateForStatistics(
                 newGenerateState
             )
-            isLastRegenerate?.takeIf { newGenerateState == AssistantMessage.GenerateState.DONE }?.let { isRegenerate ->
-                ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_STATISTICS_TOPIC).run {
-                    if (isRegenerate) {
-                        onToolWindowRegenerateFinished()
-                    } else {
-                        onToolWindowAnswerFinished()
-                    }
-                }
+            if (newGenerateState == AssistantMessage.GenerateState.DONE) {
+                ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_STATISTICS_TOPIC)
+                    .onToolWindowAnswerFinished()
             }
         }
     }
@@ -433,7 +428,6 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
         submitButton.isVisible = true
         stopSubmitButton.isVisible = false
         userPromptTextArea.isEditable = true
-        isLastRegenerate = null
         updateRegenerateButtonVisible()
 
         conversationListPanel.lastConversation?.assistant?.takeIf { AssistantMessage.GenerateState.PROMPT == it.generateState }
