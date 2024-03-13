@@ -37,7 +37,7 @@ class CompletionInlays(parent: Disposable) : Disposable {
     fun render(editor: Editor, completion: String?, offset: Int) {
         clear()
 
-        val lines = completion?.lines()
+        val lines = completion?.replace("\t", " ".repeat(editor.settings.getTabSize(editor.project)))?.lines()
         if (lines.isNullOrEmpty()) {
             return
         }
