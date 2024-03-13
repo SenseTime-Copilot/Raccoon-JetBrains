@@ -189,7 +189,8 @@ class SenseCodeClient : CodeClient() {
     override suspend fun logout() {
         try {
             okHttpClient.newCall(
-                createRequestBuilderWithToken(getApiEndpoint("/api/plugin/auth/v1/logout")).delete().build()
+                createRequestBuilderWithToken(getApiEndpoint("/api/plugin/auth/v1/logout")).post("{}".toRequestBody())
+                    .build()
             ).await()
         } catch (_: Throwable) {
         } finally {
