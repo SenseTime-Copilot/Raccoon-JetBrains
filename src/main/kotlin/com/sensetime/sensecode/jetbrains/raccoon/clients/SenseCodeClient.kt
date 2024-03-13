@@ -276,7 +276,7 @@ class SenseCodeClient : CodeClient() {
                         getApiEndpoint("/api/plugin/b/v1/m")
                     )
                 ).post(behaviorMetrics.toJsonString().toRequestBody()).build()
-            ).await().isSuccessful
+            ).await().let { !((it.code == 401) || (it.code == 403) || (it.code in 500..599)) }
         } catch (e: IOException) {
             false
         }
