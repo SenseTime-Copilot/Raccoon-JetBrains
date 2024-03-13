@@ -122,7 +122,7 @@ data class DialogMetric(
 
 
 private val BehaviorMetricsJson = Json {
-    encodeDefaults = true
+    encodeDefaults = false
     classDiscriminator = "metric_type"
 }
 
