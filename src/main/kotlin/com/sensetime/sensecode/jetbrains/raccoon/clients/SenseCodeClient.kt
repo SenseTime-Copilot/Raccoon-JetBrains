@@ -189,7 +189,8 @@ class SenseCodeClient : CodeClient() {
     override suspend fun logout() {
         try {
             okHttpClient.newCall(
-                createRequestBuilderWithToken(getApiEndpoint("/api/plugin/auth/v1/logout")).delete().build()
+                createRequestBuilderWithToken(getApiEndpoint("/api/plugin/auth/v1/logout")).post("{}".toRequestBody())
+                    .build()
             ).await()
         } catch (_: Throwable) {
         } finally {
@@ -275,7 +276,7 @@ class SenseCodeClient : CodeClient() {
                         getApiEndpoint("/api/plugin/b/v1/m")
                     )
                 ).post(behaviorMetrics.toJsonString().toRequestBody()).build()
-            ).await().isSuccessful
+            ).await().let { !((it.code == 401) || (it.code == 403) || (it.code in 500..599)) }
         } catch (e: IOException) {
             false
         }

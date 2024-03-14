@@ -1,15 +1,20 @@
 package com.sensetime.sensecode.jetbrains.raccoon.clients.requests
 
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 @Serializable
+@OptIn(ExperimentalSerializationApi::class)
 data class BehaviorCommonHeader(
     @SerialName("client_agent")
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS)
     val clientAgent: String = RaccoonUtils.userAgent,
     @SerialName("machine_id")
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS)
     val machineId: String = RaccoonUtils.machineID ?: RaccoonUtils.DEFAULT_MACHINE_ID
 )
 
@@ -122,13 +127,15 @@ data class DialogMetric(
 
 
 private val BehaviorMetricsJson = Json {
-    encodeDefaults = true
+    encodeDefaults = false
     classDiscriminator = "metric_type"
 }
 
 @Serializable
+@OptIn(ExperimentalSerializationApi::class)
 data class BehaviorMetrics(
     @SerialName("common_header")
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS)
     val header: BehaviorCommonHeader = BehaviorCommonHeader()
 ) {
     private var metrics: List<UsageMetric> = listOf(CommitMessageMetric(), CodeCompletionMetric(), DialogMetric())
