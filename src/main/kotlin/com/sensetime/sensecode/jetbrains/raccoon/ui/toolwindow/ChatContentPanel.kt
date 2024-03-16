@@ -204,7 +204,24 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
                 ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
                 ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
             ).apply {
-                scrollBar = verticalScrollBar
+                val mouseListener = object : MouseAdapter() {
+                    override fun mousePressed(e: MouseEvent?) {
+                        updateAutoScrolling()
+                    }
+
+                    override fun mouseDragged(e: MouseEvent?) {
+                        updateAutoScrolling()
+                    }
+
+                    override fun mouseWheelMoved(e: MouseWheelEvent?) {
+                        updateAutoScrolling()
+                    }
+                }
+                scrollBar = verticalScrollBar.apply {
+                    addMouseListener(mouseListener)
+                    addMouseMotionListener(mouseListener)
+                }
+                addMouseWheelListener(mouseListener)
             }, BorderLayout.CENTER
         )
         buttonJPanel = JPanel(BorderLayout()).apply {
@@ -253,6 +270,13 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
 
         sensitiveBusConnection = ApplicationManager.getApplication().messageBus.connect().also {
             it.subscribe(RACCOON_SENSITIVE_TOPIC, this)
+        }
+    }
+
+    private fun updateAutoScrolling() {
+        scrollBar?.let {
+            conversationListPanel.lastConversationPanel?.assistantMessagePane?.isAutoScrolling =
+                (it.value + it.visibleAmount + 20 >= it.maximum)
         }
     }
 
