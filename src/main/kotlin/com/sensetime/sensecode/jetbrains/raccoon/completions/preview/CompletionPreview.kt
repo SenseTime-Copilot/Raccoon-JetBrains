@@ -32,6 +32,7 @@ class CompletionPreview private constructor(
             } else {
                 value
             }
+            tooltip?.updateTooltip()
         }
     private var editor: Editor? = null
     private val inlays: CompletionInlays
@@ -39,7 +40,7 @@ class CompletionPreview private constructor(
     private var completions: List<String>? = null
         set(value) {
             value?.takeIf { (null == tooltip) && (null != editor) && (it.size > 1) }?.let {
-                tooltip = CompletionPreviewTooltip(this, editor, inlays)
+                tooltip = CompletionPreviewTooltip(this, ::currentIndex, { completions?.size }, editor, inlays)
             }
             field = value
         }
