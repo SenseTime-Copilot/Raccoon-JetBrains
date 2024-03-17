@@ -1,35 +1,33 @@
 package com.sensetime.sensecode.jetbrains.raccoon.persistent.settings
 
-import kotlinx.serialization.Serializable
+interface ClientConfig {
+    abstract class ClientApiConfig<T : ModelConfig> {
+        protected abstract val path: String
+        protected abstract val selectedModelName: String
+        protected abstract val models: Map<String, T>
 
-@Serializable
-data class ClientConfig(
-    val name: String,
-    val inlineApiPath: String,
-    val toolwindowApiPath: String,
-    private val apis: Map<String, ClientApiConfig>
-) {
-    @Serializable
-    data class ClientApiConfig(
-        val path: String,
-        val selectedModelName: String,
-        val models: Map<String, ModelConfig>
-    ) {
-        val selectedModelConfig: ModelConfig
+        val selectedModelConfig: T
             get() = models.getValue(selectedModelName)
+
+        fun getApiEndpoint(apiBaseUrl: String): String = apiBaseUrl + path
     }
 
-    val inlineClientApiConfig: ClientApiConfig
-        get() = apis.getValue(inlineApiPath)
-    val toolwindowClientApiConfig: ClientApiConfig
-        get() = apis.getValue(toolwindowApiPath)
+    val name: String
+    val apiBaseUrl: String
+    val completionApiConfig: ClientApiConfig<CompletionModelConfig>
+    val chatApiConfig: ClientApiConfig<ChatModelConfig>
+    val agentApiConfig: ClientApiConfig<AgentModelConfig>
 
-    val inlineModelConfig: ModelConfig
-        get() = inlineClientApiConfig.selectedModelConfig
-    val toolwindowModelConfig: ModelConfig
-        get() = toolwindowClientApiConfig.selectedModelConfig
+    val completionModelConfig: CompletionModelConfig
+        get() = completionApiConfig.selectedModelConfig
+    val chatModelConfig: ChatModelConfig
+        get() = chatApiConfig.selectedModelConfig
+    val agentModelConfig: AgentModelConfig
+        get() = agentApiConfig.selectedModelConfig
+
+    fun getCompletionApiEndpoint(): String = completionApiConfig.getApiEndpoint(apiBaseUrl)
+    fun getChatApiEndpoint(): String = chatApiConfig.getApiEndpoint(apiBaseUrl)
+    fun getAgentApiEndpoint(): String = agentApiConfig.getApiEndpoint(apiBaseUrl)
 }
 
 fun List<ClientConfig>.toClientConfigMap(): Map<String, ClientConfig> = associateBy(ClientConfig::name)
-fun List<ClientConfig.ClientApiConfig>.toClientApiConfigMap(): Map<String, ClientConfig.ClientApiConfig> =
-    associateBy(ClientConfig.ClientApiConfig::path)
