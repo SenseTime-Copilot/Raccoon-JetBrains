@@ -101,7 +101,7 @@ class HistoryContentPanel(
                         } catch (e: Throwable) {
                             if (e is CodeClient.UnauthorizedException) {
                                 eventListener?.onNotLogin()
-                                invokeOnUIThreadLater { RaccoonNotification.notifyGotoLogin() }
+                                invokeOnUIThreadLater { RaccoonNotification.notifyGotoLogin(true) }
                             }
                         } finally {
                             stopSensitiveFilter(sensitiveConversations)

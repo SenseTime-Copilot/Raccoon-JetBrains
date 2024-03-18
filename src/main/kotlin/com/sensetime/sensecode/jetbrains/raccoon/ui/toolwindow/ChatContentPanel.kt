@@ -258,7 +258,7 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
                             sensitiveConversations = it.getSensitiveConversations(startTime)
                         } catch (e: Throwable) {
                             if (e is CodeClient.UnauthorizedException) {
-                                invokeOnUIThreadLater { RaccoonNotification.notifyGotoLogin() }
+                                invokeOnUIThreadLater { RaccoonNotification.notifyGotoLogin(true) }
                             }
                         } finally {
                             stopSensitiveFilter(sensitiveConversations)

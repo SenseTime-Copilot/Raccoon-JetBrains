@@ -51,10 +51,12 @@ class CompletionPreview private constructor(
         set(value) {
             if (!field && value) {
                 if (currentCompletion.isNullOrEmpty()) {
-                    RaccoonNotification.popupNoCompletionSuggestionMessage(
-                        editor,
-                        RaccoonSettingsState.instance.isAutoCompleteMode
-                    )
+                    if (currentCompletion != null) {
+                        RaccoonNotification.popupNoCompletionSuggestionMessage(
+                            editor,
+                            RaccoonSettingsState.instance.isAutoCompleteMode
+                        )
+                    }
                 } else {
                     ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_STATISTICS_TOPIC)
                         .onInlineCompletionFinished(language, (completions?.size) ?: 1)

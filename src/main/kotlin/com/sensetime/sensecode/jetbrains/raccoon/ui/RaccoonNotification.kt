@@ -22,8 +22,14 @@ object RaccoonNotification {
         }).notify(null)
     }
 
+    private var isNotifiedGotoLogin: Boolean = false
+
     @JvmStatic
-    fun notifyGotoLogin() {
+    fun notifyGotoLogin(once: Boolean) {
+        if (once && isNotifiedGotoLogin) {
+            return
+        }
+        isNotifiedGotoLogin = true
         notificationGroup.createNotification(
             RaccoonBundle.message("notification.settings.login.notloggedin"),
             "",
