@@ -12,6 +12,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.BehaviorMetrics
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.CodeCompletionAcceptUsage
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.DialogCodeAcceptUsage
+import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_SENSITIVE_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_STATISTICS_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonStatisticsListener
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils
@@ -33,6 +34,7 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
 
     private var timerJob: Job? = null
     private var uploadJob: Job? = null
+    private var sensitiveJob: Job? = null
     private val statisticsCoroutineScope: CoroutineScope =
         CoroutineScope(SupervisorJob() + Dispatchers.IO + CoroutineName("RaccoonStatisticsServer"))
 
@@ -63,6 +65,7 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
         LOG.trace { "startTask in" }
         require(null == timerJob) { "startTask(timerJob) must run once only!" }
         require(null == uploadJob) { "startTask(uploadJob) must run once only!" }
+        require(null == sensitiveJob) { "startTask(sensitiveJob) must run once only!" }
         require(null == statisticsMessageBusConnection) { "startTask(statisticsMessageBusConnection) must run once only!" }
 
         statisticsMessageBusConnection = ApplicationManager.getApplication().messageBus.connect().also {
@@ -100,12 +103,34 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
             }
             LOG.debug { "uploadJob finished" }
         }
+
+        sensitiveJob = statisticsCoroutineScope.launch {
+            var lastUpdateTime: Long = RaccoonUtils.getSystemTimestampMs()
+            while (true) {
+                kotlin.runCatching {
+                    delay((Random.nextDouble(1.5, 2.5) * 3600 * 1000).toLong())
+                    val tmpTime = RaccoonUtils.getSystemTimestampMs()
+                    val sensitives =
+                        RaccoonClientManager.currentCodeClient.getSensitiveConversations(lastUpdateTime.toString())
+                    lastUpdateTime = tmpTime
+                    if (sensitives.isNotEmpty()) {
+                        ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_SENSITIVE_TOPIC)
+                            .onNewSensitiveConversations(sensitives)
+                    }
+                }.onFailure { e ->
+                    if (e is CancellationException) {
+                        throw e
+                    }
+                }
+            }
+        }
         LOG.trace { "startTask out" }
     }
 
     override fun dispose() {
         LOG.trace { "dispose in" }
         timerJob?.cancel()
+        sensitiveJob?.cancel()
         statisticsMessageBusConnection?.disconnect()
         metricsChannel.close()
         LOG.debug { "start wait uploadJob" }
