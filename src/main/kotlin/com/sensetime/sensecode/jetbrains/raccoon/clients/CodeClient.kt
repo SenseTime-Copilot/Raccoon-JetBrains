@@ -103,7 +103,7 @@ abstract class CodeClient {
 
     // sensitive
     open suspend fun getSensitiveConversations(
-        startTime: String, endTime: String? = null
+        startTime: String, endTime: String? = null, action: String
     ): Map<String, RaccoonSensitiveListener.SensitiveConversation> = emptyMap()
 
     abstract suspend fun uploadBehaviorMetrics(behaviorMetrics: BehaviorMetrics): Boolean

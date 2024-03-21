@@ -255,7 +255,7 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
                         var sensitiveConversations: Map<String, RaccoonSensitiveListener.SensitiveConversation> =
                             emptyMap()
                         try {
-                            sensitiveConversations = it.getSensitiveConversations(startTime)
+                            sensitiveConversations = it.getSensitiveConversations(startTime, action = "chat visible")
                         } catch (e: Throwable) {
                             if (e is CodeClient.UnauthorizedException) {
                                 invokeOnUIThreadLater { RaccoonNotification.notifyGotoLogin(true) }

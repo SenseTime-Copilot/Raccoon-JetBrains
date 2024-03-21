@@ -1,7 +1,9 @@
 package com.sensetime.sensecode.jetbrains.raccoon.clients
 
 import com.intellij.credentialStore.Credentials
+import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.util.SystemInfo
 import com.sensetime.sensecode.jetbrains.raccoon.clients.models.PenroseModels
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.BehaviorMetrics
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.CodeRequest
@@ -15,6 +17,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.toClientApi
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.toModelConfigMap
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_SENSITIVE_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonSensitiveListener
+import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils
 import com.sensetime.sensecode.jetbrains.raccoon.utils.ifNullOrBlank
 import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
@@ -211,7 +214,7 @@ class SenseCodeClient : CodeClient() {
                 val tmpTime = RaccoonUtils.getSystemTimestampMs()
                 sensitiveJob = RaccoonClientManager.launchClientJob {
                     kotlin.runCatching {
-                        val sensitives = getSensitiveConversations(startTime.toString())
+                        val sensitives = getSensitiveConversations(startTime.toString(), action = "response header")
                         lastSensitiveTime.set(tmpTime)
                         if (sensitives.isNotEmpty()) {
                             ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_SENSITIVE_TOPIC)
@@ -239,7 +242,8 @@ class SenseCodeClient : CodeClient() {
 
     override suspend fun getSensitiveConversations(
         startTime: String,
-        endTime: String?
+        endTime: String?,
+        action: String
     ): Map<String, RaccoonSensitiveListener.SensitiveConversation> = okHttpClient.newCall(
         addAuthorizationWithCheckRefreshToken(
             createRequestBuilderWithCommonHeader(
@@ -248,7 +252,9 @@ class SenseCodeClient : CodeClient() {
                     endTime
                 )
             )
-        ).get().build()
+        ).apply {
+            appendCommonRaccoonHeader(this, null, action)
+        }.get().build()
     ).await().let { response ->
         var bodyError: String? = null
         response.takeIf { it.isSuccessful }?.body?.let { responseBody ->
@@ -288,10 +294,7 @@ class SenseCodeClient : CodeClient() {
             request: CodeRequest,
             stream: Boolean
         ): Request.Builder = requestBuilder.run {
-            request.id?.letIfNotBlank { id ->
-                addHeader("x-raccoon-turn-id", id)
-                addHeader("x-raccoon-machine-id", RaccoonUtils.machineID.ifNullOrBlank(RaccoonUtils.DEFAULT_MACHINE_ID))
-            }
+            appendCommonRaccoonHeader(this, request.id, null)
             post(getRequestBodyJson(request, stream).toRequestBody())
         }
 
@@ -450,5 +453,27 @@ class SenseCodeClient : CodeClient() {
                     )
                 ).toClientApiConfigMap()
             )
+
+        private fun appendCommonRaccoonHeader(
+            requestBuilder: Request.Builder,
+            id: String?,
+            action: String?
+        ): Request.Builder = requestBuilder.apply {
+            id?.letIfNotBlank {
+                addHeader("x-raccoon-turn-id", it)
+                addHeader("x-raccoon-machine-id", RaccoonUtils.machineID.ifNullOrBlank(RaccoonUtils.DEFAULT_MACHINE_ID))
+            }
+            action?.letIfNotBlank {
+                addHeader("x-raccoon-action", it)
+            }
+            addHeader(
+                "x-raccoon-extension",
+                "${RaccoonPlugin.NAME}/${RaccoonPlugin.version} (${SystemInfo.getOsNameAndVersion()} ${SystemInfo.OS_ARCH})"
+            )
+            addHeader(
+                "x-raccoon-ide",
+                "${ApplicationInfo.getInstance().versionName}/${ApplicationInfo.getInstance().strictVersion} (${ApplicationInfo.getInstance().apiVersion})"
+            )
+        }
     }
 }

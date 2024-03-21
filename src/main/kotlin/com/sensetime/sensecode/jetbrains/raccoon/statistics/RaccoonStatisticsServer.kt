@@ -111,7 +111,10 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
                     delay((Random.nextDouble(1.5, 2.5) * 3600 * 1000).toLong())
                     val tmpTime = RaccoonUtils.getSystemTimestampMs()
                     val sensitives =
-                        RaccoonClientManager.currentCodeClient.getSensitiveConversations(lastUpdateTime.toString())
+                        RaccoonClientManager.currentCodeClient.getSensitiveConversations(
+                            lastUpdateTime.toString(),
+                            action = "timer"
+                        )
                     lastUpdateTime = tmpTime
                     if (sensitives.isNotEmpty()) {
                         ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_SENSITIVE_TOPIC)
