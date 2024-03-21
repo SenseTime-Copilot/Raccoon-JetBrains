@@ -18,6 +18,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils
 import com.sensetime.sensecode.jetbrains.raccoon.utils.getOrPutDefault
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
+import kotlin.random.Random
 
 
 private val LOG = logger<RaccoonStatisticsServer>()
@@ -70,7 +71,7 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
 
         timerJob = statisticsCoroutineScope.launch {
             while (true) {
-                delay(MAX_INTERVAL_MS)
+                delay((MAX_INTERVAL_MS * Random.nextDouble(0.8, 1.2)).toLong())
                 updateBehaviorMetrics()
             }
         }
@@ -85,7 +86,7 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
                             break
                         }
                         LOG.debug { "run uploadBehaviorMetrics failed" }
-                        delay(MAX_INTERVAL_MS)
+                        delay((MAX_INTERVAL_MS * Random.nextDouble(0.8, 1.2)).toLong())
                     }
                     LOG.debug { "run uploadBehaviorMetrics finished" }
                 }.onFailure { e ->

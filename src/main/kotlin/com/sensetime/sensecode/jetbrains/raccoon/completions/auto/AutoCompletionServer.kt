@@ -33,6 +33,7 @@ import kotlinx.coroutines.*
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.max
+import kotlin.random.Random
 
 @Service(Service.Level.PROJECT)
 class AutoCompletionServer(
@@ -76,7 +77,7 @@ class AutoCompletionServer(
                 var lastUpdateTime: Long = RaccoonUtils.getSystemTimestampMs()
                 while (true) {
                     kotlin.runCatching {
-                        delay(2 * 3600 * 1000)
+                        delay((Random.nextDouble(1.5, 2.5) * 3600 * 1000).toLong())
                         val tmpTime = RaccoonUtils.getSystemTimestampMs()
                         val sensitives =
                             RaccoonClientManager.currentCodeClient.getSensitiveConversations(lastUpdateTime.toString())
