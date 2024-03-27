@@ -19,14 +19,14 @@ private val LOG = logger<RaccoonClientConfig>()
 data class RaccoonCompletionApiConfig(
     override val path: String = "/api/plugin/nova/v1/proxy/v1/llm/completions",
     override val selectedModelIndex: Int = 0,
-    override val models: List<CompletionModelConfig> = listOf(PenroseCompletionModelConfig())
+    override val models: List<PenroseCompletionModelConfig> = listOf(PenroseCompletionModelConfig())
 ) : ClientConfig.ClientApiConfig<CompletionModelConfig>()
 
 @Serializable
 data class RaccoonChatApiConfig(
     override val path: String = "/api/plugin/nova/v1/proxy/v1/llm/chat-completions",
     override val selectedModelIndex: Int = 0,
-    override val models: List<ChatModelConfig> = listOf(PenroseChatModelConfig())
+    override val models: List<PenroseChatModelConfig> = listOf(PenroseChatModelConfig())
 ) : ClientConfig.ClientApiConfig<ChatModelConfig>()
 
 @Serializable
@@ -35,8 +35,8 @@ data class RaccoonClientConfig(
 ) : ClientConfig {
     @Transient
     override val name: String = NAME
-    override val completionApiConfig: ClientConfig.ClientApiConfig<CompletionModelConfig> = RaccoonCompletionApiConfig()
-    override val chatApiConfig: ClientConfig.ClientApiConfig<ChatModelConfig> = RaccoonChatApiConfig()
+    override val completionApiConfig: RaccoonCompletionApiConfig = RaccoonCompletionApiConfig()
+    override val chatApiConfig: RaccoonChatApiConfig = RaccoonChatApiConfig()
 
     companion object {
         private const val NAME = "RaccoonClient"
@@ -44,7 +44,7 @@ data class RaccoonClientConfig(
         @JvmStatic
         fun loadFromJsonString(jsonString: String): RaccoonClientConfig = RaccoonClientJson.decodeFromString(
             serializer(), jsonString.also { LOG.debug { "Load RaccoonClientConfig from json $it" } })
-            .also { LOG.trace { "Load ClientConfig ok, result $it" } }
+            .also { LOG.trace { "Load ClientConfig ok, result ${RaccoonClientJson.encodeToString(serializer(), it)}" } }
 
         @JvmStatic
         fun loadFromResources(): RaccoonClientConfig =
