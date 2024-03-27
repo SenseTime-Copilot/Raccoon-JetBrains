@@ -28,7 +28,11 @@ import com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonNotification
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.*
 import com.sensetime.sensecode.jetbrains.raccoon.utils.*
 import kotlinx.coroutines.Job
+import java.awt.BasicStroke
 import java.awt.BorderLayout
+import java.awt.Graphics
+import java.awt.Graphics2D
+import java.awt.RenderingHints
 import java.awt.event.*
 import javax.swing.*
 import javax.swing.event.AncestorEvent
@@ -73,7 +77,18 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
     private val stopSubmitButton: JButton =
         RaccoonUIUtils.createIconButton(RaccoonIcons.TOOLWINDOW_STOP).apply { isVisible = false }
 
-    private val userPromptTextArea: JTextArea = JBTextArea().apply {
+    private val userPromptTextArea: JTextArea = object : JBTextArea() {
+        override fun paintBorder(g: Graphics?) {
+            (g?.create() as? Graphics2D)?.let { g2 ->
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+                g2.color = JBUI.CurrentTheme.ActionButton.focusedBorder()
+                if (isFocusOwner) {
+                    g2.stroke = BasicStroke(1.5F)
+                }
+                g2.drawRoundRect(0, 0, width - 1, height - 1, 16, 16)
+            }
+        }
+    }.apply {
         lineWrap = true
         wrapStyleWord = true
         border = JBUI.Borders.empty(RaccoonUIUtils.MEDIUM_GAP_SIZE, RaccoonUIUtils.SMALL_GAP_SIZE)
@@ -189,7 +204,24 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
                 ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
                 ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
             ).apply {
-                scrollBar = verticalScrollBar
+                val mouseListener = object : MouseAdapter() {
+                    override fun mousePressed(e: MouseEvent?) {
+                        updateAutoScrolling()
+                    }
+
+                    override fun mouseDragged(e: MouseEvent?) {
+                        updateAutoScrolling()
+                    }
+
+                    override fun mouseWheelMoved(e: MouseWheelEvent?) {
+                        updateAutoScrolling()
+                    }
+                }
+                scrollBar = verticalScrollBar.apply {
+                    addMouseListener(mouseListener)
+                    addMouseMotionListener(mouseListener)
+                }
+                addMouseWheelListener(mouseListener)
             }, BorderLayout.CENTER
         )
         buttonJPanel = JPanel(BorderLayout()).apply {
@@ -198,13 +230,15 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
                 add(Box.createHorizontalGlue())
                 add(regenerateButton)
                 add(stopRegenerateButton)
+                border = JBUI.Borders.emptyBottom(RaccoonUIUtils.SMALL_GAP_SIZE)
             }, BorderLayout.NORTH)
             add(userPromptTextArea, BorderLayout.CENTER)
             add(Box.createHorizontalBox().apply {
                 add(submitButton)
                 add(stopSubmitButton)
+                border = JBUI.Borders.emptyLeft(RaccoonUIUtils.SMALL_GAP_SIZE)
             }, BorderLayout.EAST)
-            border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
+            border = JBUI.Borders.empty(10)
         }
         add(buttonJPanel, BorderLayout.SOUTH)
 
@@ -221,10 +255,10 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
                         var sensitiveConversations: Map<String, RaccoonSensitiveListener.SensitiveConversation> =
                             emptyMap()
                         try {
-                            sensitiveConversations = it.getSensitiveConversations(startTime)
+                            sensitiveConversations = it.getSensitiveConversations(startTime, action = "chat visible")
                         } catch (e: Throwable) {
                             if (e is CodeClient.UnauthorizedException) {
-                                invokeOnUIThreadLater { RaccoonNotification.notifyGotoLogin() }
+                                invokeOnUIThreadLater { RaccoonNotification.notifyGotoLogin(true) }
                             }
                         } finally {
                             stopSensitiveFilter(sensitiveConversations)
@@ -236,6 +270,13 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
 
         sensitiveBusConnection = ApplicationManager.getApplication().messageBus.connect().also {
             it.subscribe(RACCOON_SENSITIVE_TOPIC, this)
+        }
+    }
+
+    private fun updateAutoScrolling() {
+        scrollBar?.let {
+            conversationListPanel.lastConversationPanel?.assistantMessagePane?.isAutoScrolling =
+                (it.value + it.visibleAmount + 20 >= it.maximum)
         }
     }
 

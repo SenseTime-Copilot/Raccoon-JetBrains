@@ -103,7 +103,7 @@ abstract class CodeClient {
 
     // sensitive
     open suspend fun getSensitiveConversations(
-        startTime: String, endTime: String? = null
+        startTime: String, endTime: String? = null, action: String
     ): Map<String, RaccoonSensitiveListener.SensitiveConversation> = emptyMap()
 
     abstract suspend fun uploadBehaviorMetrics(behaviorMetrics: BehaviorMetrics): Boolean
@@ -150,7 +150,7 @@ abstract class CodeClient {
                 if (isSupportLogin) {
                     logout()
                 }
-                RaccoonUIUtils.invokeOnUIThreadLater { RaccoonNotification.notifyGotoLogin() }
+                RaccoonUIUtils.invokeOnUIThreadLater { RaccoonNotification.notifyGotoLogin(true) }
             }
             if (e !is CancellationException) {
                 requestStateTopicPublisher.onError(id, e.localizedMessage)

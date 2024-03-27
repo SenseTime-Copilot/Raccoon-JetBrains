@@ -19,6 +19,7 @@ import javax.swing.Box
 import javax.swing.JPanel
 import javax.swing.JTextPane
 import javax.swing.event.HyperlinkEvent
+import javax.swing.text.DefaultCaret
 import javax.swing.text.SimpleAttributeSet
 
 class MessagePanel(
@@ -30,6 +31,14 @@ class MessagePanel(
     private val messageBox: Box = Box.createVerticalBox()
     private var lastRawText: String = ""
     private var lastTextPane: JTextPane? = null
+    var isAutoScrolling: Boolean = true
+        set(value) {
+            if (field != value) {
+                (lastTextPane?.caret as? DefaultCaret)?.updatePolicy =
+                    if (value) DefaultCaret.UPDATE_WHEN_ON_EDT else DefaultCaret.NEVER_UPDATE
+                field = value
+            }
+        }
 
     init {
         markdownText?.let { appendMarkdownText(it) }
@@ -126,6 +135,8 @@ class MessagePanel(
                 parentDisposable?.let {
                     addMouseListenerWithDisposable(it, listener!!)
                 }
+                (caret as? DefaultCaret)?.updatePolicy =
+                    if (isAutoScrolling) DefaultCaret.UPDATE_WHEN_ON_EDT else DefaultCaret.NEVER_UPDATE
             }
             messageBox.add(lastTextPane)
         }

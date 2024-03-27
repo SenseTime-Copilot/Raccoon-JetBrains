@@ -19,11 +19,14 @@ import com.sensetime.sensecode.jetbrains.raccoon.completions.preview.render.Comp
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonActionUtils
 import java.awt.Component
+import java.awt.Point
 import javax.swing.JComponent
 import javax.swing.SwingUtilities
 
 class CompletionPreviewTooltip(
     parent: Disposable,
+    private var indexGetter: (() -> Int)?,
+    private var countGetter: (() -> Int?)?,
     private var editor: Editor?,
     private var completionInlays: CompletionInlays?
 ) : Disposable, EditorMouseMotionListener {
@@ -34,7 +37,31 @@ class CompletionPreviewTooltip(
 
     override fun dispose() {
         editor = null
+        indexGetter = null
+        countGetter = null
         completionInlays = null
+    }
+
+    private var lastPoint: Point? = null
+    fun updateTooltip(point: Point? = null) {
+        editor?.let { tmpEditor ->
+            (point ?: lastPoint)?.let { tmpPoint ->
+                lastPoint = tmpPoint
+                indexGetter?.invoke()?.let { index ->
+                    countGetter?.invoke()?.let { count ->
+                        kotlin.runCatching {
+                            HintManagerImpl.getInstanceImpl().showEditorHint(
+                                LightweightHint(createTooltipComponent(index, count)),
+                                tmpEditor, tmpPoint,
+                                HintManager.HIDE_BY_ANY_KEY or HintManager.UPDATE_BY_SCROLLING,
+                                0,
+                                false
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 
     override fun mouseMoved(e: EditorMouseEvent) {
@@ -46,35 +73,29 @@ class CompletionPreviewTooltip(
         val mouseEvent = e.mouseEvent
         val point = mouseEvent.point
         if (true == completionInlays?.contains(point)) {
-            kotlin.runCatching {
-                HintManagerImpl.getInstanceImpl().showEditorHint(
-                    LightweightHint(createTooltipComponent()),
-                    tmpEditor,
-                    SwingUtilities.convertPoint(
-                        mouseEvent.source as Component,
-                        point,
-                        tmpEditor.component.rootPane.layeredPane
-                    ),
-                    HintManager.HIDE_BY_ANY_KEY or HintManager.UPDATE_BY_SCROLLING,
-                    0,
-                    false
+            updateTooltip(
+                SwingUtilities.convertPoint(
+                    mouseEvent.source as Component,
+                    point,
+                    tmpEditor.component.rootPane.layeredPane
                 )
-            }
+            )
         }
     }
 
     companion object {
         @JvmStatic
-        private fun createTooltipComponent(): JComponent = HintUtil.createInformationComponent().also {
-            it.border = JBUI.Borders.empty()
-            SimpleColoredText(
-                RaccoonBundle.message(
-                    "completions.inline.completion.inlays.tooltip.multiple",
-                    RaccoonActionUtils.getShortcutText(ShowPreviousInlineCompletionAction::class),
-                    RaccoonActionUtils.getShortcutText(ShowNextInlineCompletionAction::class)
-                ), SimpleTextAttributes.REGULAR_ATTRIBUTES
-            ).appendToComponent(it)
-            it.isOpaque = true
-        }
+        private fun createTooltipComponent(index: Int, count: Int): JComponent =
+            HintUtil.createInformationComponent().also {
+                it.border = JBUI.Borders.empty()
+                SimpleColoredText(
+                    "< ${index + 1}/$count >  " + RaccoonBundle.message(
+                        "completions.inline.completion.inlays.tooltip.multiple",
+                        RaccoonActionUtils.getShortcutText(ShowPreviousInlineCompletionAction::class),
+                        RaccoonActionUtils.getShortcutText(ShowNextInlineCompletionAction::class)
+                    ), SimpleTextAttributes.REGULAR_ATTRIBUTES
+                ).appendToComponent(it)
+                it.isOpaque = true
+            }
     }
 }

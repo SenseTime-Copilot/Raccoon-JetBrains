@@ -97,11 +97,11 @@ class HistoryContentPanel(
                         var sensitiveConversations: Map<String, RaccoonSensitiveListener.SensitiveConversation> =
                             emptyMap()
                         try {
-                            sensitiveConversations = it.getSensitiveConversations(startTime)
+                            sensitiveConversations = it.getSensitiveConversations(startTime, action = "history visible")
                         } catch (e: Throwable) {
                             if (e is CodeClient.UnauthorizedException) {
                                 eventListener?.onNotLogin()
-                                invokeOnUIThreadLater { RaccoonNotification.notifyGotoLogin() }
+                                invokeOnUIThreadLater { RaccoonNotification.notifyGotoLogin(true) }
                             }
                         } finally {
                             stopSensitiveFilter(sensitiveConversations)

@@ -32,6 +32,7 @@ class CompletionPreview private constructor(
             } else {
                 value
             }
+            tooltip?.updateTooltip()
         }
     private var editor: Editor? = null
     private val inlays: CompletionInlays
@@ -39,7 +40,7 @@ class CompletionPreview private constructor(
     private var completions: List<String>? = null
         set(value) {
             value?.takeIf { (null == tooltip) && (null != editor) && (it.size > 1) }?.let {
-                tooltip = CompletionPreviewTooltip(this, editor, inlays)
+                tooltip = CompletionPreviewTooltip(this, ::currentIndex, { completions?.size }, editor, inlays)
             }
             field = value
         }
@@ -50,10 +51,12 @@ class CompletionPreview private constructor(
         set(value) {
             if (!field && value) {
                 if (currentCompletion.isNullOrEmpty()) {
-                    RaccoonNotification.popupNoCompletionSuggestionMessage(
-                        editor,
-                        RaccoonSettingsState.instance.isAutoCompleteMode
-                    )
+                    if (currentCompletion != null) {
+                        RaccoonNotification.popupNoCompletionSuggestionMessage(
+                            editor,
+                            RaccoonSettingsState.instance.isAutoCompleteMode
+                        )
+                    }
                 } else {
                     ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_STATISTICS_TOPIC)
                         .onInlineCompletionFinished(language, (completions?.size) ?: 1)

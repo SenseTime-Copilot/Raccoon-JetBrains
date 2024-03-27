@@ -20,15 +20,12 @@ import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.StartupActivity
 import com.intellij.util.messages.SimpleMessageBusConnection
-import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.completions.actions.ManualTriggerInlineCompletionAction
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.statistics.RaccoonStatisticsServer
-import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_SENSITIVE_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.SENSE_CODE_EDITOR_CHANGED_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonEditorChangedListener
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonActionUtils
-import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils
 import kotlinx.coroutines.*
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
@@ -64,27 +61,6 @@ class AutoCompletionServer(
                             waitForTimeMs.set(tryTriggerCompletion())
                         }
                         delay(waitForTimeMs.get())
-                    }.onFailure { e ->
-                        if (e is CancellationException) {
-                            throw e
-                        }
-                    }
-                }
-            }
-
-            autoCompletionCoroutineScope.launch {
-                var lastUpdateTime: Long = RaccoonUtils.getSystemTimestampMs()
-                while (true) {
-                    kotlin.runCatching {
-                        delay(2 * 3600 * 1000)
-                        val tmpTime = RaccoonUtils.getSystemTimestampMs()
-                        val sensitives =
-                            RaccoonClientManager.currentCodeClient.getSensitiveConversations(lastUpdateTime.toString())
-                        lastUpdateTime = tmpTime
-                        if (sensitives.isNotEmpty()) {
-                            ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_SENSITIVE_TOPIC)
-                                .onNewSensitiveConversations(sensitives)
-                        }
                     }.onFailure { e ->
                         if (e is CancellationException) {
                             throw e
