@@ -11,6 +11,7 @@ import com.intellij.ui.dsl.builder.*
 import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.completions.actions.ManualTriggerInlineCompletionAction
 import com.sensetime.sensecode.jetbrains.raccoon.completions.preview.render.GraphicsUtils
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.CompletionModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
@@ -71,7 +72,7 @@ class RaccoonConfigurable : Configurable, Disposable {
 
             buttonsGroup {
                 row(RaccoonBundle.message("settings.group.InlineCompletion.CompletionPreference.label")) {
-                    for (value in ModelConfig.CompletionPreference.values()) {
+                    for (value in CompletionModelConfig.CompletionPreference.entries) {
                         radioButton(RaccoonBundle.message(value.key), value)
                     }
                 }

@@ -1,0 +1,41 @@
+{
+  "apiBaseUrl": "https://raccoon-api.sensetime.com",
+  "completionApiConfig": {
+    "path": "/api/plugin/nova/v1/proxy/v1/llm/completions",
+    "selectedModelIndex": 0,
+    "models": [
+      {
+        "maxNewTokens": null,
+        "name": "SenseChat-CodeCompletion-Lite",
+        "temperature": 0.4,
+        "stop": [
+          "<EOT>"
+        ],
+        "maxInputTokens": 12288,
+        "tokenLimit": 16384,
+        "promptTemplate": "<LANG>{language}<SUF>{suffixLines}<PRE>{prefixLines}<COVER>{suffixCursor}<MID>{prefixCursor}",
+        "completionPreferenceMap": {
+          "SPEED_PRIORITY": 128,
+          "BALANCED": 256,
+          "BEST_EFFORT": 1024
+        }
+      }
+    ]
+  },
+  "chatApiConfig": {
+    "path": "/api/plugin/nova/v1/proxy/v1/llm/chat-completions",
+    "selectedModelIndex": 0,
+    "models": [
+      {
+        "maxNewTokens": null,
+        "name": "SenseChat-Code",
+        "temperature": 0.4,
+        "stop": [
+          "<|endofmessage|>"
+        ],
+        "maxInputTokens": 6144,
+        "tokenLimit": 8192
+      }
+    ]
+  }
+}

@@ -1,6 +1,8 @@
 package com.sensetime.sensecode.jetbrains.raccoon.persistent.histories
 
 import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
+import com.sensetime.sensecode.jetbrains.raccoon.llm.prompts.PromptVariables
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ChatModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
@@ -26,17 +28,17 @@ data class UserMessage(
     override val timestampMs: Long,
     private val args: Map<String, String>,
 ) : DisplayMessage {
-    fun getContent(modelConfig: ModelConfig): String =
-        modelConfig.getPromptTemplate(promptType)!!.toRawText(args)
+    fun getContent(modelConfig: ChatModelConfig): String =
+        modelConfig.getPromptTemplate(promptType)!!.getRawText(args)
 
     override val displayText: String
-        get() = RaccoonSettingsState.selectedClientConfig.toolwindowModelConfig.getPromptTemplate(promptType)!!
-            .toDisplayText(args)
+        get() = RaccoonClientManager.currentClientConfig.chatModelConfig.getPromptTemplate(promptType)!!
+            .getDisplayText(args)
 
     private val text: String?
-        get() = args[ModelConfig.DisplayTextTemplate.TEXT]
+        get() = args[PromptVariables.TEXT]
     private val code: String?
-        get() = args[ModelConfig.DisplayTextTemplate.CODE]
+        get() = args[PromptVariables.CODE]
 
     override fun hasData(): Boolean = !(text.isNullOrBlank() && code.isNullOrBlank())
 
@@ -55,9 +57,9 @@ data class UserMessage(
         } else {
             UserMessage(name, promptType, timestampMs, buildMap {
                 args?.let { putAll(it) }
-                text?.let { put(ModelConfig.DisplayTextTemplate.TEXT, it) }
-                code?.let { put(ModelConfig.DisplayTextTemplate.CODE, it) }
-                language?.let { put(ModelConfig.DisplayTextTemplate.LANGUAGE, it) }
+                text?.let { put(PromptVariables.TEXT, it) }
+                code?.let { put(PromptVariables.CODE, it) }
+                language?.let { put(PromptVariables.LANGUAGE, it) }
             })
         }
     }

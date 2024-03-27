@@ -2,7 +2,6 @@ package com.sensetime.sensecode.jetbrains.raccoon.clients
 
 import com.intellij.openapi.application.ApplicationManager
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ClientConfig
-import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.topics.SENSE_CODE_CLIENT_AUTHORIZATION_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonCredentialsListener
 import kotlinx.coroutines.*
@@ -20,20 +19,16 @@ object RaccoonClientManager {
         }
     }
 
-    private var _client: CodeClient? = null
-    private val clientConstructorMap = mapOf(SenseCodeClient.CLIENT_NAME to ::SenseCodeClient)
-
     val clientAndConfigPair: Pair<CodeClient, ClientConfig>
-        get() = RaccoonSettingsState.selectedClientConfig.let { clientConfig ->
-            Pair(_client?.takeIf { it.name == clientConfig.name }
-                ?: clientConstructorMap.getValue(clientConfig.name)().also { _client = it }, clientConfig)
-        }
+        get() = Pair(currentCodeClient, currentClientConfig)
 
     val userName: String?
         get() = currentCodeClient.userName
 
-    val currentCodeClient: CodeClient
-        get() = clientAndConfigPair.first
+    val currentCodeClient: CodeClient = SenseCodeClient()
+
+    val currentClientConfig:ClientConfig
+        get() = currentCodeClient.clientConfig
 
     private val clientCoroutineScope: CoroutineScope =
         CoroutineScope(SupervisorJob() + Dispatchers.IO + CoroutineName("RaccoonClient"))
