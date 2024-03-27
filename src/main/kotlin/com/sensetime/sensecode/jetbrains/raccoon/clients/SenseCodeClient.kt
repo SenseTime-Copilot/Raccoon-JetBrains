@@ -4,7 +4,6 @@ import com.intellij.credentialStore.Credentials
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.util.SystemInfo
-import com.sensetime.sensecode.jetbrains.raccoon.clients.models.PenroseModels
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.BehaviorMetrics
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.CodeRequest
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.SenseNovaLLMChatCompletionsRequest
@@ -13,8 +12,6 @@ import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.*
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.RaccoonCredentialsManager
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.letIfFilled
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ClientConfig
-import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.toClientApiConfigMap
-import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.toModelConfigMap
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_SENSITIVE_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonSensitiveListener
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
@@ -39,8 +36,10 @@ class SenseCodeClient : CodeClient() {
     override val name: String
         get() = CLIENT_NAME
 
+    override val clientConfig: ClientConfig = RaccoonClientConfig.loadFromResources()
+
     override val webBaseUrl: String
-        get() = baseUrl.replace("-api", "")
+        get() = apiBaseUrl.replace("-api", "")
 
     override val userName: String?
         get() = accessUserName
@@ -435,24 +434,6 @@ class SenseCodeClient : CodeClient() {
                 createRequestBuilderWithCommonHeader(apiEndpoint).addHeader("Authorization", "Bearer $it")
             } ?: throw UnauthorizedException("access token is empty")
 
-        val defaultClientConfig: ClientConfig
-            get() = ClientConfig(
-                CLIENT_NAME,
-                API_LLM_COMPLETIONS,
-                API_LLM_CHAT_COMPLETIONS,
-                listOf(
-                    ClientConfig.ClientApiConfig(
-                        API_LLM_COMPLETIONS,
-                        PTC_CODE_S_MODEL_NAME,
-                        listOf(PenroseModels.createModelCompletionSConfig(PTC_CODE_S_MODEL_NAME)).toModelConfigMap()
-                    ),
-                    ClientConfig.ClientApiConfig(
-                        API_LLM_CHAT_COMPLETIONS,
-                        PTC_CODE_L_MODEL_NAME,
-                        listOf(PenroseModels.createModelChatLConfig(PTC_CODE_L_MODEL_NAME)).toModelConfigMap()
-                    )
-                ).toClientApiConfigMap()
-            )
 
         private fun appendCommonRaccoonHeader(
             requestBuilder: Request.Builder,

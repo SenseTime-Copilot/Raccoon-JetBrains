@@ -21,6 +21,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.CodeRequest
 import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.CodeStreamResponse
 import com.sensetime.sensecode.jetbrains.raccoon.completions.preview.CompletionPreview
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.CompletionModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.tasks.CodeTaskActionBase
@@ -75,9 +76,9 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
                     val settings = RaccoonSettingsState.instance
                     val n = settings.candidates
                     val (client, clientConfig) = RaccoonClientManager.clientAndConfigPair
-                    val modelConfig = clientConfig.inlineModelConfig
+                    val modelConfig = clientConfig.completionModelConfig
                     val isSingleLine: Boolean =
-                        (settings.inlineCompletionPreference == ModelConfig.CompletionPreference.SPEED_PRIORITY)
+                        (settings.inlineCompletionPreference == CompletionModelConfig.CompletionPreference.SPEED_PRIORITY)
                     val codeRequest = CodeRequest(
                         null,
                         modelConfig.name,
@@ -88,9 +89,9 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
                         ).getMessages(language, modelConfig),
                         modelConfig.temperature,
                         n,
-                        if (isSingleLine) "\n" else modelConfig.stop,
-                        modelConfig.getMaxNewTokens(settings.inlineCompletionPreference),
-                        clientConfig.inlineApiPath
+                        if (isSingleLine) "\n" else modelConfig.stop.first(),
+                        modelConfig.getMaxNewTokens(),
+                        clientConfig.completionApiConfig.path
                     )
                     RaccoonClientManager.launchClientJob {
                         try {
@@ -249,14 +250,16 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
                 return mapOf("prefixLines" to prefixLines, "prefixCursor" to prefixCursor, "prefix" to prefix)
             }
 
+//            listOfNotNull(
+//            modelConfig.getSystemPromptPair()
+//            ?.let { CodeRequest.Message(it.first, it.second) })
+
             fun getMessages(
                 language: String,
-                modelConfig: ModelConfig
-            ): List<CodeRequest.Message> = listOfNotNull(
-                modelConfig.getSystemPromptPair()
-                    ?.let { CodeRequest.Message(it.first, it.second) }) + CodeRequest.Message(
+                modelConfig: CompletionModelConfig
+            ): List<CodeRequest.Message> = listOf(CodeRequest.Message(
                 modelConfig.getRoleString(ModelConfig.Role.USER),
-                modelConfig.getPromptTemplate(ModelConfig.INLINE_COMPLETION)!!.toRawText(
+                modelConfig.getPrompt(
                     if (text.length > offset) {
                         val suffix = text.substring(offset)
                         var suffixLines = ""
@@ -272,10 +275,12 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
                             "suffix" to suffix
                         ) + getPrefixArgs(text.substring(0, offset))
                     } else {
-                        mapOf("language" to language, "suffixLines" to "", "suffixCursor" to "") + getPrefixArgs(text)
+                        mapOf("language" to language, "suffixLines" to "", "suffixCursor" to "") + getPrefixArgs(
+                            text
+                        )
                     }
                 )
-            )
+            ))
         }
 
         @JvmStatic

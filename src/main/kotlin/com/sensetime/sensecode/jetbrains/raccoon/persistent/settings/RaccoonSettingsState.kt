@@ -5,7 +5,6 @@ import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.util.xmlb.XmlSerializerUtil
-import com.sensetime.sensecode.jetbrains.raccoon.clients.SenseCodeClient
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
 import kotlin.math.max
 
@@ -28,16 +27,10 @@ data class RaccoonSettingsState(
             field = max(MIN_AUTO_COMPLETE_DELAY_MS, value)
         }
 
-    var inlineCompletionPreference: ModelConfig.CompletionPreference = ModelConfig.CompletionPreference.BEST_EFFORT
-
     var inlineCompletionColor: String = ""
+    var inlineCompletionPreference: CompletionModelConfig.CompletionPreference =
+        CompletionModelConfig.CompletionPreference.BEST_EFFORT
 
-    // only for dev
-    var toolwindowMaxNewTokens: Int = -1
-    private val selectedClientName: String = SenseCodeClient.CLIENT_NAME
-    var clientBaseUrlMap: Map<String, String> =
-        mapOf(SenseCodeClient.CLIENT_NAME to SenseCodeClient.BASE_API)
-    private val clients: Map<String, ClientConfig> = listOf(SenseCodeClient.defaultClientConfig).toClientConfigMap()
 
     fun restore() {
         loadState(RaccoonSettingsState(RaccoonPlugin.version))
@@ -61,8 +54,5 @@ data class RaccoonSettingsState(
 
         val instance: RaccoonSettingsState
             get() = ApplicationManager.getApplication().getService(RaccoonSettingsState::class.java)
-
-        val selectedClientConfig: ClientConfig
-            get() = instance.let { it.clients.getValue(it.selectedClientName) }
     }
 }

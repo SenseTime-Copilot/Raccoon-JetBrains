@@ -1,6 +1,7 @@
 package com.sensetime.sensecode.jetbrains.raccoon.persistent.histories
 
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.CodeRequest
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ChatModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import kotlinx.serialization.Serializable
@@ -25,14 +26,16 @@ data class ChatConversation(
 
 fun List<ChatConversation>.getID(): String? = lastOrNull()?.id
 
-fun List<ChatConversation>.toCodeRequestMessage(modelConfig: ModelConfig): List<CodeRequest.Message> {
+fun List<ChatConversation>.toCodeRequestMessage(modelConfig: ChatModelConfig): List<CodeRequest.Message> {
     val userRole = modelConfig.getRoleString(ModelConfig.Role.USER)
     val assistantRole = modelConfig.getRoleString(ModelConfig.Role.ASSISTANT)
     val maxInputTokens = modelConfig.maxInputTokens
     var currentTokens = 0
-    return listOfNotNull(
-        modelConfig.getSystemPromptPair()
-            ?.let { CodeRequest.Message(it.first, it.second) }) + ((reversed().flatMapIndexed { index, conversation ->
+
+//    listOfNotNull(
+//        modelConfig.getSystemPromptPair()
+//            ?.let { CodeRequest.Message(it.first, it.second) }) +
+    return ((reversed().flatMapIndexed { index, conversation ->
         if (index <= 0) {
             val content = conversation.user.getContent(modelConfig)
             currentTokens += content.length

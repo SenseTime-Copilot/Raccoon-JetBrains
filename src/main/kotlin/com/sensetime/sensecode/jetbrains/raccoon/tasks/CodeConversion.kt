@@ -3,7 +3,7 @@ package com.sensetime.sensecode.jetbrains.raccoon.tasks
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
-import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
+import com.sensetime.sensecode.jetbrains.raccoon.llm.prompts.toVariableExpression
 import javax.swing.ListSelectionModel
 
 class CodeConversion : CodeTaskActionBase() {
@@ -17,7 +17,7 @@ class CodeConversion : CodeTaskActionBase() {
 
     companion object {
         const val DST_LANGUAGE = "dstLanguage"
-        val dstLanguageExpression: String = ModelConfig.DisplayTextTemplate.toArgExpression(DST_LANGUAGE)
+        val dstLanguageExpression: String = DST_LANGUAGE.toVariableExpression()
 
         private val LANGUAGES = listOf(
             "C",

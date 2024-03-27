@@ -16,7 +16,10 @@ import com.intellij.util.messages.SimpleMessageBusConnection
 import com.intellij.util.ui.JBUI
 import com.sensetime.sensecode.jetbrains.raccoon.clients.CodeClient
 import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
+import com.sensetime.sensecode.jetbrains.raccoon.llm.prompts.PromptVariables
+import com.sensetime.sensecode.jetbrains.raccoon.llm.prompts.replaceVariables
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.histories.*
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ChatModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
@@ -371,17 +374,16 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
         CommonDataKeys.PROJECT.getData(DataManager.getInstance().getDataContext(this))?.let { project ->
             FileEditorManager.getInstance(project).selectedTextEditor?.let { editor ->
                 RaccoonNotification.checkEditorSelectedText(
-                    RaccoonSettingsState.selectedClientConfig.toolwindowModelConfig.maxInputTokens,
+                    RaccoonClientManager.currentClientConfig.chatModelConfig.maxInputTokens,
                     editor,
                     false
                 )?.letIfNotBlank { code ->
-                    ModelConfig.DisplayTextTemplate.replaceArgs(
-                        ModelConfig.DisplayTextTemplate.markdownCodeTemplate,
+                    PromptVariables.markdownCodeTemplate.replaceVariables(
                         mapOf(
-                            ModelConfig.DisplayTextTemplate.LANGUAGE to RaccoonLanguages.getMarkdownLanguageFromPsiFile(
+                            PromptVariables.LANGUAGE to RaccoonLanguages.getMarkdownLanguageFromPsiFile(
                                 FileDocumentManager.getInstance().getFile(editor.document)
                                     ?.let { PsiManager.getInstance(project).findFile(it) }),
-                            ModelConfig.DisplayTextTemplate.CODE to code
+                            PromptVariables.CODE to code
                         )
                     )
                 }
@@ -390,7 +392,10 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
 
     private fun onSubmitButtonClick(e: ActionEvent?) {
         userPromptTextArea.text?.letIfNotBlank { userInputText ->
-            UserMessage.createUserMessage(promptType = ModelConfig.FREE_CHAT, text = userInputText + getSelectedCode())
+            UserMessage.createUserMessage(
+                promptType = ChatModelConfig.FREE_CHAT,
+                text = userInputText + getSelectedCode()
+            )
                 ?.let {
                     conversationListPanel.conversationListModel.add(
                         ChatConversation(

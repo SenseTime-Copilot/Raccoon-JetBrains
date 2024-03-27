@@ -38,9 +38,9 @@ class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
         val chatContentPanel = ChatContentPanel(project)
         chatContentPanel.eventListener = object : ChatContentPanel.EventListener {
             override fun onSubmit(e: ActionEvent?, conversations: List<ChatConversation>, onFinally: () -> Unit) {
-                val maxNewTokens: Int = RaccoonSettingsState.instance.toolwindowMaxNewTokens
+                val maxNewTokens: Int = RaccoonClientManager.currentClientConfig.chatModelConfig.getMaxNewTokens()
                 val (client, clientConfig) = RaccoonClientManager.clientAndConfigPair
-                val modelConfig = clientConfig.toolwindowModelConfig
+                val modelConfig = clientConfig.chatModelConfig
 
                 chatJob = RaccoonClientManager.launchClientJob {
                     try {
@@ -51,9 +51,9 @@ class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
                                 conversations.toCodeRequestMessage(modelConfig),
                                 modelConfig.temperature,
                                 1,
-                                modelConfig.stop,
-                                if (maxNewTokens <= 0) modelConfig.getMaxNewTokens(ModelConfig.CompletionPreference.BEST_EFFORT) else maxNewTokens,
-                                clientConfig.toolwindowApiPath
+                                modelConfig.stop.first(),
+                                maxNewTokens,
+                                clientConfig.chatApiConfig.path
                             )
                         ) { streamResponse ->
                             RaccoonUIUtils.invokeOnUIThreadLater {

@@ -7,7 +7,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.CodeResponse
 import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.CodeStreamResponse
 import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.Error
 import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.Usage
-import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ClientConfig
 import com.sensetime.sensecode.jetbrains.raccoon.topics.SENSE_CODE_CLIENT_REQUEST_STATE_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonClientRequestStateListener
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonSensitiveListener
@@ -60,10 +60,11 @@ internal suspend fun Call.await(): Response =
 
 abstract class CodeClient {
     abstract val name: String
-    protected val baseUrl: String
-        get() = RaccoonSettingsState.instance.clientBaseUrlMap.getValue(name)
+    abstract val clientConfig: ClientConfig
+    protected val apiBaseUrl: String
+        get() = clientConfig.apiBaseUrl
     open val webBaseUrl: String? = null
-    protected fun getApiEndpoint(apiPath: String) = baseUrl + apiPath
+    protected fun getApiEndpoint(apiPath: String) = apiBaseUrl + apiPath
 
 
     // authorization

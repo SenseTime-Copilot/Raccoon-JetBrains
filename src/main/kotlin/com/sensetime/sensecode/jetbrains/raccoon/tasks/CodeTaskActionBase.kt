@@ -5,6 +5,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
+import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.histories.UserMessage
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.topics.SENSE_CODE_TASKS_TOPIC
@@ -17,7 +18,7 @@ abstract class CodeTaskActionBase : AnAction() {
 
     private fun getEditorSelectedText(editor: Editor?): String? =
         RaccoonNotification.checkEditorSelectedText(
-            RaccoonSettingsState.selectedClientConfig.toolwindowModelConfig.maxInputTokens,
+            RaccoonClientManager.currentClientConfig.chatModelConfig.maxInputTokens,
             editor,
             false
         )

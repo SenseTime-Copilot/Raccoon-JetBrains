@@ -21,7 +21,6 @@ import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.CodeRequest
 import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.CodeStreamResponse
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
-import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_STATISTICS_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonNotification
@@ -64,7 +63,7 @@ class GenerateCommitMessage : AnAction() {
 
     companion object {
         private val maxDiffLength =
-            10 * (RaccoonSettingsState.selectedClientConfig.toolwindowModelConfig.maxInputTokens)
+            10 * (RaccoonClientManager.currentClientConfig.chatModelConfig.maxInputTokens)
 
         private fun getCommitMessagePanel(e: AnActionEvent): CommitMessage? =
             e.getData(VcsDataKeys.COMMIT_MESSAGE_CONTROL) as? CommitMessage
@@ -111,26 +110,31 @@ class GenerateCommitMessage : AnAction() {
             }
         }.takeIfNotBlank()) { RaccoonBundle.message("git.commit.warning.noChange") }
         val (client, clientConfig) = RaccoonClientManager.clientAndConfigPair
-        val modelConfig = clientConfig.toolwindowModelConfig
+        val modelConfig = clientConfig.chatModelConfig
+
+//        listOfNotNull(
+//            modelConfig.getSystemPromptPair()?.let {
+//                CodeRequest.Message(
+//                    it.first,
+//                    it.second
+//                )
+//            })
+
         client.requestStream(
             CodeRequest(
                 null,
                 modelConfig.name,
-                listOfNotNull(
-                    modelConfig.getSystemPromptPair()?.let {
-                        CodeRequest.Message(
-                            it.first,
-                            it.second
-                        )
-                    }) + CodeRequest.Message(
-                    modelConfig.getRoleString(ModelConfig.Role.USER),
-                    "Here are changes of current codebase:\n\n```diff\n$diff\n```\n\nWrite a commit message summarizing these changes, not have to cover erevything, key-points only. Response the content only, limited the message to 50 characters, in plain text format, and without quotation marks."
+                listOf(
+                    CodeRequest.Message(
+                        modelConfig.getRoleString(ModelConfig.Role.USER),
+                        "Here are changes of current codebase:\n\n```diff\n$diff\n```\n\nWrite a commit message summarizing these changes, not have to cover erevything, key-points only. Response the content only, limited the message to 50 characters, in plain text format, and without quotation marks."
+                    )
                 ),
                 modelConfig.temperature,
                 1,
-                modelConfig.stop,
+                modelConfig.stop.first(),
                 256,
-                clientConfig.toolwindowApiPath
+                clientConfig.chatApiConfig.path
             ), block
         )
     }
