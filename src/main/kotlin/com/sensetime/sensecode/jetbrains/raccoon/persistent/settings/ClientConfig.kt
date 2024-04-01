@@ -2,13 +2,12 @@ package com.sensetime.sensecode.jetbrains.raccoon.persistent.settings
 
 import kotlinx.serialization.Serializable
 
-interface ClientConfig {
+internal interface ClientConfig {
     @Serializable
     abstract class ClientApiConfig<T : ModelConfig> {
-        abstract val path: String
-        protected abstract val selectedModelIndex: Int
+        protected abstract val path: String
         protected abstract val models: List<T>
-
+        private val selectedModelIndex: Int = 0
         val selectedModelConfig: T
             get() = models[selectedModelIndex]
 
@@ -19,16 +18,16 @@ interface ClientConfig {
     val apiBaseUrl: String
     val completionApiConfig: ClientApiConfig<CompletionModelConfig>
     val chatApiConfig: ClientApiConfig<ChatModelConfig>
-//    val agentApiConfig: ClientApiConfig<AgentModelConfig>
+    val agentApiConfig: ClientApiConfig<AgentModelConfig>
 
     val completionModelConfig: CompletionModelConfig
         get() = completionApiConfig.selectedModelConfig
     val chatModelConfig: ChatModelConfig
         get() = chatApiConfig.selectedModelConfig
-//    val agentModelConfig: AgentModelConfig
-//        get() = agentApiConfig.selectedModelConfig
+    val agentModelConfig: AgentModelConfig
+        get() = agentApiConfig.selectedModelConfig
 
     fun getCompletionApiEndpoint(): String = completionApiConfig.getApiEndpoint(apiBaseUrl)
     fun getChatApiEndpoint(): String = chatApiConfig.getApiEndpoint(apiBaseUrl)
-//    fun getAgentApiEndpoint(): String = agentApiConfig.getApiEndpoint(apiBaseUrl)
+    fun getAgentApiEndpoint(): String = agentApiConfig.getApiEndpoint(apiBaseUrl)
 }

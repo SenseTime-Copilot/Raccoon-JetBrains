@@ -5,18 +5,13 @@ import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.extensions.PluginId
 
-object RaccoonPlugin {
-    const val NAME: String = "Raccoon"
-    const val PLUGIN_ID: String = "com.sensetime.sensecode.jetbrains.raccoon"
 
-    val plugin: IdeaPluginDescriptor by lazy {
-        PluginManagerCore.getPlugin(PluginId.getId(PLUGIN_ID)) ?: throw RuntimeException("Not found $PLUGIN_ID!")
-    }
+internal object RaccoonPlugin {
+    private const val PLUGIN_ID: String = "com.sensetime.sensecode.jetbrains.raccoon"
+    private fun getPlugin(): IdeaPluginDescriptor =
+        requireNotNull(PluginManagerCore.getPlugin(PluginId.getId(PLUGIN_ID))) { "Not found $PLUGIN_ID!" }
 
-    val version: String
-        get() = plugin.version
-
-    val ideName: String by lazy {
-        ApplicationInfo.getInstance().versionName
-    }
+    val name: String = getPlugin().name
+    val ideName: String = ApplicationInfo.getInstance().versionName.ifNullOrBlank("Unknown IDE")
+    fun getVersion(): String = getPlugin().version
 }

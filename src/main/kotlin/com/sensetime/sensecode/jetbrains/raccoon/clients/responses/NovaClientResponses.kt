@@ -9,7 +9,7 @@ import kotlinx.serialization.Serializable
 
 
 @Serializable
-abstract class ClientCodeStatus(
+internal abstract class ClientCodeStatus(
     private val code: Int = OK_CODE,
     private val message: String? = null
 ) : LLMResponseError {
@@ -30,7 +30,7 @@ abstract class ClientCodeStatus(
 }
 
 @Serializable
-data class NovaClientStatus(
+internal data class NovaClientStatus(
     private val details: List<String>? = null
 ) : ClientCodeStatus() {
     override fun getDetailsInfo(): String? = details?.toString()
@@ -51,17 +51,17 @@ data class NovaClientStatus(
 }
 
 @Serializable
-data class NovaClientLLMUsage(override val prompt: Int = 0, override val completion: Int = 0) : LLMUsage
+internal data class NovaClientLLMUsage(override val prompt: Int = 0, override val completion: Int = 0) : LLMUsage
 
 @Serializable
-sealed class NovaClientLLMChoice(
+internal sealed class NovaClientLLMChoice(
     override val index: Int = -1,
     @SerialName("finish_reason")
     override val finishReason: String? = null
 ) : LLMChoice
 
 @Serializable
-open class NovaClientLLMContentChoice(
+internal open class NovaClientLLMContentChoice(
     private val text: String? = null,
     private val message: String? = null,
     private val delta: String? = null,
@@ -71,16 +71,26 @@ open class NovaClientLLMContentChoice(
 }
 
 @Serializable
-data class NovaClientLLMAgentChoice(
+internal class NovaClientLLMCompletionChoice : NovaClientLLMContentChoice(), LLMCompletionChoice
+
+@Serializable
+internal class NovaClientLLMChatChoice : NovaClientLLMContentChoice(), LLMChatChoice
+
+@Serializable
+internal data class NovaClientLLMAgentChoice(
     override val type: String? = null,
     @SerialName("tool_calls")
     override val toolCalls: List<LLMToolCall>? = null
 ) : NovaClientLLMContentChoice(), LLMAgentChoice
 
 @Serializable
-data class NovaClientLLMResponseData(
+internal data class NovaClientLLMResponseData<T : NovaClientLLMChoice>(
     val status: NovaClientStatus? = null,
     override val id: String? = null,
     override val usage: NovaClientLLMUsage? = null,
-    override val choices: List<NovaClientLLMAgentChoice>? = null
-) : LLMResponseData
+    override val choices: List<T>? = null
+) : LLMResponseData<T>
+
+internal typealias NovaClientLLMCompletionResponseData = NovaClientLLMResponseData<NovaClientLLMCompletionChoice>
+internal typealias NovaClientLLMChatResponseData = NovaClientLLMResponseData<NovaClientLLMChatChoice>
+internal typealias NovaClientLLMAgentResponseData = NovaClientLLMResponseData<NovaClientLLMAgentChoice>

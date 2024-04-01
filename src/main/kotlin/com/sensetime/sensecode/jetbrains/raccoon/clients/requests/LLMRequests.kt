@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 
 // LLM messages
 
-sealed interface LLMMessage {
+internal sealed interface LLMMessage {
     enum class Role(val defaultName: String) {
         USER("user"),
         ASSISTANT("assistant"),
@@ -16,44 +16,44 @@ sealed interface LLMMessage {
     val role: Role
 }
 
-sealed interface LLMContentMessage : LLMMessage {
+internal sealed interface LLMContentMessage : LLMMessage {
     val content: String
 }
 
-sealed interface LLMAgentMessage : LLMMessage
-sealed interface LLMChatMessage : LLMContentMessage, LLMAgentMessage
+internal sealed interface LLMAgentMessage : LLMMessage
+internal sealed interface LLMChatMessage : LLMContentMessage, LLMAgentMessage
 
-data class LLMSystemMessage(override val content: String) : LLMChatMessage {
+internal data class LLMSystemMessage(override val content: String) : LLMChatMessage {
     override val role: LLMMessage.Role = LLMMessage.Role.SYSTEM
 }
 
-data class LLMUserMessage(override val content: String) : LLMChatMessage {
+internal data class LLMUserMessage(override val content: String) : LLMChatMessage {
     override val role: LLMMessage.Role = LLMMessage.Role.USER
 }
 
-abstract class LLMAssistantMessageBase : LLMMessage {
+internal abstract class LLMAssistantMessageBase : LLMMessage {
     final override val role: LLMMessage.Role = LLMMessage.Role.ASSISTANT
 }
 
-data class LLMAssistantMessage(override val content: String) : LLMAssistantMessageBase(), LLMChatMessage
+internal data class LLMAssistantMessage(override val content: String) : LLMAssistantMessageBase(), LLMChatMessage
 
 
 @Serializable
-data class LLMFunction(val name: String, val arguments: String)
+internal data class LLMFunction(val name: String, val arguments: String)
 
 @Serializable
-data class LLMToolCall(
+internal data class LLMToolCall(
     val id: String,
     val function: LLMFunction
 ) {
     val type: String = "function"
 }
 
-data class LLMToolCallsMessage(
+internal data class LLMToolCallsMessage(
     val toolCalls: List<LLMToolCall>
 ) : LLMAssistantMessageBase(), LLMAgentMessage
 
-data class LLMToolMessage(
+internal data class LLMToolMessage(
     override val content: String,
     val toolCallID: String
 ) : LLMContentMessage, LLMAgentMessage {
@@ -63,19 +63,31 @@ data class LLMToolMessage(
 
 // LLM requests, same for all client
 
-sealed interface LLMRequest
+internal sealed interface LLMRequest {
+    val n: Int
+    val stream: Boolean?
+    val action: String
+}
 
-data class LLMCompletionRequest(
-    val n: Int,
+internal data class LLMCompletionRequest(
+    override val n: Int,
+    override val stream: Boolean? = null,
+    override val action: String = "inline completion",
     val prompt: String
 ) : LLMRequest
 
-data class LLMChatRequest(
+internal data class LLMChatRequest(
     val id: String,
+    override val n: Int = 1,
+    override val stream: Boolean? = true,
+    override val action: String,
     val messages: List<LLMChatMessage>
 ) : LLMRequest
 
-data class LLMAgentRequest(
+internal data class LLMAgentRequest(
     val id: String,
+    override val n: Int = 1,
+    override val stream: Boolean? = true,
+    override val action: String,
     val messages: List<LLMAgentMessage>
 ) : LLMRequest

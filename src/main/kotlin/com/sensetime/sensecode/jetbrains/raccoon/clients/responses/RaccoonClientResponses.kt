@@ -4,12 +4,14 @@ import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientMessageExcepti
 import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientUnauthorizedException
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonSensitiveListener
+import com.sensetime.sensecode.jetbrains.raccoon.utils.getNameFromEmail
+import com.sensetime.sensecode.jetbrains.raccoon.utils.takeIfNotBlank
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 
 @Serializable
-abstract class RaccoonClientStatus(
+internal abstract class RaccoonClientStatus(
     private val details: String? = null
 ) : ClientCodeStatus() {
     override fun getDetailsInfo(): String? = details
@@ -25,8 +27,7 @@ abstract class RaccoonClientStatus(
                     RaccoonBundle.message("client.sensecode.response.error.paramInvalid", it)
                 }
 
-                // only 200003 need LLMClientUnauthorizedException for notifyGotoLogin
-                AUTHORIZATION_VERIFY_ERROR_CODE -> throw LLMClientUnauthorizedException(
+                INVALID_AUTHORIZATION_CODE, AUTHORIZATION_VERIFY_ERROR_CODE -> throw LLMClientUnauthorizedException(
                     takeIfMessageNotBlankOrOk(), getDetailsInfo()
                 )
 
@@ -75,11 +76,11 @@ abstract class RaccoonClientStatus(
 }
 
 @Serializable
-data class RaccoonClientLLMResponse(
+internal data class RaccoonClientLLMResponse<T : NovaClientLLMChoice>(
     val status: NovaClientStatus? = null,
     val error: NovaClientStatus? = null,
-    val data: NovaClientLLMResponseData = NovaClientLLMResponseData()
-) : RaccoonClientStatus(), LLMResponse, LLMResponseData by data {
+    val data: NovaClientLLMResponseData<T> = NovaClientLLMResponseData()
+) : RaccoonClientStatus(), LLMResponseData<T> by data, LLMResponse<T> {
     override fun throwIfError() {
         super.throwIfError()
         data.status?.throwIfError()
@@ -87,28 +88,55 @@ data class RaccoonClientLLMResponse(
         status?.throwIfError()
     }
 }
+internal typealias RaccoonClientLLMCompletionResponse = RaccoonClientLLMResponse<NovaClientLLMCompletionChoice>
+internal typealias RaccoonClientLLMChatResponse = RaccoonClientLLMResponse<NovaClientLLMChatChoice>
+internal typealias RaccoonClientLLMAgentResponse = RaccoonClientLLMResponse<NovaClientLLMAgentChoice>
 
 
 // other responses
 
 @Serializable
-data class RaccoonClientUserInfo(
-    val email: String? = null,
-    val phone: String? = null,
+internal data class RaccoonClientOrgInfo(
+    val code: String,
     val name: String? = null,
+    @SerialName("user_name")
+    val userName: String? = null,
+    @SerialName("user_role")
+    val userRole: String? = null,
+    @SerialName("user_status")
+    val userStatus: String? = null,
+    @SerialName("team_code_enabled")
+    val teamCodeEnabled: Boolean = false,
+    @SerialName("team_code_expired_time")
+    val teamCodeExpiredTime: String? = null
+)
+
+@Serializable
+internal data class RaccoonClientUserInfo(
     @SerialName("created_at")
-    val createdAt: String? = null
+    val createdAt: String? = null,
+    val name: String? = null,
+//    @SerialName("nation_code")
+//    val nationCode: String? = null,
+//    val phone: String? = null,
+    val email: String? = null,
+    @SerialName("pro_code_enabled")
+    val proCodeEnabled: Boolean = false,
+    @SerialName("pro_code_expired_time")
+    val proCodeExpiredTime: String? = null,
+    @SerialName("orgs")
+    val organizations: List<RaccoonClientOrgInfo>? = null
 ) {
-    fun getDisplayName(): String = name ?: email ?: phone!!
+    fun getDisplayName(): String = name?.takeIfNotBlank() ?: email?.getNameFromEmail()?.takeIfNotBlank() ?: "unknown"
 }
 
 @Serializable
-data class RaccoonClientUserInfoResponse(
+internal data class RaccoonClientUserInfoResponse(
     val data: RaccoonClientUserInfo? = null
 ) : RaccoonClientStatus()
 
 @Serializable
-data class RaccoonClientTokens(
+internal data class RaccoonClientTokens(
     @SerialName("access_token")
     val accessToken: String,
     @SerialName("refresh_token")
@@ -116,12 +144,12 @@ data class RaccoonClientTokens(
 )
 
 @Serializable
-data class RaccoonClientTokensResponse(
+internal data class RaccoonClientTokensResponse(
     val data: RaccoonClientTokens? = null
 ) : RaccoonClientStatus()
 
 @Serializable
-data class RaccoonClientSensitiveConversation(
+internal data class RaccoonClientSensitiveConversation(
     @SerialName("turn_id")
     val id: String = "",
     @SerialName("sensetive_type")
@@ -129,14 +157,14 @@ data class RaccoonClientSensitiveConversation(
 ) : RaccoonSensitiveListener.SensitiveConversation
 
 @Serializable
-data class RaccoonClientSensitives(
+internal data class RaccoonClientSensitives(
     val list: List<RaccoonClientSensitiveConversation> = emptyList()
 )
 
-fun List<RaccoonClientSensitiveConversation>.toSensitiveConversationMap(): Map<String, RaccoonSensitiveListener.SensitiveConversation> =
+internal fun List<RaccoonClientSensitiveConversation>.toSensitiveConversationMap(): Map<String, RaccoonSensitiveListener.SensitiveConversation> =
     filter { it.id.isNotBlank() }.associateBy(RaccoonClientSensitiveConversation::id)
 
 @Serializable
-data class RaccoonClientSensitivesResponse(
+internal data class RaccoonClientSensitivesResponse(
     val data: RaccoonClientSensitives? = null
 ) : RaccoonClientStatus()

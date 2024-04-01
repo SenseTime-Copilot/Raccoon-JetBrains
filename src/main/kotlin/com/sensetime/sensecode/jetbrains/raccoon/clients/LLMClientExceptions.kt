@@ -8,7 +8,7 @@ import java.lang.Exception
 
 private val LOG = logger<LLMClientException>()
 
-sealed class LLMClientException(message: String, private val details: String?) : Exception(message) {
+internal sealed class LLMClientException(message: String, private val details: String?) : Exception(message) {
     constructor(
         type: String, message: String?, details: String?
     ) : this("${type}${message.ifNullOrBlankElse(" Error!") { ": $it" }}", details)
@@ -19,20 +19,21 @@ sealed class LLMClientException(message: String, private val details: String?) :
     }
 }
 
-class LLMClientUnknownException : LLMClientException("Unknown", null, null)
-class LLMClientMessageException(message: String, details: String? = null) : LLMClientException(message, details)
+internal class LLMClientUnknownException : LLMClientException("Unknown", null, null)
+internal class LLMClientMessageException(message: String, details: String? = null) :
+    LLMClientException(message, details)
 
-class LLMClientCanceledException(message: String? = null, details: String? = null) :
+internal class LLMClientCanceledException(message: String? = null, details: String? = null) :
     LLMClientException("Canceled", message, details)
 
-class LLMClientErrorCodeException(code: Int, message: String?, details: String? = null) :
+internal class LLMClientErrorCodeException(code: Int, message: String?, details: String? = null) :
     LLMClientException("ErrorCode $code", message, details)
 
-class LLMClientUnauthorizedException(message: String? = null, details: String? = null) :
+internal class LLMClientUnauthorizedException(message: String? = null, details: String? = null) :
     LLMClientException("Unauthorized", message, details)
 
-class LLMClientSensitiveException(message: String? = null, details: String? = null) :
+internal class LLMClientSensitiveException(message: String? = null, details: String? = null) :
     LLMClientException("Sensitive", message, details)
 
-class LLMClientStreamException(message: String, details: String? = null) :
+internal class LLMClientStreamException(message: String, details: String? = null) :
     LLMClientException("SSE(Streaming)", message, details)

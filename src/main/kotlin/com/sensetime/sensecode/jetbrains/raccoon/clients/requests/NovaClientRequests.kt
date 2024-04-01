@@ -14,19 +14,19 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.*
 
 
-abstract class NovaMessage(
+internal abstract class NovaMessage(
     role: LLMMessage.Role, modelConfig: ModelConfig, messageArgs: Map<String, JsonElement>
 ) : LLMClientJsonObject(mapOf("role" to JsonPrimitive(modelConfig.getRoleString(role))) + messageArgs)
 
-abstract class NovaContentMessage(
+internal abstract class NovaContentMessage(
     role: LLMMessage.Role, modelConfig: ModelConfig, content: String, messageArgs: Map<String, JsonElement>? = null
 ) : NovaMessage(role, modelConfig, mapOf("content" to JsonPrimitive(content)).plusIfNotNull(messageArgs))
 
-class NovaChatMessage(
+internal class NovaChatMessage(
     llmChatMessage: LLMChatMessage, modelConfig: ModelConfig
 ) : NovaContentMessage(llmChatMessage.role, modelConfig, llmChatMessage.content)
 
-class NovaToolCallsMessage(
+internal class NovaToolCallsMessage(
     llmToolCallsMessage: LLMToolCallsMessage, modelConfig: ModelConfig
 ) : NovaMessage(
     llmToolCallsMessage.role, modelConfig,
@@ -38,7 +38,7 @@ class NovaToolCallsMessage(
     )
 )
 
-class NovaToolMessage(
+internal class NovaToolMessage(
     llmToolMessage: LLMToolMessage, modelConfig: ModelConfig
 ) : NovaContentMessage(
     llmToolMessage.role, modelConfig, llmToolMessage.content,
@@ -58,7 +58,7 @@ private fun List<LLMAgentMessage>.toNovaAgentMessage(modelConfig: ModelConfig): 
 
 
 @Serializable
-data class NovaClientCommonParameters(
+internal data class NovaClientCommonParameters(
     val model: String,
     val temperature: Float,
     val n: Int,
@@ -67,47 +67,45 @@ data class NovaClientCommonParameters(
     @SerialName("max_new_tokens")
     val maxTokens: Int
 ) {
-    constructor(modelConfig: ModelConfig, n: Int, stream: Boolean?) : this(
+    constructor(modelConfig: ModelConfig, llmRequest: LLMRequest) : this(
         modelConfig.name,
         modelConfig.temperature,
-        n, stream ?: (n <= 1),
+        llmRequest.n, llmRequest.stream ?: (llmRequest.n <= 1),
         modelConfig.stop.first(),
         modelConfig.getMaxNewTokens()
     )
 }
 
-abstract class NovaClientRequest(
-    requestArgs: Map<String, JsonElement>, modelConfig: ModelConfig, n: Int = 1, stream: Boolean? = null
+internal abstract class NovaClientRequest(
+    requestArgs: Map<String, JsonElement>, modelConfig: ModelConfig, llmRequest: LLMRequest
 ) : ClientRequest(
     LLMClientJson.encodeToJsonElement(
         NovaClientCommonParameters.serializer(),
-        NovaClientCommonParameters(modelConfig, n, stream)
+        NovaClientCommonParameters(modelConfig, llmRequest)
     ).jsonObject + requestArgs, modelConfig.customRequestArgs
 )
 
-class NovaClientCompletionRequest(
+internal class NovaClientCompletionRequest(
     completionRequest: LLMCompletionRequest,
-    modelConfig: CompletionModelConfig,
-    stream: Boolean? = null
+    modelConfig: CompletionModelConfig
 ) : NovaClientRequest(
-    mapOf("prompt" to JsonPrimitive(completionRequest.prompt)),
-    modelConfig, completionRequest.n, stream
+    mapOf("prompt" to JsonPrimitive(completionRequest.prompt)), modelConfig, completionRequest
 )
 
-class NovaClientChatRequest(
+internal class NovaClientChatRequest(
     chatRequest: LLMChatRequest,
     modelConfig: ChatModelConfig
 ) : NovaClientRequest(
     mapOf("messages" to chatRequest.messages.toNovaChatMessages(modelConfig).toJsonArray()),
-    modelConfig
+    modelConfig, chatRequest
 )
 
-class NovaClientAgentRequest(
+internal class NovaClientAgentRequest(
     agentRequest: LLMAgentRequest,
     modelConfig: AgentModelConfig
 ) : NovaClientRequest(
     mapOf(
         "tools" to modelConfig.tools,
         "messages" to agentRequest.messages.toNovaAgentMessage(modelConfig).toJsonArray()
-    ), modelConfig
+    ), modelConfig, agentRequest
 )

@@ -12,7 +12,7 @@ import kotlinx.serialization.json.Json
 
 @Serializable
 @OptIn(ExperimentalSerializationApi::class)
-data class BehaviorMetrics(
+internal data class BehaviorMetrics(
     @SerialName("common_header")
     @EncodeDefault(EncodeDefault.Mode.ALWAYS)
     val header: CommonHeader = commonHeader
