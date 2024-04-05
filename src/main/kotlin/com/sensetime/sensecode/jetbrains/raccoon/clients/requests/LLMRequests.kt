@@ -63,10 +63,11 @@ internal data class LLMToolMessage(
 
 // LLM requests, same for all client
 
-internal sealed interface LLMRequest {
-    val n: Int
-    val stream: Boolean?
-    val action: String
+internal sealed class LLMRequest {
+    abstract val n: Int
+    protected abstract val stream: Boolean?
+    fun isStream(): Boolean = stream ?: (n <= 1)
+    abstract val action: String
 }
 
 internal data class LLMCompletionRequest(
@@ -74,7 +75,7 @@ internal data class LLMCompletionRequest(
     override val stream: Boolean? = null,
     override val action: String = "inline completion",
     val prompt: String
-) : LLMRequest
+) : LLMRequest()
 
 internal data class LLMChatRequest(
     val id: String,
@@ -82,7 +83,7 @@ internal data class LLMChatRequest(
     override val stream: Boolean? = true,
     override val action: String,
     val messages: List<LLMChatMessage>
-) : LLMRequest
+) : LLMRequest()
 
 internal data class LLMAgentRequest(
     val id: String,
@@ -90,4 +91,4 @@ internal data class LLMAgentRequest(
     override val stream: Boolean? = true,
     override val action: String,
     val messages: List<LLMAgentMessage>
-) : LLMRequest
+) : LLMRequest()

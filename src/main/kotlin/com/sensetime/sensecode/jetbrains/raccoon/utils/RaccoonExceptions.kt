@@ -6,13 +6,11 @@ import java.lang.IllegalStateException
 
 private val LOG = logger<RaccoonExceptions>()
 
-internal fun <R> Exception.toResult(): Result<R> =
-    if (RaccoonExceptions.isMustRethrow(this)) {
-        throw this
-    } else {
-        LOG.warnWithDebug("Caught $this, will not rethrow", this)
-        Result.failure(this)
-    }
+internal fun Throwable.throwIfMustRethrow(): Exception =
+    (this as? Exception)?.takeUnless { RaccoonExceptions.isMustRethrow(it) } ?: throw this
+
+internal fun <R> Throwable.toResult(): Result<R> =
+    Result.failure(throwIfMustRethrow().also { LOG.warnWithDebug("Caught $it, will not rethrow", it) })
 
 internal class RaccoonFatalException(message: String) : Exception(message)
 
