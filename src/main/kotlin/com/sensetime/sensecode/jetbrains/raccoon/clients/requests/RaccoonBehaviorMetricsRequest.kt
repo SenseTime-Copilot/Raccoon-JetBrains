@@ -1,5 +1,6 @@
 package com.sensetime.sensecode.jetbrains.raccoon.clients.requests
 
+import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -8,11 +9,9 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 
-// BehaviorMetrics
-
 @Serializable
 @OptIn(ExperimentalSerializationApi::class)
-internal data class BehaviorMetrics(
+internal data class RaccoonClientBehaviorMetrics(
     @SerialName("common_header")
     @EncodeDefault(EncodeDefault.Mode.ALWAYS)
     val header: CommonHeader = commonHeader
@@ -111,7 +110,7 @@ internal data class BehaviorMetrics(
     fun toJsonString(): String = behaviorMetricsJson.encodeToString(serializer(), this)
 
     companion object {
-        private val commonHeader: CommonHeader = CommonHeader(RaccoonUtils.userAgent, RaccoonUtils.machineID)
+        private val commonHeader: CommonHeader = CommonHeader(RaccoonPlugin.userAgent, RaccoonUtils.machineID)
         private val behaviorMetricsJson = Json {
             encodeDefaults = false
             classDiscriminator = "metric_type"

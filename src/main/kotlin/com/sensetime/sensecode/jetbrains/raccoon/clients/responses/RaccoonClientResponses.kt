@@ -5,6 +5,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientUnauthorizedEx
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonSensitiveListener
 import com.sensetime.sensecode.jetbrains.raccoon.utils.getNameFromEmail
+import com.sensetime.sensecode.jetbrains.raccoon.utils.ifNullOrBlank
 import com.sensetime.sensecode.jetbrains.raccoon.utils.takeIfNotBlank
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -109,7 +110,13 @@ internal data class RaccoonClientOrgInfo(
     val teamCodeEnabled: Boolean = false,
     @SerialName("team_code_expired_time")
     val teamCodeExpiredTime: String? = null
-)
+) {
+    val displayName: String
+        get() = name.ifNullOrBlank(code)
+
+    fun isNormal(): Boolean = ("normal" == userStatus)
+    fun isAvailable(): Boolean = teamCodeEnabled && isNormal()
+}
 
 @Serializable
 internal data class RaccoonClientUserInfo(
@@ -127,6 +134,7 @@ internal data class RaccoonClientUserInfo(
     @SerialName("orgs")
     val organizations: List<RaccoonClientOrgInfo>? = null
 ) {
+    fun getFirstAvailableOrganizationOrNull(): RaccoonClientOrgInfo? = organizations?.firstOrNull { it.isAvailable() }
     fun getDisplayName(): String = name?.takeIfNotBlank() ?: email?.getNameFromEmail()?.takeIfNotBlank() ?: "unknown"
 }
 

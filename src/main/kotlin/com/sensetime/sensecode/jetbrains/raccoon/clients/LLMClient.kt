@@ -1,6 +1,5 @@
 package com.sensetime.sensecode.jetbrains.raccoon.clients
 
-import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.debug
 import com.intellij.openapi.diagnostic.logger
@@ -14,17 +13,15 @@ import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMRequest
 import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.*
 import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.LLMResponse
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ClientConfig
-import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_REQUEST_STATE_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonRequestStateListener
+import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonSensitiveListener
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.invokeOnEdtSync
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.toCoroutineContext
-import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonExceptions
-import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
-import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils
-import com.sensetime.sensecode.jetbrains.raccoon.utils.plusIfNotNull
+import com.sensetime.sensecode.jetbrains.raccoon.utils.*
 import kotlinx.coroutines.*
 import okhttp3.*
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.sse.EventSource
 import okhttp3.sse.EventSourceListener
 import okhttp3.sse.EventSources
@@ -35,7 +32,7 @@ import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.resumeWithException
 
 
-internal abstract class LLMClient : Disposable {
+internal abstract class LLMClient {
     // common
 
     abstract val name: String
@@ -47,9 +44,15 @@ internal abstract class LLMClient : Disposable {
     abstract val authenticator: AuthenticatorBase
 
 
+    // sensitive
+    open suspend fun getSensitiveConversations(
+        startTime: String, endTime: String? = null, action: String
+    ): Map<String, RaccoonSensitiveListener.SensitiveConversation> = emptyMap()
+
+
     // client job: contains one or more requests, corresponding to a state transition
 
-    private class ClientJobRunner(
+    protected class ClientJobRunner(
         isEnableDebugLog: Boolean
     ) {
         companion object {
@@ -121,7 +124,7 @@ internal abstract class LLMClient : Disposable {
                 }
             }
         } catch (t: Throwable) {
-            projectForTopic.publishStateTopicWithCatching { onFailureInsideEdtAndCatching(id, t) }
+            projectForTopic.publishStateTopicWithCatching { onFailureIncludeCancellationInsideEdtAndCatching(id, t) }
             throw t
         } finally {
             projectForTopic.publishStateTopicWithCatching { onFinallyInsideEdtAndCatching(id) }
@@ -130,18 +133,56 @@ internal abstract class LLMClient : Disposable {
 
 
     // request via okhttp3
-
-    private val clientCoroutineScope: CoroutineScope =
-        MainScope() + CoroutineName("${RaccoonPlugin.name}: ${this::class.simpleName}")
     private val okHttpClient: OkHttpClient = OkHttpClient.Builder().connectTimeout(CONNECT_TIMEOUT_S, TimeUnit.SECONDS)
         .readTimeout(READ_TIMEOUT_S, TimeUnit.SECONDS).writeTimeout(WRITE_TIMEOUT_S, TimeUnit.SECONDS).build()
     private val sseEventSourceFactory: EventSource.Factory = EventSources.createFactory(okHttpClient)
 
-    protected open fun onSuccessfulHeaderInsideEdtAndCatching(headers: Headers) {}
-    protected abstract fun throwLLMClientException(response: Response?, t: Throwable?): Nothing
+    protected open suspend fun onSuccessfulHeaderInsideEdtAndCatching(headers: Headers) {}
+    protected abstract fun decodeToLLMResponseError(body: String): LLMResponseError
+    private fun throwLLMClientResponseException(response: Response): Nothing {
+        // because the body can only be gotten once
+        val responseBody =
+            response.body?.string()?.also { LOG.debug { "$name: request failed. response body is \"$it\"" } }
+
+        // 1. found error in body. do not display 5xx server error, ignore decode exceptions
+        try {
+            RaccoonExceptions.resultOf {
+                responseBody?.takeUnless { response.isHttpServerError() }?.let { decodeToLLMResponseError(it) }
+            }.getOrNull()?.throwIfError()
+        } catch (llmClientMessageException: LLMClientMessageException) {
+            if (401 == response.code) {
+                throw LLMClientUnauthorizedException(llmClientMessageException)
+            } else {
+                throw LLMClientResponseException(llmClientMessageException, response)
+            }
+        }
+
+        // 2. http code error
+        response.takeUnless { it.isSuccessful }?.let {
+            throw LLMClientResponseException(
+                it,
+                "Http code: ${it.code}${(it.message.takeIfNotBlank() ?: responseBody)?.ifNullOrBlankElse("") { details -> "\n$details" }}"
+            )
+        }
+
+        // 3. unknown error
+        throw LLMClientUnknownException()
+    }
+
+    protected open fun createRequestBuilderWithCommonHeader(
+        apiEndpoint: String, stream: Boolean
+    ): Request.Builder = Request.Builder().url(apiEndpoint).header("Content-Type", "application/json")
+        .addHeader("Date", RaccoonUtils.getFormattedUTCDate())
+        .applyIf(stream) { addHeader("Accept", "text/event-stream") }
+
+    protected abstract suspend fun Request.Builder.addAuthorizationHeaderInsideEdtAndCatching(clientJobRunner: ClientJobRunner): Request.Builder
+    protected suspend fun ClientJobRunner.createRequestBuilderWithCommonHeaderAndAuthorization(
+        apiEndpoint: String, stream: Boolean
+    ): Request.Builder =
+        createRequestBuilderWithCommonHeader(apiEndpoint, stream).addAuthorizationHeaderInsideEdtAndCatching(this)
 
     // return body if succeeded, otherwise throw exceptions
-    private suspend fun ClientJobRunner.requestInsideEdtAndCatching(okRequest: Request): String =
+    protected suspend fun ClientJobRunner.requestInsideEdtAndCatching(okRequest: Request): String =
         withContext(Dispatchers.IO) {
             suspendCancellableCoroutine { continuation ->
                 val call = okHttpClient.newCall(okRequest.printIfEnableDebugLog())
@@ -152,7 +193,7 @@ internal abstract class LLMClient : Disposable {
 
                     override fun onResponse(call: Call, response: Response) {
                         continuation.resumeWith(RaccoonExceptions.resultOf {
-                            response.takeIf { it.isSuccessful } ?: throwLLMClientException(response, null)
+                            response.takeIf { it.isSuccessful } ?: throwLLMClientResponseException(response)
                         })
                     }
                 })
@@ -174,17 +215,16 @@ internal abstract class LLMClient : Disposable {
         suspendCancellableCoroutine { continuation ->
             val eventSource =
                 sseEventSourceFactory.newEventSource(okRequest.printIfEnableDebugLog(), object : EventSourceListener() {
+                    private var successfulHeader: Headers? = null
                     private var result: R? = null
                         get() = field?.takeIf { (it as? Boolean) != false }
 
                     override fun onOpen(eventSource: EventSource, response: Response) {
                         // must not catch any exceptions, because of EventSource will catch it to onFailure
                         if (response.isSuccessful) {
-                            uiComponentForEdt.invokeOnEdtSync {
-                                onSuccessfulHeaderInsideEdtAndCatching(response.headers)
-                            }
+                            successfulHeader = response.headers
                         } else {
-                            throwLLMClientException(response, null)
+                            throwLLMClientResponseException(response)
                         }
                     }
 
@@ -200,13 +240,16 @@ internal abstract class LLMClient : Disposable {
 
                     override fun onClosed(eventSource: EventSource) {
                         continuation.resumeWith(RaccoonExceptions.resultOf {
-                            result ?: throw LLMClientStreamException("stream not received DONE")
+                            result?.let { Pair(it, successfulHeader) }
+                                ?: throw LLMClientStreamException("stream not received DONE")
                         })
                     }
 
                     override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?) {
                         continuation.resumeWith(RaccoonExceptions.resultOf {
-                            throwLLMClientException(response, t)
+                            t?.let { throw it }
+                            response?.let { throwLLMClientResponseException(it) }
+                            throw LLMClientUnknownException()
                         })
                     }
                 })
@@ -214,25 +257,35 @@ internal abstract class LLMClient : Disposable {
                 RaccoonExceptions.resultOf { eventSource.cancel() }
             }
         }
+    }.let { (result, successfulHeader) ->
+        successfulHeader?.let { onSuccessfulHeaderInsideEdtAndCatching(it) }
+        result
     }
 
-
-    // run one request client job via okhttp3 synchronously, return R if succeeded, otherwise throw exceptions
-    protected suspend fun <R> Request.request(
+    protected suspend fun <R> runClientJob(
         isEnableNotify: Boolean,
         isEnableDebugLog: Boolean,
         uiComponentForEdt: Component?,
-        onResponseInsideEdtAndCatching: (String) -> R
+        clientJobInsideEdtAndCatching: suspend ClientJobRunner.() -> R
     ): R = ClientJobRunner(isEnableDebugLog).run {
-        runClientJob(isEnableNotify, uiComponentForEdt) {
-            onResponseInsideEdtAndCatching(requestInsideEdtAndCatching(this@request))
-        }
+        runClientJob(
+            isEnableNotify, uiComponentForEdt
+        ) { clientJobInsideEdtAndCatching() }
+    }
+
+    // run one request client job via okhttp3 synchronously, return R if succeeded, otherwise throw exceptions
+    protected suspend fun <R> Request.runRequestJob(
+        isEnableNotify: Boolean,
+        isEnableDebugLog: Boolean,
+        uiComponentForEdt: Component?,
+        onResponseInsideEdtAndCatching: suspend ClientJobRunner.(String) -> R
+    ): R = runClientJob(isEnableNotify, isEnableDebugLog, uiComponentForEdt) {
+        onResponseInsideEdtAndCatching(requestInsideEdtAndCatching(this@runRequestJob))
     }
 
 
     // LLM request
 
-    protected abstract suspend fun Request.Builder.addAuthorizationHeaderInsideEdtAndCatching(): Request.Builder
     protected abstract fun Request.Builder.addLLMBodyInsideEdtAndCatching(llmRequest: LLMRequest): Request.Builder
 
     private fun LLMRequest.getApiEndpointFromConfig(): String = when (this) {
@@ -241,117 +294,90 @@ internal abstract class LLMClient : Disposable {
         is LLMCompletionRequest -> clientConfig.getCompletionApiEndpoint()
     }
 
-    private suspend fun LLMRequest.toOkRequestInsideEdtAndCatching(): Request =
-        createRequestBuilderWithCommonHeader(getApiEndpointFromConfig()).addAuthorizationHeaderInsideEdtAndCatching()
-            .addLLMBodyInsideEdtAndCatching(this).build()
+    private suspend fun ClientJobRunner.llmToOkRequestInsideEdtAndCatching(llmRequest: LLMRequest): Request =
+        createRequestBuilderWithCommonHeaderAndAuthorization(
+            llmRequest.getApiEndpointFromConfig(), llmRequest.isStream()
+        ).addLLMBodyInsideEdtAndCatching(llmRequest).build()
 
     private fun isLLMStreamResponseDone(data: String): Boolean = "[DONE]" == data
-    protected abstract fun <T : LLMChoice> decodeToLLMResponseInsideEdtAndCatching(body: String): LLMResponse<T>
+    protected abstract fun decodeToLLMCompletionResponseInsideEdtAndCatching(body: String): LLMCompletionResponse
+    protected abstract fun decodeToLLMChatResponseInsideEdtAndCatching(body: String): LLMChatResponse
+    protected abstract fun decodeToLLMAgentResponseInsideEdtAndCatching(body: String): LLMAgentResponse
 
-    // run one llm request client job via okhttp3 synchronously, return done message if succeeded, otherwise throw exceptions
-    private suspend fun <T : LLMChoice> LLMRequest.requestLLM(
-        isEnableNotify: Boolean,
-        projectForTopic: Project,
-        uiComponentForEdt: Component,
-        onResponseInsideEdtAndCatching: (LLMResponse<T>) -> Unit
-    ): String? = ClientJobRunner(true).run {
-        runClientJobWithStateTopic(action, isEnableNotify, projectForTopic, uiComponentForEdt) {
-            toOkRequestInsideEdtAndCatching().let { okRequest ->
-                // return done message
-                val onResponseBodyInsideEdtAndCatching: (String) -> String? = { body ->
-                    val llmResponse = decodeToLLMResponseInsideEdtAndCatching<T>(body)
-                    onResponseInsideEdtAndCatching(llmResponse)
-                    llmResponse.usage?.takeIf { it.hasUsage() }?.getDisplayUsage()
-                }
-                if (isStream()) {
-                    var message: String? = null
-                    streamRequestInsideCatching(okRequest, uiComponentForEdt) { body ->
-                        if (isLLMStreamResponseDone(body)) {
-                            true
-                        } else {
-                            onResponseBodyInsideEdtAndCatching(body)?.let { message = it }
-                            false
-                        }
-                    }
-                    message
-                } else {
-                    onResponseBodyInsideEdtAndCatching(requestInsideEdtAndCatching(okRequest))
-                }
-            }
-        }
-    }
-
-    private fun launchClientJob(blockInsideEdt: suspend CoroutineScope.() -> Unit): Job =
-        clientCoroutineScope.launch(Dispatchers.Main.immediate, block = blockInsideEdt)
-
-    interface ClientJobStateListener {
-        fun onFailureInsideEdt(t: Throwable)
-        fun onFinallyInsideEdt() {}
-    }
-
-    private fun launchClientJobWithCatching(
-        clientJobStateListener: ClientJobStateListener,
-        blockInsideEdtAndCatching: suspend CoroutineScope.() -> Unit
-    ): Job = launchClientJob {
-        RaccoonExceptions.resultOf(
-            { blockInsideEdtAndCatching() }, clientJobStateListener::onFinallyInsideEdt
-        ).onFailure(clientJobStateListener::onFailureInsideEdt)
-    }
-
-
-    interface LLMListener<T : LLMChoice> : ClientJobStateListener {
-        fun onDoneInsideEdtAndCatching()
+    interface LLMResponseListener<T : LLMChoice, R> {
+        fun onDoneInsideEdtAndCatching(): R
         fun onResponseInsideEdtAndCatching(llmResponse: LLMResponse<T>)
     }
 
-    private fun <T : LLMChoice> requestLLM(
+    abstract class LLMUsagesResponseListener<T : LLMChoice> : LLMResponseListener<T, String?> {
+        private var displayUsage: String? = null
+        override fun onDoneInsideEdtAndCatching(): String? = displayUsage
+        override fun onResponseInsideEdtAndCatching(llmResponse: LLMResponse<T>) {
+            llmResponse.usage?.takeIf { it.hasUsage() }?.getDisplayUsage()?.let { displayUsage = it }
+        }
+    }
+
+    // run one llm request client job via okhttp3 synchronously, return done message if succeeded, otherwise throw exceptions
+    private suspend fun <T : LLMChoice, R> runLLMJob(
         isEnableNotify: Boolean,
         projectForTopic: Project,
         uiComponentForEdt: Component,
         llmRequest: LLMRequest,
-        llmListener: LLMListener<T>
-    ): Job = launchClientJobWithCatching(llmListener) {
-        llmRequest.requestLLM(
-            isEnableNotify, projectForTopic, uiComponentForEdt,
-            llmListener::onResponseInsideEdtAndCatching
-        )
-        llmListener.onDoneInsideEdtAndCatching()
+        decodeToLLMResponseInsideEdtAndCatching: (String) -> LLMResponse<T>,
+        llmResponseListener: LLMResponseListener<T, R>
+    ): R = ClientJobRunner(true).run {
+        runClientJobWithStateTopic(llmRequest.action, isEnableNotify, projectForTopic, uiComponentForEdt) {
+            llmToOkRequestInsideEdtAndCatching(llmRequest).let { okRequest ->
+                if (llmRequest.isStream()) {
+                    streamRequestInsideCatching(okRequest, uiComponentForEdt) { body ->
+                        if (isLLMStreamResponseDone(body)) {
+                            true
+                        } else {
+                            llmResponseListener.onResponseInsideEdtAndCatching(
+                                decodeToLLMResponseInsideEdtAndCatching(body)
+                            )
+                            false
+                        }
+                    }
+                } else {
+                    llmResponseListener.onResponseInsideEdtAndCatching(
+                        decodeToLLMResponseInsideEdtAndCatching(requestInsideEdtAndCatching(okRequest))
+                    )
+                }
+                llmResponseListener.onDoneInsideEdtAndCatching()
+            }
+        }
     }
 
-    fun requestLLMCompletion(
+    suspend fun <R> runLLMCompletionJob(
         isEnableNotify: Boolean,
         projectForTopic: Project,
         uiComponentForEdt: Component,
         llmCompletionRequest: LLMCompletionRequest,
-        llmCompletionListener: LLMListener<LLMCompletionChoice>
-    ): Job = requestLLM(isEnableNotify, projectForTopic, uiComponentForEdt, llmCompletionRequest, llmCompletionListener)
+        llmCompletionListener: LLMResponseListener<LLMCompletionChoice, R>
+    ): R = runLLMJob(
+        isEnableNotify, projectForTopic, uiComponentForEdt, llmCompletionRequest,
+        ::decodeToLLMCompletionResponseInsideEdtAndCatching, llmCompletionListener
+    )
 
-    fun requestLLMChat(
+    suspend fun <R> runLLMChatJob(
         isEnableNotify: Boolean,
         projectForTopic: Project,
         uiComponentForEdt: Component,
         llmChatRequest: LLMChatRequest,
-        llmChatListener: LLMListener<LLMChatChoice>
-    ): Job = requestLLM(isEnableNotify, projectForTopic, uiComponentForEdt, llmChatRequest, llmChatListener)
+        llmChatListener: LLMResponseListener<LLMChatChoice, R>
+    ): R = runLLMJob(
+        isEnableNotify, projectForTopic, uiComponentForEdt, llmChatRequest,
+        ::decodeToLLMChatResponseInsideEdtAndCatching, llmChatListener
+    )
 
-
-    override fun dispose() {
-        clientCoroutineScope.cancel()
-    }
 
     companion object {
         private const val CONNECT_TIMEOUT_S = 10L
         private const val READ_TIMEOUT_S = 60L
         private const val WRITE_TIMEOUT_S = 30L
+        val EMPTY_POST_REQUEST_BODY = "{}".toRequestBody()
 
         private val LOG = logger<LLMClient>()
-
-        @JvmStatic
-        private fun createRequestBuilderWithCommonHeader(
-            apiEndpoint: String,
-            stream: Boolean = false
-        ): Request.Builder = Request.Builder().url(apiEndpoint).header("Content-Type", "application/json")
-            .addHeader("Date", RaccoonUtils.getFormattedUTCDate())
-            .applyIf(stream) { addHeader("Accept", "text/event-stream") }
     }
 }
