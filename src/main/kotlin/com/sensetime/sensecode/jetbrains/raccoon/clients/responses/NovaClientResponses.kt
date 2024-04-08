@@ -11,17 +11,13 @@ import kotlinx.serialization.Serializable
 @Serializable
 internal abstract class ClientCodeStatus(
     private val code: Int = OK_CODE,
-    private val message: String? = null
+    protected val message: String? = null
 ) : LLMResponseError {
-    protected fun takeIfCodeNotOk(): Int? = code.takeIf { it != OK_CODE }
-    protected fun takeIfMessageNotBlankOrOk(): String? =
-        message?.takeIf { it.isNotBlank() && ("ok" != it) && ("success" != it) }
-
     protected abstract fun getDetailsInfo(): String?
+    protected fun takeIfCodeNotOk(): Int? = code.takeIf { it != OK_CODE }
 
     override fun throwIfError() {
         takeIfCodeNotOk()?.let { throw LLMClientErrorCodeException(it, message, getDetailsInfo()) }
-        takeIfMessageNotBlankOrOk()?.let { throw LLMClientMessageException(it, getDetailsInfo()) }
     }
 
     companion object {
@@ -38,7 +34,7 @@ internal data class NovaClientStatus(
     override fun throwIfError() {
         takeIfCodeNotOk()?.let { c ->
             when (c) {
-                SENSITIVE_CODE -> throw LLMClientSensitiveException(takeIfMessageNotBlankOrOk(), getDetailsInfo())
+                SENSITIVE_CODE -> throw LLMClientSensitiveException(message, getDetailsInfo())
                 else -> Unit
             }
         }

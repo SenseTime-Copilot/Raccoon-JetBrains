@@ -32,7 +32,7 @@ internal abstract class RaccoonClientStatus(
                 }
 
                 INVALID_AUTHORIZATION_CODE, AUTHORIZATION_VERIFY_ERROR_CODE -> throw LLMClientUnauthorizedException(
-                    takeIfMessageNotBlankOrOk(), getDetailsInfo()
+                    message, getDetailsInfo()
                 )
 
                 REQUEST_EXCEEDED_LIMIT_CODE, REQUEST_EXCEEDED_MAX_TIME_CODE -> RaccoonBundle.message("client.sensecode.response.error.requestLimit")
@@ -46,7 +46,7 @@ internal abstract class RaccoonClientStatus(
                 EMAIL_VERIFY_EXCEEDED_LIMIT_CODE -> RaccoonBundle.message("client.sensecode.response.error.tryLoginLimit.email")
                 ORG_PLUGIN_CODE_EXPIRED_CODE -> RaccoonBundle.message("client.authorization.organization.error.OrgExpired")
                 else -> null
-            }?.let { message -> throw LLMClientMessageException(message, getDetailsInfo()) }
+            }?.let { throw LLMClientMessageException(it, getDetailsInfo()) }
         }
         super.throwIfError()
     }
