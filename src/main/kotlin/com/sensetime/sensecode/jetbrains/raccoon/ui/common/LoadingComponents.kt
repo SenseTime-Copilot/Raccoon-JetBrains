@@ -25,7 +25,7 @@ internal abstract class LoadingPanel : JPanel() {
         button.isVisible = true
     }
 
-    init {
+    protected fun build() {
         stopLoading()
         add(button)
         add(loading)
@@ -42,6 +42,10 @@ internal class LoadingButton(
             startLoading()
             onClick(e, ::stopLoading)
         }
+    }
+
+    init {
+        build()
     }
 }
 
@@ -62,5 +66,9 @@ internal class LoadingActionButton(
             actionPlace,
             ActionToolbar.DEFAULT_MINIMUM_BUTTON_SIZE
         )
+    }
+
+    init {
+        build()
     }
 }
