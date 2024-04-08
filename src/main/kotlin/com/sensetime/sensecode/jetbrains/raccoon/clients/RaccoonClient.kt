@@ -207,39 +207,38 @@ internal class RaccoonClient : LLMClient() {
         LLMClientJson.decodeFromString(RaccoonClientTokensResponse.serializer(), body).let { tokensResponse ->
             tokensResponse.throwIfError()
             requireNotNull(tokensResponse.data) { "not found data field in ${tokensResponse::class::simpleName}" }.let { tokensResponseData ->
-                refreshTokenCredentials = tokensResponseData.refreshToken?.let { token ->
-                    Credentials(decodeTokenToCredentialsInsideCatching(token).exp.toString(), token)
-                }
-                tokensResponseData.accessToken.also { token ->
-                    accessTokenCredentials = Credentials(decodeTokenToCredentialsInsideCatching(token).name, token)
+                tokensResponseData.accessToken.also { accessToken ->
+                    decodeTokenToCredentialsInsideCatching(accessToken).run {
+                        accessTokenCredentials = Credentials(name, accessToken)
+                        refreshTokenCredentials = Credentials(exp.toString(), tokensResponseData.refreshToken)
+                    }
                     requestUserInfoInsideCatching(isAutoFirstAvailableOrg)
                 }
             }
         }
 
     private suspend fun ClientJobRunner.getAccessTokenWithRefreshInsideCatching(): String =
-        accessTokenCredentials?.letIfFilled { accessTokenExp, accessToken ->
+        RaccoonExceptions.resultOf {
             // ignore refreshToken exceptions, fallback to accessToken
-            RaccoonExceptions.resultOf {
-                accessTokenExp.toLong().takeIf { it.isExpiredS() }?.let {
-                    refreshTokenCredentials?.letIfFilled { _, refreshToken ->
-                        // accessToken expired and has refreshToken, try refresh
-                        updateTokensResponseBodyInsideCatching(
-                            requestInsideEdtAndCatching(
-                                createRequestBuilderWithCommonHeader(
-                                    raccoonClientConfig.getRefreshTokenPathApiEndpoint(), false
-                                ).post(
-                                    LLMClientJson.encodeToString(
-                                        RaccoonClientRefreshTokenRequest.serializer(),
-                                        RaccoonClientRefreshTokenRequest(refreshToken)
-                                    ).toRequestBody()
-                                ).build()
-                            ), false
-                        )
-                    }
+            refreshTokenCredentials?.letIfFilled { accessTokenExp, refreshToken ->
+                accessTokenExp.toLong().takeIf { it.isExpiredS(15L) }?.let {
+                    updateTokensResponseBodyInsideCatching(
+                        requestInsideEdtAndCatching(
+                            createRequestBuilderWithCommonHeader(
+                                raccoonClientConfig.getRefreshTokenPathApiEndpoint(),
+                                false
+                            ).post(
+                                LLMClientJson.encodeToString(
+                                    RaccoonClientRefreshTokenRequest.serializer(),
+                                    RaccoonClientRefreshTokenRequest(refreshToken)
+                                ).toRequestBody()
+                            ).build()
+                        ), false
+                    )
                 }
-            }.getOrNull() ?: accessToken
-        } ?: throw LLMClientUnauthorizedException("access token is empty")
+            }
+        }.getOrNull() ?: accessTokenCredentials?.letIfFilled { _, accessToken -> accessToken }
+        ?: throw LLMClientUnauthorizedException("access token is empty")
 
     private suspend fun ClientJobRunner.requestUserInfoInsideCatching(isAutoFirstAvailableOrg: Boolean): RaccoonClientUserInfo =
         LLMClientJson.decodeFromString(
