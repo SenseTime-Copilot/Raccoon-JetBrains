@@ -381,19 +381,19 @@ internal class RaccoonClient : LLMClient() {
 
     @Serializable
     private data class RaccoonCompletionApiConfig(
-        override val path: String = getPluginApiPath("/nova/v1/proxy/v1/llm/completions"),
+        override val path: String = getPluginApiPath("/llm/v1/completions"),
         override val models: List<PenroseCompletionModelConfig> = listOf(PenroseCompletionModelConfig())
     ) : ClientConfig.ClientApiConfig<CompletionModelConfig>()
 
     @Serializable
     private data class RaccoonChatApiConfig(
-        override val path: String = getPluginApiPath("/nova/v1/proxy/v1/llm/chat-completions"),
+        override val path: String = getPluginApiPath("/llm/v1/chat-completions"),
         override val models: List<PenroseChatModelConfig> = listOf(PenroseChatModelConfig())
     ) : ClientConfig.ClientApiConfig<ChatModelConfig>()
 
     @Serializable
     private data class RaccoonAgentApiConfig(
-        override val path: String = getPluginApiPath("/nova/v1/proxy/v1/llm/chat-completions"),
+        override val path: String = getPluginApiPath("/llm/v1/chat-completions"),
         override val models: List<PenroseAgentModelConfig> = listOf(PenroseAgentModelConfig())
     ) : ClientConfig.ClientApiConfig<AgentModelConfig>()
 
