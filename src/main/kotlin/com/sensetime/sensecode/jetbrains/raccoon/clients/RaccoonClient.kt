@@ -395,7 +395,7 @@ internal class RaccoonClient : LLMClient() {
     @Serializable
     private data class RaccoonAgentApiConfig(
         override val path: String = getPluginApiPath("/nova/v1/proxy/v1/llm/chat-completions"),
-        override val models: List<AgentModelConfig> = listOf(PenroseAgentModelConfig())
+        override val models: List<PenroseAgentModelConfig> = listOf(PenroseAgentModelConfig())
     ) : ClientConfig.ClientApiConfig<AgentModelConfig>()
 
     @Serializable
@@ -454,7 +454,7 @@ internal class RaccoonClient : LLMClient() {
 
     companion object {
         private val LOG = logger<RaccoonClient>()
-        private val NAME: String = this::class.simpleName!!
+        private val NAME: String = RaccoonClient::class.simpleName!!
 
         private val raccoonClientConfig: RaccoonClientConfig = RaccoonClientConfig.loadFromResources()
         val clientConfig: ClientConfig
