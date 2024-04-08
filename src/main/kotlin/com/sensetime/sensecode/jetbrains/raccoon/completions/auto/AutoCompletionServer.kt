@@ -26,6 +26,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.statistics.RaccoonStatisticsSer
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_EDITOR_CHANGED_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonEditorChangedListener
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonActionUtils
+import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonExceptions
 import kotlinx.coroutines.*
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
@@ -56,15 +57,11 @@ internal class AutoCompletionServer(
             autoCompletionCoroutineScope.launch {
                 val waitForTimeMs = AtomicLong(1000)
                 while (true) {
-                    kotlin.runCatching {
+                    RaccoonExceptions.resultOf {
                         ApplicationManager.getApplication().invokeAndWait {
                             waitForTimeMs.set(tryTriggerCompletion())
                         }
                         delay(waitForTimeMs.get())
-                    }.onFailure { e ->
-                        if (e is CancellationException) {
-                            throw e
-                        }
                     }
                 }
             }

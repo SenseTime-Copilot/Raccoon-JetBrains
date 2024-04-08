@@ -5,6 +5,7 @@ import com.intellij.openapi.editor.colors.EditorFontType
 import com.intellij.ui.ColorUtil
 import com.intellij.util.ui.UIUtil
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
+import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonExceptions
 import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
 import java.awt.Color
 import java.awt.Font
@@ -15,7 +16,7 @@ internal object GraphicsUtils {
         .let { font -> UIUtil.getFontWithFallback(if (font.isItalic) font else font.deriveFont(font.style or Font.ITALIC)) }
 
     val niceContrastColor: Color
-        get() = kotlin.runCatching {
+        get() = RaccoonExceptions.resultOf {
             RaccoonSettingsState.instance.inlineCompletionColor.letIfNotBlank {
                 ColorUtil.fromHex(
                     it

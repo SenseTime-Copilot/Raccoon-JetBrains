@@ -99,7 +99,7 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
         sensitiveJob = statisticsCoroutineScope.launch {
             var lastUpdateTime: Long = RaccoonUtils.getDateTimestampMs()
             while (true) {
-                kotlin.runCatching {
+                RaccoonExceptions.resultOf {
                     delay((Random.nextDouble(1.5, 2.5) * 3600 * 1000).toLong())
                     val tmpTime = RaccoonUtils.getDateTimestampMs()
                     val sensitives =
@@ -111,10 +111,6 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
                     if (sensitives.isNotEmpty()) {
                         ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_SENSITIVE_TOPIC)
                             .onNewSensitiveConversations(sensitives)
-                    }
-                }.onFailure { e ->
-                    if (e is CancellationException) {
-                        throw e
                     }
                 }
             }
