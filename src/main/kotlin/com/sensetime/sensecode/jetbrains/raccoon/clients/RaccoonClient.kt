@@ -178,8 +178,10 @@ internal class RaccoonClient : LLMClient() {
                     onFinallyInsideEdt: (t: Throwable?, List<RaccoonClientOrgInfo>?) -> Unit
                 ) {
                     getOrganizationsJob = LLMClientManager.launchClientJob {
-                        RaccoonExceptions.resultOf {
-                            withTimeout(5 * 1000L) {
+                        var t: Throwable? = null
+                        var result: List<RaccoonClientOrgInfo>? = null
+                        RaccoonExceptions.resultOf({
+                            result = withTimeout(5 * 1000L) {
                                 requestUserInfo(
                                     isEnableNotify = true,
                                     isEnableDebugLog = true,
@@ -188,10 +190,10 @@ internal class RaccoonClient : LLMClient() {
                                     false
                                 ).organizations
                             }
-                        }.onSuccess {
-                            onFinallyInsideEdt(null, it)
-                        }.onFailure {
-                            onFinallyInsideEdt(it, null)
+                        }, {
+                            onFinallyInsideEdt(t, result)
+                        }).onFailure {
+                            t = it
                         }
                     }
                 }
