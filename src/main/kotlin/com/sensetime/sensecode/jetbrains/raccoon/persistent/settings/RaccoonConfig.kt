@@ -12,7 +12,7 @@ internal val RaccoonConfigJson = RaccoonBaseJson
 
 @Serializable
 data class RaccoonConfig(
-    val variant: Variant = Variant.TOC
+    val variant: Variant
 ) {
     enum class Variant {
         TOC, TOB, TEAM;
