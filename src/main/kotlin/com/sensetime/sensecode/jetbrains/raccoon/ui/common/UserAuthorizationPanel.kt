@@ -41,12 +41,13 @@ internal class UserAuthorizationPanel(
         )
     }
 
+    private var isBigMode: Boolean = !RaccoonConfig.config.variant.isTeam()
     private var alreadyLoggedIn: Boolean = false
     private val userIconLabel: JLabel = JLabel()
-    private val userNameLabel: JLabel = JLabel("")
+    private val userNameLabel: JLabel = JLabel("").apply {
+        font = JBFont.label().biggerOn(3f).asBold()
+    }
     private val loginButton: JButton = RaccoonUIUtils.createActionLink()
-
-
     private val currentOrgNameLabel: JLabel = JLabel("").apply {
         isOpaque = true
         font = JBFont.medium()
@@ -71,32 +72,30 @@ internal class UserAuthorizationPanel(
         }
     }
 
-    private fun changeFontSize(isBig: Boolean) {
-        userNameLabel.font = JBFont.label().biggerOn(if (isBig) 5f else 3f).asBold()
-        loginButton.font = JBFont.label().biggerOn(if (isBig) 3f else 1f)
-    }
-
-    override fun onUserNameChanged(userName: String?, isCodePro: Boolean) {
-        if (userName.isNullOrBlank()) {
-            userIconLabel.icon = RaccoonIcons.UNAUTHENTICATED_USER
-            userNameLabel.text = RaccoonBundle.message("authorization.panel.label.unauthenticated")
-            loginButton.text = RaccoonBundle.message("authorization.panel.button.login")
-            alreadyLoggedIn = false
+    private fun updateUserIconLabel() {
+        if (alreadyLoggedIn) {
+            userIconLabel.icon = if (isBigMode) RaccoonIcons.AUTHENTICATED_USER_BIG else RaccoonIcons.AUTHENTICATED_USER
         } else {
-            userIconLabel.icon = RaccoonIcons.AUTHENTICATED_USER
-            userNameLabel.text = "$userName${if (isCodePro) "(Pro)" else ""}"
-            loginButton.text = RaccoonBundle.message("authorization.panel.button.logout")
-            alreadyLoggedIn = true
+            userIconLabel.icon =
+                if (isBigMode) RaccoonIcons.UNAUTHENTICATED_USER_BIG else RaccoonIcons.UNAUTHENTICATED_USER
         }
     }
 
-    override fun onCurrentOrganizationNameChanged(orgName: String?, isAvailable: Boolean) {
-        if (!RaccoonConfig.config.variant.isTeam() || orgName.isNullOrBlank()) {
-            currentOrgNameLabel.isVisible = false
-            organizationsSelectorButton.isVisible = false
-            changeFontSize(true)
+    override fun onUserNameChanged(userName: String?, isCodePro: Boolean) {
+        alreadyLoggedIn = !userName.isNullOrBlank()
+        if (!alreadyLoggedIn) {
+            loginButton.text = RaccoonBundle.message("authorization.panel.button.login")
+            userNameLabel.text = RaccoonBundle.message("authorization.panel.label.unauthenticated")
         } else {
-            currentOrgNameLabel.isVisible = true
+            loginButton.text = RaccoonBundle.message("authorization.panel.button.logout")
+            userNameLabel.text = "$userName${if (isCodePro) "(Pro)" else ""}"
+        }
+        updateUserIconLabel()
+    }
+
+    override fun onCurrentOrganizationNameChanged(orgName: String?, isAvailable: Boolean) {
+        isBigMode = !(!RaccoonConfig.config.variant.isTeam() || orgName.isNullOrBlank())
+        if (isBigMode) {
             currentOrgNameLabel.text = orgName
             currentOrgNameLabel.apply {
                 if (isAvailable) {
@@ -107,9 +106,11 @@ internal class UserAuthorizationPanel(
                     background = JBUI.CurrentTheme.NotificationWarning.backgroundColor()
                 }
             }
-            organizationsSelectorButton.isVisible = true
-            changeFontSize(false)
         }
+        loginButton.font = JBFont.label().biggerOn(if (isBigMode) 3f else 1f)
+        currentOrgNameLabel.isVisible = isBigMode
+        organizationsSelectorButton.isVisible = isBigMode
+        updateUserIconLabel()
     }
 
     init {
