@@ -23,7 +23,7 @@ import java.awt.Point
 import javax.swing.JComponent
 import javax.swing.SwingUtilities
 
-class CompletionPreviewTooltip(
+internal class CompletionPreviewTooltip(
     parent: Disposable,
     private var indexGetter: (() -> Int)?,
     private var countGetter: (() -> Int?)?,

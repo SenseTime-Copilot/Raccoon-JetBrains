@@ -72,7 +72,7 @@ internal data class NovaClientCommonParameters(
         modelConfig.temperature,
         llmRequest.n, llmRequest.isStream(),
         modelConfig.stop.first(),
-        modelConfig.getMaxNewTokens()
+        llmRequest.maxNewTokens.takeIf { it > 0 } ?: modelConfig.getMaxNewTokens()
     )
 }
 

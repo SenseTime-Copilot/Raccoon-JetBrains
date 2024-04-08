@@ -19,7 +19,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.utils.ifNullOrBlank
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-class CodeEditorPanel(
+internal class CodeEditorPanel(
     project: Project?, code: String,
     val languagePair: Pair<String, RaccoonLanguages.Language>?,
     isOneLineMode: Boolean = false
@@ -70,7 +70,7 @@ class CodeEditorPanel(
                 LightVirtualFile(
                     "${PathManager.getTempPath()}/raccoon_tmp_${
                         DateTimeFormatter.ofPattern("yyMMddHHmmssSSS").format(LocalDateTime.now())
-                    }${languagePair?.second?.primaryExtension.ifNullOrBlank()}", convertedCode
+                    }${languagePair?.second?.primaryExtension.ifNullOrBlank("")}", convertedCode
                 )
             ) ?: EditorFactory.getInstance().createDocument(convertedCode)
         }

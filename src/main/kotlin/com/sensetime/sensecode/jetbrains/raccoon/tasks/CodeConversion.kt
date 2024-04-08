@@ -6,7 +6,7 @@ import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.sensetime.sensecode.jetbrains.raccoon.llm.prompts.toVariableExpression
 import javax.swing.ListSelectionModel
 
-class CodeConversion : CodeTaskActionBase() {
+internal class CodeConversion : CodeTaskActionBase() {
     override fun sendNewTaskMessage(project: Project, editor: Editor, code: String, language: String) {
         JBPopupFactory.getInstance().createPopupChooserBuilder(LANGUAGES)
             .setVisibleRowCount(7)

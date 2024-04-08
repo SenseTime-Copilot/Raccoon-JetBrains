@@ -52,3 +52,6 @@ internal class LLMClientResponseException(
 
     fun isHttpServerError(): Boolean = response.isHttpServerError()
 }
+
+internal class LLMClientOrgException(message: String, details: String? = null) :
+    LLMClientException("Organizations", message, details)

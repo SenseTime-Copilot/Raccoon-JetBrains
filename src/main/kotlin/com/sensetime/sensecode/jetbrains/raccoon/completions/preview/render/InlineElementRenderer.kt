@@ -7,7 +7,7 @@ import java.awt.Graphics
 import java.awt.Rectangle
 import kotlin.math.max
 
-class InlineElementRenderer(private val text: String) : EditorCustomElementRenderer {
+internal class InlineElementRenderer(private val text: String) : EditorCustomElementRenderer {
     override fun calcWidthInPixels(inlay: Inlay<*>): Int {
         return max(
             inlay.editor.let { it.contentComponent.getFontMetrics(GraphicsUtils.getFont(it)).stringWidth(text) },

@@ -6,7 +6,7 @@ import com.intellij.openapi.keymap.KeymapUtil
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import kotlin.reflect.KClass
 
-object RaccoonActionUtils {
+internal object RaccoonActionUtils {
     private val WARNING_MISSING_SHORTCUT_KEY = RaccoonBundle.message("action.utils.warning.missingShortcutKey")
 
     @JvmStatic

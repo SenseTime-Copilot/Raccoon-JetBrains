@@ -1,0 +1,142 @@
+package com.sensetime.sensecode.jetbrains.raccoon.ui.common
+
+import com.intellij.icons.AllIcons
+import com.intellij.openapi.actionSystem.ActionPlaces
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.ui.popup.JBPopupFactory
+import com.intellij.ui.AnimatedIcon
+import com.intellij.ui.dsl.builder.*
+import com.intellij.ui.dsl.gridLayout.VerticalAlign
+import com.intellij.util.ui.JBFont
+import com.intellij.util.ui.JBUI
+import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientOrgException
+import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.RaccoonClientOrgInfo
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonConfig
+import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
+import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonIcons
+import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_CLIENT_AUTHORIZATION_TOPIC
+import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonClientAuthorizationListener
+import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonExceptions
+import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotEmpty
+import java.awt.BorderLayout
+import java.awt.Component
+import javax.swing.JButton
+import javax.swing.JLabel
+import javax.swing.JPanel
+import javax.swing.ListSelectionModel
+
+
+internal class UserAuthorizationPanel(
+    userName: String?, isCodePro: Boolean,
+    currentOrgName: String?, isAvailable: Boolean,
+    private val eventListener: EventListener
+) : JPanel(BorderLayout()), RaccoonClientAuthorizationListener {
+    interface EventListener {
+        fun onLoginClicked(parent: Component, onFinallyInsideEdt: () -> Unit)
+        fun onLogoutClicked(onFinallyInsideEdt: () -> Unit)
+        fun onOrganizationSelected(orgCode: String)
+        fun getOrganizations(
+            parent: Component,
+            onFinallyInsideEdt: (t: Throwable?, List<RaccoonClientOrgInfo>?) -> Unit
+        )
+    }
+
+    private var alreadyLoggedIn: Boolean = false
+    private val userIconLabel: JLabel = JLabel()
+    private val userNameLabel: JLabel = JLabel("")
+    private val loginButton: JButton = RaccoonUIUtils.createActionLink()
+
+
+    private val currentOrgNameLabel: JLabel = JLabel("").apply {
+        isOpaque = true
+        font = JBFont.medium()
+    }
+    private val organizationsSelectorButton: LoadingActionButton = LoadingActionButton(
+        RaccoonBundle.message("authorization.panel.action.GetOrganizations.text"), "",
+        AllIcons.General.GearPlain, ActionPlaces.UNKNOWN, JLabel(AnimatedIcon.Default.INSTANCE)
+    ) { e, onFinallyInsideEdt ->
+        eventListener.getOrganizations(this) { t, organizations ->
+            RaccoonExceptions.resultOf({
+                t?.let { throw t }
+                organizations?.filter { it.isAvailable() }?.letIfNotEmpty {
+                    JBPopupFactory.getInstance().createPopupChooserBuilder(it).setVisibleRowCount(5)
+                        .setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
+                        .setItemChosenCallback { orgInfo -> eventListener.onOrganizationSelected(orgInfo.code) }
+                        .createPopup().showInBestPositionFor(e.dataContext)
+                }
+                    ?: throw LLMClientOrgException(RaccoonBundle.message("authorization.panel.organizations.list.disabled"))
+            }, onFinallyInsideEdt).onFailure {
+                JBPopupFactory.getInstance().createMessage(it.localizedMessage).showInBestPositionFor(e.dataContext)
+            }
+        }
+    }
+
+    private fun changeFontSize(isBig: Boolean) {
+        userNameLabel.font = JBFont.label().biggerOn(if (isBig) 5f else 3f).asBold()
+        loginButton.font = JBFont.label().biggerOn(if (isBig) 3f else 1f)
+    }
+
+    override fun onUserNameChanged(userName: String?, isCodePro: Boolean) {
+        if (userName.isNullOrBlank()) {
+            userIconLabel.icon = RaccoonIcons.UNAUTHENTICATED_USER
+            userNameLabel.text = RaccoonBundle.message("authorization.panel.label.unauthenticated")
+            loginButton.text = RaccoonBundle.message("authorization.panel.button.login")
+            alreadyLoggedIn = false
+        } else {
+            userIconLabel.icon = RaccoonIcons.AUTHENTICATED_USER
+            userNameLabel.text = "$userName${if (isCodePro) "(Pro)" else ""}"
+            loginButton.text = RaccoonBundle.message("authorization.panel.button.logout")
+            alreadyLoggedIn = true
+        }
+    }
+
+    override fun onCurrentOrganizationNameChanged(orgName: String?, isAvailable: Boolean) {
+        if (!RaccoonConfig.config.variant.isTeam() || orgName.isNullOrBlank()) {
+            currentOrgNameLabel.isVisible = false
+            organizationsSelectorButton.isVisible = false
+            changeFontSize(true)
+        } else {
+            currentOrgNameLabel.isVisible = true
+            currentOrgNameLabel.text = orgName
+            currentOrgNameLabel.apply {
+                if (isAvailable) {
+                    foreground = JBUI.CurrentTheme.NotificationInfo.foregroundColor()
+                    background = JBUI.CurrentTheme.NotificationInfo.backgroundColor()
+                } else {
+                    foreground = JBUI.CurrentTheme.NotificationWarning.foregroundColor()
+                    background = JBUI.CurrentTheme.NotificationWarning.backgroundColor()
+                }
+            }
+            organizationsSelectorButton.isVisible = true
+            changeFontSize(false)
+        }
+    }
+
+    init {
+        onUserNameChanged(userName, isCodePro)
+        onCurrentOrganizationNameChanged(currentOrgName, isAvailable)
+        add(panel {
+            verticalAlign(VerticalAlign.CENTER)
+            row {
+                cell(userIconLabel).gap(RightGap.SMALL)
+                panel {
+                    row {
+                        cell(userNameLabel)
+                    }.bottomGap(BottomGap.NONE)
+                    row {
+                        cell(currentOrgNameLabel)
+                        cell(organizationsSelectorButton)
+                    }.topGap(TopGap.SMALL)
+                }.gap(RightGap.COLUMNS)
+                cell(LoadingButton(loginButton, JLabel(AnimatedIcon.Big.INSTANCE)) { _, onFinallyInsideEdt ->
+                    if (alreadyLoggedIn) {
+                        eventListener.onLogoutClicked(onFinallyInsideEdt)
+                    } else {
+                        eventListener.onLoginClicked(this@UserAuthorizationPanel, onFinallyInsideEdt)
+                    }
+                })
+            }
+        }, BorderLayout.CENTER)
+        ApplicationManager.getApplication().messageBus.connect().subscribe(RACCOON_CLIENT_AUTHORIZATION_TOPIC, this)
+    }
+}

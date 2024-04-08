@@ -10,6 +10,6 @@ internal val RACCOON_REQUEST_STATE_TOPIC =
 internal interface RaccoonRequestStateListener {
     fun onStartInsideEdtAndCatching(id: Long, action: String?) {}
     fun onDoneInsideEdtAndCatching(id: Long, message: String?) {}
-    fun onFailureInsideEdt(id: Long, exception: Exception) {}
-    fun onFinallyInsideEdt(id: Long) {}
+    fun onFailureIncludeCancellationInsideEdtAndCatching(id: Long, t: Throwable) {}
+    fun onFinallyInsideEdtAndCatching(id: Long) {}
 }

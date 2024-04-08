@@ -6,7 +6,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.editor.ex.EditorEx
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 
-class ToggleSoftWrapAction(private val editor: EditorEx) : AnAction(
+internal class ToggleSoftWrapAction(private val editor: EditorEx) : AnAction(
     RaccoonBundle.message("codes.actions.softWrap.name"),
     RaccoonBundle.message("codes.actions.softWrap.description"),
     AllIcons.Actions.ToggleSoftWrap

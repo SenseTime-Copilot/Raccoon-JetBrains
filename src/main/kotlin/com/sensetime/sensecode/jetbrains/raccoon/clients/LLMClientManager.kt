@@ -27,7 +27,7 @@ internal class LLMClientManager(private var project: Project) : Disposable {
 
     interface LLMJobListener<T : LLMChoice, R> : LLMClient.LLMResponseListener<T, R>, ClientJobStateListener
 
-    private fun launchClientJob(blockInsideEdt: suspend CoroutineScope.(LLMClient) -> Unit): Job =
+    fun launchClientJob(blockInsideEdt: suspend CoroutineScope.(LLMClient) -> Unit): Job =
         clientCoroutineScope.launch(Dispatchers.Main.immediate) { blockInsideEdt(currentLLMClient) }
 
     private fun launchClientJobWithCatching(
@@ -65,7 +65,10 @@ internal class LLMClientManager(private var project: Project) : Disposable {
     }
 
     companion object {
-        private val currentLLMClient: LLMClient = RaccoonClient()
+        val currentLLMClient: RaccoonClient = RaccoonClient()
         fun getInstance(project: Project): LLMClientManager = project.service()
+
+        fun launchClientJob(blockInsideEdt: suspend CoroutineScope.(LLMClient) -> Unit): Job =
+            MainScope().launch(Dispatchers.Main.immediate) { blockInsideEdt(currentLLMClient) }
     }
 }

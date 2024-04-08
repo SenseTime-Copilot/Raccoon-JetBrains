@@ -1,11 +1,11 @@
 package com.sensetime.sensecode.jetbrains.raccoon.clients
 
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.debug
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import com.intellij.util.applyIf
-import com.sensetime.sensecode.jetbrains.raccoon.clients.authorization.AuthenticatorBase
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMAgentRequest
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMChatRequest
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMCompletionRequest
@@ -13,6 +13,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMRequest
 import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.*
 import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.LLMResponse
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ClientConfig
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_REQUEST_STATE_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonRequestStateListener
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonSensitiveListener
@@ -29,6 +30,7 @@ import java.awt.Component
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
+import javax.swing.JPanel
 import kotlin.coroutines.resumeWithException
 
 
@@ -38,11 +40,8 @@ internal abstract class LLMClient {
     abstract val name: String
     protected abstract val clientConfig: ClientConfig
 
-    private val apiBaseUrl: String
-        get() = clientConfig.apiBaseUrl
-
-    abstract val authenticator: AuthenticatorBase
-
+    abstract suspend fun onUnauthorizedInsideEdt(isEnableNotify: Boolean, project: Project?)
+    abstract fun makeUserAuthorizationPanel(parent: Disposable): JPanel
 
     // sensitive
     open suspend fun getSensitiveConversations(
@@ -60,7 +59,7 @@ internal abstract class LLMClient {
         }
 
         val id: Long = currentRequestID.getAndIncrement()
-        val startTimeMs = RaccoonUtils.getSteadyTimestampMs()
+        private val startTimeMs = RaccoonUtils.getSteadyTimestampMs()
         val debugLogger: Logger? = LOG.takeIf { isEnableDebugLog }
 
         fun getCostS(): String =
@@ -84,6 +83,7 @@ internal abstract class LLMClient {
     // internal use, must be invoked inside the EDT, return R if succeeded, otherwise throw exceptions
     private suspend fun <R> ClientJobRunner.runClientJobInsideEdt(
         isEnableNotify: Boolean,
+        project: Project?,
         clientJobInsideEdtAndCatching: suspend () -> R
     ): R = try {
         clientJobInsideEdtAndCatching().also { result ->
@@ -93,7 +93,7 @@ internal abstract class LLMClient {
         LOG.warnWithDebug(t)
         debugLogger?.debug { "Request[$id]: Failed, cost ${getCostS()}. \"$t\"" }
         if (t is LLMClientUnauthorizedException) {
-            authenticator.onUnauthorizedInsideEdt(isEnableNotify)
+            onUnauthorizedInsideEdt(isEnableNotify, project)
         }
         throw t
     }
@@ -101,10 +101,11 @@ internal abstract class LLMClient {
     // run a client job synchronously, return R if succeeded, otherwise throw exceptions
     private suspend fun <R> ClientJobRunner.runClientJob(
         isEnableNotify: Boolean,
+        project: Project?,
         uiComponentForEdt: Component?,
         clientJobInsideEdtAndCatching: suspend () -> R
     ): R = withContext(Dispatchers.Main.immediate.plusIfNotNull(uiComponentForEdt?.toCoroutineContext())) {
-        runClientJobInsideEdt(isEnableNotify, clientJobInsideEdtAndCatching)
+        runClientJobInsideEdt(isEnableNotify, project, clientJobInsideEdtAndCatching)
     }
 
     // run a client job with publish state topic synchronously, return R if succeeded, otherwise throw exceptions
@@ -115,7 +116,7 @@ internal abstract class LLMClient {
     ): R = withContext(Dispatchers.Main.immediate.plusIfNotNull(uiComponentForEdt?.toCoroutineContext())) {
         try {
             projectForTopic.publishStateTopicWithCatching { onStartInsideEdtAndCatching(id, action) }
-            runClientJobInsideEdt(isEnableNotify) {
+            runClientJobInsideEdt(isEnableNotify, projectForTopic) {
                 clientJobInsideEdtAndCatching().also { result ->
                     projectForTopic.publishStateTopicWithCatching {
                         onDoneInsideEdtAndCatching(id, result?.let { "$it" })
@@ -265,11 +266,12 @@ internal abstract class LLMClient {
     protected suspend fun <R> runClientJob(
         isEnableNotify: Boolean,
         isEnableDebugLog: Boolean,
+        project: Project?,
         uiComponentForEdt: Component?,
         clientJobInsideEdtAndCatching: suspend ClientJobRunner.() -> R
     ): R = ClientJobRunner(isEnableDebugLog).run {
         runClientJob(
-            isEnableNotify, uiComponentForEdt
+            isEnableNotify, project, uiComponentForEdt
         ) { clientJobInsideEdtAndCatching() }
     }
 
@@ -277,9 +279,10 @@ internal abstract class LLMClient {
     protected suspend fun <R> Request.runRequestJob(
         isEnableNotify: Boolean,
         isEnableDebugLog: Boolean,
+        project: Project?,
         uiComponentForEdt: Component?,
         onResponseInsideEdtAndCatching: suspend ClientJobRunner.(String) -> R
-    ): R = runClientJob(isEnableNotify, isEnableDebugLog, uiComponentForEdt) {
+    ): R = runClientJob(isEnableNotify, isEnableDebugLog, project, uiComponentForEdt) {
         onResponseInsideEdtAndCatching(requestInsideEdtAndCatching(this@runRequestJob))
     }
 
@@ -313,7 +316,8 @@ internal abstract class LLMClient {
         private var displayUsage: String? = null
         override fun onDoneInsideEdtAndCatching(): String? = displayUsage
         override fun onResponseInsideEdtAndCatching(llmResponse: LLMResponse<T>) {
-            llmResponse.usage?.takeIf { it.hasUsage() }?.getDisplayUsage()?.let { displayUsage = it }
+            llmResponse.usage?.takeIf { it.hasUsage() && (it.completion > RaccoonSettingsState.instance.candidates) }
+                ?.getDisplayUsage()?.let { displayUsage = it }
         }
     }
 

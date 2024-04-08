@@ -10,7 +10,7 @@ import java.awt.Color
 import java.awt.Font
 import kotlin.math.sqrt
 
-object GraphicsUtils {
+internal object GraphicsUtils {
     fun getFont(editor: Editor): Font = editor.colorsScheme.getFont(EditorFontType.ITALIC)
         .let { font -> UIUtil.getFontWithFallback(if (font.isItalic) font else font.deriveFont(font.style or Font.ITALIC)) }
 

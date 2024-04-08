@@ -68,12 +68,14 @@ internal sealed class LLMRequest {
     protected abstract val stream: Boolean?
     fun isStream(): Boolean = stream ?: (n <= 1)
     abstract val action: String
+    abstract val maxNewTokens: Int
 }
 
 internal data class LLMCompletionRequest(
     override val n: Int,
     override val stream: Boolean? = null,
     override val action: String = "inline completion",
+    override val maxNewTokens: Int = -1,
     val prompt: String
 ) : LLMRequest()
 
@@ -81,6 +83,7 @@ internal data class LLMChatRequest(
     val id: String,
     override val n: Int = 1,
     override val stream: Boolean? = true,
+    override val maxNewTokens: Int = -1,
     override val action: String,
     val messages: List<LLMChatMessage>
 ) : LLMRequest()
@@ -89,6 +92,7 @@ internal data class LLMAgentRequest(
     val id: String,
     override val n: Int = 1,
     override val stream: Boolean? = true,
+    override val maxNewTokens: Int = -1,
     override val action: String,
     val messages: List<LLMAgentMessage>
 ) : LLMRequest()

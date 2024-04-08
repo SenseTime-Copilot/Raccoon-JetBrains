@@ -7,16 +7,15 @@ import com.intellij.ui.AncestorListenerAdapter
 import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.messages.SimpleMessageBusConnection
-import com.sensetime.sensecode.jetbrains.raccoon.clients.CodeClient
-import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
+import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.histories.*
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_SENSITIVE_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonSensitiveListener
-import com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonNotification
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.RaccoonUIUtils
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.addListDataListenerWithDisposable
-import com.sensetime.sensecode.jetbrains.raccoon.ui.common.invokeOnUIThreadLater
+import com.sensetime.sensecode.jetbrains.raccoon.ui.common.invokeOnEdtLater
+import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonExceptions
 import kotlinx.coroutines.Job
 import java.awt.BorderLayout
 import java.awt.event.ActionEvent
@@ -26,14 +25,15 @@ import javax.swing.event.AncestorEvent
 import javax.swing.event.ListDataEvent
 import javax.swing.event.ListDataListener
 
+
 internal fun ChatHistory.toDisplayConversation(): ChatConversation? =
     takeIf { it.hasData() }?.let { it.conversations.firstOrNull()?.toHistoryConversation() }
 
 internal fun List<ChatHistory>.toDisplayConversations(): List<ChatConversation> =
     mapNotNull { it.toDisplayConversation() }
 
-class HistoryContentPanel(
-    project: Project,
+internal class HistoryContentPanel(
+    private val project: Project,
     var eventListener: EventListener? = null
 ) : JPanel(BorderLayout()), ListDataListener, RaccoonSensitiveListener, Disposable,
     ConversationListPanel.EventListener {
@@ -93,17 +93,12 @@ class HistoryContentPanel(
             override fun ancestorAdded(event: AncestorEvent?) {
                 sensitiveJob = getStartTime()?.let { startTime ->
                     startSensitiveFilter()
-                    RaccoonClientManager.launchClientJob {
+                    LLMClientManager.getInstance(project).launchClientJob {
                         var sensitiveConversations: Map<String, RaccoonSensitiveListener.SensitiveConversation> =
                             emptyMap()
-                        try {
+                        RaccoonExceptions.resultOf({
                             sensitiveConversations = it.getSensitiveConversations(startTime, action = "history visible")
-                        } catch (e: Throwable) {
-                            if (e is CodeClient.UnauthorizedException) {
-                                eventListener?.onNotLogin()
-                                invokeOnUIThreadLater { RaccoonNotification.notifyGotoLogin(true) }
-                            }
-                        } finally {
+                        }) {
                             stopSensitiveFilter(sensitiveConversations)
                         }
                     }
@@ -174,7 +169,7 @@ class HistoryContentPanel(
     }
 
     fun stopSensitiveFilter(sensitiveConversations: Map<String, RaccoonSensitiveListener.SensitiveConversation>) {
-        invokeOnUIThreadLater {
+        invokeOnEdtLater {
             runSensitiveFilter(sensitiveConversations)
             loadingLabel.isVisible = false
             buttonBox.isVisible = true
@@ -230,7 +225,7 @@ class HistoryContentPanel(
     }
 
     override fun onNewSensitiveConversations(sensitiveConversations: Map<String, RaccoonSensitiveListener.SensitiveConversation>) {
-        invokeOnUIThreadLater {
+        invokeOnEdtLater {
             runSensitiveFilter(sensitiveConversations)
         }
     }

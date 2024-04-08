@@ -22,7 +22,7 @@ import javax.swing.event.HyperlinkEvent
 import javax.swing.text.DefaultCaret
 import javax.swing.text.SimpleAttributeSet
 
-class MessagePanel(
+internal class MessagePanel(
     private val project: Project?,
     markdownText: String? = null,
     styleAttrs: SimpleAttributeSet? = null,

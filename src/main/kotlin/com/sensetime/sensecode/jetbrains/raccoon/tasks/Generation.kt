@@ -1,3 +1,3 @@
 package com.sensetime.sensecode.jetbrains.raccoon.tasks
 
-class Generation : CodeTaskActionBase()
+internal class Generation : CodeTaskActionBase()

@@ -11,7 +11,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_STATISTICS_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
 
-class InsertedAtCursorAction(private val editor: Editor, private val language: String) : AnAction(
+internal class InsertedAtCursorAction(private val editor: Editor, private val language: String) : AnAction(
     RaccoonBundle.message("codes.actions.insertedAtCursor.name"),
     RaccoonBundle.message("codes.actions.insertedAtCursor.description"),
     AllIcons.Actions.MoveToButton

@@ -15,7 +15,10 @@ data class RaccoonConfig(
     val variant: Variant = Variant.TOC
 ) {
     enum class Variant {
-        TOC, TOB, TEAM
+        TOC, TOB, TEAM;
+
+        fun isToB(): Boolean = (this == TOB)
+        fun isTeam(): Boolean = (this == TEAM)
     }
 
     companion object {

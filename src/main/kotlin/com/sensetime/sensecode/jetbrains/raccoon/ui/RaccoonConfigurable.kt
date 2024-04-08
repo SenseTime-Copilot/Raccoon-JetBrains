@@ -8,21 +8,20 @@ import com.intellij.ui.ColorPanel
 import com.intellij.ui.ColorUtil
 import com.intellij.ui.components.JBRadioButton
 import com.intellij.ui.dsl.builder.*
-import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
+import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.completions.actions.ManualTriggerInlineCompletionAction
 import com.sensetime.sensecode.jetbrains.raccoon.completions.preview.render.GraphicsUtils
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.CompletionModelConfig
-import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
-import com.sensetime.sensecode.jetbrains.raccoon.ui.common.UserAuthorizationPanelBuilder
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonActionUtils
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
 import javax.swing.JComponent
+import javax.swing.JPanel
 
-class RaccoonConfigurable : Configurable, Disposable {
-    private val userAuthorizationPanel: DialogPanel =
-        UserAuthorizationPanelBuilder().build(this, RaccoonClientManager.currentCodeClient.getAkSkSettings())
+
+internal class RaccoonConfigurable() : Configurable, Disposable {
+    private val userAuthorizationPanel: JPanel = LLMClientManager.currentLLMClient.makeUserAuthorizationPanel(this)
     private val inlineCompletionColorPanel: ColorPanel = ColorPanel().apply {
         selectedColor = GraphicsUtils.niceContrastColor
     }
@@ -99,17 +98,16 @@ class RaccoonConfigurable : Configurable, Disposable {
 
     override fun createComponent(): JComponent = settingsPanel
 
-    override fun getDisplayName(): String = RaccoonPlugin.NAME
+    override fun getDisplayName(): String = RaccoonPlugin.name
 
     private fun isInlineCompletionColorModified(): Boolean =
         GraphicsUtils.niceContrastColor != inlineCompletionColorPanel.selectedColor
 
     override fun isModified(): Boolean =
-        settingsPanel.isModified() || userAuthorizationPanel.isModified() || isInlineCompletionColorModified()
+        settingsPanel.isModified() || isInlineCompletionColorModified()
 
     override fun apply() {
         settingsPanel.apply()
-        userAuthorizationPanel.apply()
         if (isInlineCompletionColorModified()) {
             RaccoonSettingsState.instance.inlineCompletionColor =
                 ColorUtil.toHex(inlineCompletionColorPanel.selectedColor!!)
@@ -119,7 +117,6 @@ class RaccoonConfigurable : Configurable, Disposable {
     override fun reset() {
         super.reset()
         settingsPanel.reset()
-        userAuthorizationPanel.reset()
         inlineCompletionColorPanel.selectedColor = GraphicsUtils.niceContrastColor
     }
 

@@ -18,7 +18,8 @@ private fun encrypt(src: ByteArray): String = Cipher.getInstance("AES/CFB/NoPadd
 
 private fun encryptRawPhoneNumber(src: String): String = encrypt(src.toByteArray())
 private fun encryptPassword(src: CharArray): String =
-    ByteArray(src.size) { src[it].code.toByte() }.let { pwd -> encrypt(pwd).also { Arrays.fill(pwd, 0) } }
+    ByteArray(src.size) { src[it].code.toByte() }.also { Arrays.fill(src, '0') }
+        .let { pwd -> encrypt(pwd).also { Arrays.fill(pwd, 0) } }
 
 @Serializable
 internal data class RaccoonClientLoginWithPhoneBody(

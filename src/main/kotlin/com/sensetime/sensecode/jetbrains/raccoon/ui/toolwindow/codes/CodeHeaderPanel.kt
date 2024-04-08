@@ -8,7 +8,7 @@ import java.awt.Color
 import javax.swing.JLabel
 import javax.swing.JPanel
 
-class CodeHeaderPanel(
+internal class CodeHeaderPanel(
     editor: EditorEx, languagePair: Pair<String, RaccoonLanguages.Language>?
 ) : JPanel(BorderLayout()) {
     init {

@@ -1,3 +1,3 @@
 package com.sensetime.sensecode.jetbrains.raccoon.tasks
 
-class AddTest : CodeTaskActionBase()
+internal class AddTest : CodeTaskActionBase()

@@ -7,13 +7,15 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiFile
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonEditorChangedListener
 
-class UserEnterHandler : EnterHandlerDelegateAdapter() {
+internal class UserEnterHandler : EnterHandlerDelegateAdapter() {
     override fun postProcessEnter(
         file: PsiFile,
         editor: Editor,
         dataContext: DataContext
     ): EnterHandlerDelegate.Result {
-        RaccoonEditorChangedListener.onEditorChanged(RaccoonEditorChangedListener.Type.ENTER_TYPED, editor)
+        editor.project?.let {
+            RaccoonEditorChangedListener.onEditorChanged(it, RaccoonEditorChangedListener.Type.ENTER_TYPED, editor)
+        }
         return super.postProcessEnter(file, editor, dataContext)
     }
 }

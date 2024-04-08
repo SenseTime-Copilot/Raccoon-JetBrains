@@ -2,31 +2,33 @@ package com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindow
 
 import com.intellij.ide.BrowserUtil
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.util.Urls
-import com.sensetime.sensecode.jetbrains.raccoon.clients.CodeClient
-import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
-import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.CodeRequest
-import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.CodeStreamResponse
+import com.sensetime.sensecode.jetbrains.raccoon.clients.*
+import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClient
+import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientManager
+import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClient
+import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMChatRequest
+import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.LLMChatChoice
+import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.LLMResponse
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.histories.*
-import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
-import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.topics.*
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.RaccoonUIUtils
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
+import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils
 import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
 import kotlinx.coroutines.Job
 import java.awt.event.ActionEvent
 import java.awt.event.MouseEvent
 import kotlin.coroutines.cancellation.CancellationException
 
-class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
+
+internal class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
     private var chatJob: Job? = null
         set(value) {
             field.takeIf { true == it?.isActive }?.cancel()
@@ -37,55 +39,51 @@ class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
         val historyContentPanel = HistoryContentPanel(project)
         val chatContentPanel = ChatContentPanel(project)
         chatContentPanel.eventListener = object : ChatContentPanel.EventListener {
-            override fun onSubmit(e: ActionEvent?, conversations: List<ChatConversation>, onFinally: () -> Unit) {
-                val maxNewTokens: Int = RaccoonClientManager.currentClientConfig.chatModelConfig.getMaxNewTokens()
-                val (client, clientConfig) = RaccoonClientManager.clientAndConfigPair
-                val modelConfig = clientConfig.chatModelConfig
-
-                chatJob = RaccoonClientManager.launchClientJob {
-                    try {
-                        client.requestStream(
-                            CodeRequest(
-                                conversations.getID(),
-                                modelConfig.name,
-                                conversations.toCodeRequestMessage(modelConfig),
-                                modelConfig.temperature,
-                                1,
-                                modelConfig.stop.first(),
-                                maxNewTokens,
-                                clientConfig.chatApiConfig.path
-                            )
-                        ) { streamResponse ->
-                            RaccoonUIUtils.invokeOnUIThreadLater {
-                                when (streamResponse) {
-                                    CodeStreamResponse.Done -> chatContentPanel.setGenerateState(AssistantMessage.GenerateState.DONE)
-                                    is CodeStreamResponse.Error -> chatContentPanel.appendAssistantTextAndSetGenerateState(
-                                        streamResponse.error,
-                                        AssistantMessage.GenerateState.ERROR
-                                    )
-
-                                    is CodeStreamResponse.TokenChoices -> streamResponse.choices.firstOrNull()?.token?.takeIf { it.isNotEmpty() }
-                                        ?.let {
-                                            chatContentPanel.appendAssistantText(it)
-                                        }
-
-                                    else -> {}
+            override fun onSubmit(
+                e: ActionEvent?,
+                action: String,
+                conversations: List<ChatConversation>,
+                onFinally: () -> Unit
+            ) {
+                chatJob = LLMClientManager.getInstance(project).launchLLMChatJob(
+                    true,
+                    toolWindow.component,
+                    LLMChatRequest(
+                        conversations.getID() ?: RaccoonUtils.generateUUID(),
+                        action = action,
+                        messages = conversations.toCodeRequestMessage(RaccoonClient.clientConfig.chatModelConfig)
+                    ),
+                    object : LLMClientManager.LLMJobListener<LLMChatChoice, String?>,
+                        LLMClient.LLMUsagesResponseListener<LLMChatChoice>() {
+                        override fun onResponseInsideEdtAndCatching(llmResponse: LLMResponse<LLMChatChoice>) {
+                            llmResponse.throwIfError()
+                            llmResponse.choices?.firstOrNull()?.token?.takeIf { it.isNotEmpty() }
+                                ?.let {
+                                    chatContentPanel.appendAssistantText(it)
                                 }
+                            super.onResponseInsideEdtAndCatching(llmResponse)
+                        }
+
+                        override fun onDoneInsideEdtAndCatching(): String? {
+                            chatContentPanel.setGenerateState(AssistantMessage.GenerateState.DONE)
+                            return super.onDoneInsideEdtAndCatching()
+                        }
+
+                        override fun onFailureWithoutCancellationInsideEdt(t: Throwable) {
+                            if (t is LLMClientSensitiveException) {
+                                chatContentPanel.setLastConversationToSensitive(t.localizedMessage)
+                            } else if (t !is CancellationException) {
+                                chatContentPanel.appendAssistantTextAndSetGenerateState(
+                                    t.localizedMessage,
+                                    AssistantMessage.GenerateState.ERROR
+                                )
                             }
                         }
-                    } catch (t: Throwable) {
-                        if (t is CodeClient.SensitiveException) {
-                            chatContentPanel.setLastConversationToSensitive(t.localizedMessage)
-                        } else if (t !is CancellationException) {
-                            chatContentPanel.appendAssistantTextAndSetGenerateState(
-                                t.localizedMessage,
-                                AssistantMessage.GenerateState.ERROR
-                            )
+
+                        override fun onFinallyInsideEdt() {
+                            onFinally()
                         }
-                    } finally {
-                        RaccoonUIUtils.invokeOnUIThreadLater(onFinally)
-                    }
-                }
+                    })
             }
 
             override fun onStopGenerate(e: ActionEvent?) {
@@ -140,7 +138,7 @@ class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
         )
 
         project.messageBus.connect().also {
-            it.subscribe(SENSE_CODE_TASKS_TOPIC, object : RaccoonTasksListener {
+            it.subscribe(RACCOON_TASKS_TOPIC, object : RaccoonTasksListener {
                 override fun onNewTask(userMessage: UserMessage) {
                     toolWindow.contentManager.run {
                         setSelectedContent(getContent(chatContentPanel))
@@ -149,13 +147,13 @@ class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposable {
                     if (null == chatJob) {
                         chatContentPanel.newTask(userMessage)
                     } else {
-                        RaccoonClientManager.launchClientJob {
+                        LLMClientManager.getInstance(project).launchClientJob {
                             chatJob?.run {
                                 cancel()
                                 join()
                             }
                         }.invokeOnCompletion {
-                            RaccoonUIUtils.invokeOnUIThreadLater {
+                            RaccoonUIUtils.invokeOnEdtLater {
                                 chatContentPanel.newTask(userMessage)
                             }
                         }

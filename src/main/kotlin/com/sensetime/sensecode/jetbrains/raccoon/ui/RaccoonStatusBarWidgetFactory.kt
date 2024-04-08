@@ -9,23 +9,19 @@ import com.intellij.openapi.wm.StatusBarWidgetFactory
 import com.intellij.ui.AnimatedIcon
 import com.intellij.util.Consumer
 import com.intellij.util.messages.SimpleMessageBusConnection
-import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
-import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.Usage
-import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
+import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientManager
+import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClient
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonIcons
-import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonClientRequestStateListener
-import com.sensetime.sensecode.jetbrains.raccoon.topics.SENSE_CODE_CLIENT_REQUEST_STATE_TOPIC
+import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_REQUEST_STATE_TOPIC
+import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonRequestStateListener
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.RaccoonUIUtils
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
 import kotlinx.coroutines.*
 import java.awt.event.MouseEvent
 import javax.swing.Icon
 
-class RaccoonStatusBarWidgetFactory : StatusBarWidgetFactory {
-    companion object {
-        const val ID = RaccoonPlugin.NAME
-    }
 
+internal class RaccoonStatusBarWidgetFactory : StatusBarWidgetFactory {
     override fun isAvailable(project: Project): Boolean = true
     override fun canBeEnabledOn(statusBar: StatusBar): Boolean = true
 
@@ -33,14 +29,14 @@ class RaccoonStatusBarWidgetFactory : StatusBarWidgetFactory {
         Disposer.dispose(widget)
     }
 
-    override fun getId(): String = ID
+    override fun getId(): String = RaccoonPlugin.name
 
-    override fun getDisplayName(): String = ID
+    override fun getDisplayName(): String = RaccoonPlugin.name
 
     override fun createWidget(project: Project): StatusBarWidget = RaccoonStatusBarWidget()
 
     private class RaccoonStatusBarWidget : StatusBarWidget, StatusBarWidget.IconPresentation,
-        RaccoonClientRequestStateListener {
+        RaccoonRequestStateListener {
         private var myStatusBar: StatusBar? = null
         private var currentTooltipText: String? = null
         private var currentIcon: Icon = RaccoonIcons.STATUS_BAR_DEFAULT
@@ -72,7 +68,7 @@ class RaccoonStatusBarWidgetFactory : StatusBarWidgetFactory {
 
         init {
             clientMessageBusConnection = ApplicationManager.getApplication().messageBus.connect().also {
-                it.subscribe(SENSE_CODE_CLIENT_REQUEST_STATE_TOPIC, this)
+                it.subscribe(RACCOON_REQUEST_STATE_TOPIC, this)
             }
         }
 
@@ -87,56 +83,47 @@ class RaccoonStatusBarWidgetFactory : StatusBarWidgetFactory {
             statusBarCoroutineScope = null
         }
 
-        override fun onStart(id: Long) {
-            RaccoonUIUtils.invokeOnUIThreadLater {
-                currentID = id
-                isRunning = true
-                currentTooltipText = null
-                currentIcon = AnimatedIcon.Default()
-                myStatusBar?.updateWidget(ID)
+        override fun onStartInsideEdtAndCatching(id: Long, action: String?) {
+            currentID = id
+            isRunning = true
+            currentTooltipText = null
+            currentIcon = AnimatedIcon.Default()
+            myStatusBar?.updateWidget(RaccoonPlugin.name)
+        }
+
+        override fun onDoneInsideEdtAndCatching(id: Long, message: String?) {
+            if (id == currentID) {
+                isRunning = false
+                currentTooltipText = message
+                currentIcon = if (null == message) RaccoonIcons.STATUS_BAR_EMPTY else RaccoonIcons.STATUS_BAR_SUCCESS
+                myStatusBar?.updateWidget(RaccoonPlugin.name)
             }
         }
 
-        override fun onDone(id: Long, usage: Usage?) {
-            RaccoonUIUtils.invokeOnUIThreadLater {
-                if (id == currentID) {
+        override fun onFailureIncludeCancellationInsideEdtAndCatching(id: Long, t: Throwable) {
+            if (id == currentID && (t !is CancellationException)) {
+                isRunning = false
+                currentTooltipText = t.localizedMessage
+                currentIcon = RaccoonIcons.STATUS_BAR_ERROR
+                myStatusBar?.updateWidget(RaccoonPlugin.name)
+            }
+        }
+
+        override fun onFinallyInsideEdtAndCatching(id: Long) {
+            if (id == currentID) {
+                if (isRunning) {
                     isRunning = false
-                    currentTooltipText = usage?.getShowString()
-                    currentIcon =
-                        if (null != usage?.completion?.takeIf { number -> number <= RaccoonSettingsState.instance.candidates }) RaccoonIcons.STATUS_BAR_EMPTY else RaccoonIcons.STATUS_BAR_SUCCESS
-                    myStatusBar?.updateWidget(ID)
-                }
-            }
-        }
-
-        override fun onError(id: Long, error: String?) {
-            RaccoonUIUtils.invokeOnUIThreadLater {
-                if (id == currentID) {
-                    isRunning = false
-                    currentTooltipText = error
-                    currentIcon = RaccoonIcons.STATUS_BAR_ERROR
-                    myStatusBar?.updateWidget(ID)
-                }
-            }
-        }
-
-        override fun onFinally(id: Long) {
-            RaccoonUIUtils.invokeOnUIThreadLater {
-                if (id == currentID) {
-                    if (isRunning) {
-                        isRunning = false
-                        currentTooltipText = null
-                        currentIcon = RaccoonIcons.STATUS_BAR_DEFAULT
-                        myStatusBar?.updateWidget(ID)
-                    } else {
-                        delayJob = statusBarCoroutineScope?.launch {
-                            delay(5000)
-                            RaccoonUIUtils.invokeOnUIThreadLater {
-                                if ((id == currentID) && (!isRunning)) {
-                                    currentTooltipText = null
-                                    currentIcon = RaccoonIcons.STATUS_BAR_DEFAULT
-                                    myStatusBar?.updateWidget(ID)
-                                }
+                    currentTooltipText = null
+                    currentIcon = RaccoonIcons.STATUS_BAR_DEFAULT
+                    myStatusBar?.updateWidget(RaccoonPlugin.name)
+                } else {
+                    delayJob = statusBarCoroutineScope?.launch {
+                        delay(5000)
+                        RaccoonUIUtils.invokeOnEdtLater {
+                            if ((id == currentID) && (!isRunning)) {
+                                currentTooltipText = null
+                                currentIcon = RaccoonIcons.STATUS_BAR_DEFAULT
+                                myStatusBar?.updateWidget(RaccoonPlugin.name)
                             }
                         }
                     }
@@ -151,13 +138,13 @@ class RaccoonStatusBarWidgetFactory : StatusBarWidgetFactory {
         override fun getIcon(): Icon = currentIcon
 
         override fun getTooltipText(): String =
-            currentTooltipText ?: RaccoonClientManager.currentCodeClient.run { "${name}: $userName" }
+            currentTooltipText ?: "${LLMClientManager.currentLLMClient.name}: ${RaccoonClient.getDisplayUserName()}"
 
         override fun getClickConsumer(): Consumer<MouseEvent> = Consumer {
             RaccoonUIUtils.showRaccoonSettings()
         }
 
-        override fun ID(): String = ID
+        override fun ID(): String = RaccoonPlugin.name
 
         override fun getPresentation(): StatusBarWidget.WidgetPresentation = this
     }

@@ -20,10 +20,11 @@ internal inline fun <R> Credentials.letIfFilled(block: (String, String) -> R): R
 internal object RaccoonCredentialsManager {
     // PasswordSafe wrapper
 
+    fun generateKeyWithIde(key: String): String =
+        generateServiceName("${ApplicationInfo.getInstance().build.asString()} ${RaccoonPlugin.name}", key)
+
     private fun createCredentialAttributes(key: String): CredentialAttributes =
-        CredentialAttributes(
-            generateServiceName("${ApplicationInfo.getInstance().build.asString()} ${RaccoonPlugin.name}", key)
-        )
+        CredentialAttributes(generateKeyWithIde(key))
 
     private fun getPasswordSafe(attributes: CredentialAttributes): Credentials? = PasswordSafe.instance.get(attributes)
     private fun setPasswordSafe(attributes: CredentialAttributes, credentials: Credentials?) {

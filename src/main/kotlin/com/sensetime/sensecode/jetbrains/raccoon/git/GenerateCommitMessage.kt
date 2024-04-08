@@ -17,14 +17,18 @@ import com.intellij.openapi.vcs.ui.CommitMessage
 import com.intellij.openapi.vcs.ui.Refreshable
 import com.intellij.ui.AncestorListenerAdapter
 import com.intellij.vcs.commit.AbstractCommitWorkflowHandler
-import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
-import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.CodeRequest
-import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.CodeStreamResponse
-import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
+import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClient
+import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientManager
+import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClient
+import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMChatRequest
+import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMUserMessage
+import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.LLMChatChoice
+import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.LLMResponse
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_STATISTICS_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonNotification
-import com.sensetime.sensecode.jetbrains.raccoon.ui.common.invokeOnUIThreadLater
+import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonExceptions
+import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils
 import com.sensetime.sensecode.jetbrains.raccoon.utils.takeIfNotBlank
 import com.sensetime.sensecode.jetbrains.raccoon.utils.takeIfNotEmpty
 import kotlinx.coroutines.Job
@@ -33,9 +37,9 @@ import java.io.StringWriter
 import java.io.Writer
 import java.nio.file.Path
 import javax.swing.event.AncestorEvent
-import kotlin.coroutines.cancellation.CancellationException
 
-class GenerateCommitMessage : AnAction() {
+
+internal class GenerateCommitMessage : AnAction() {
     private class MyStringWriter(private val maxLength: Int) : StringWriter() {
         private var currentLength = 0
         private fun checkMaxLength(appendLength: Int) {
@@ -63,7 +67,7 @@ class GenerateCommitMessage : AnAction() {
 
     companion object {
         private val maxDiffLength =
-            10 * (RaccoonClientManager.currentClientConfig.chatModelConfig.maxInputTokens)
+            10 * (RaccoonClient.clientConfig.chatModelConfig.maxInputTokens)
 
         private fun getCommitMessagePanel(e: AnActionEvent): CommitMessage? =
             e.getData(VcsDataKeys.COMMIT_MESSAGE_CONTROL) as? CommitMessage
@@ -95,11 +99,9 @@ class GenerateCommitMessage : AnAction() {
             field = value
         }
 
-    private suspend fun generateCommitMessage(
-        project: Project,
-        changes: List<Change>,
-        block: (CodeStreamResponse) -> Unit
-    ) {
+    private fun makeLLMRequest(
+        project: Project, changes: List<Change>
+    ): LLMChatRequest {
         val diff: String = requireNotNull(PatchWriter.calculateBaseDirForWritingPatch(project, changes).let { baseDir ->
             IdeaTextPatchBuilder.buildPatch(project, changes, baseDir, false, true).let { patches ->
                 val lineSeparator = "\n"
@@ -109,33 +111,13 @@ class GenerateCommitMessage : AnAction() {
                 writer.toString()
             }
         }.takeIfNotBlank()) { RaccoonBundle.message("git.commit.warning.noChange") }
-        val (client, clientConfig) = RaccoonClientManager.clientAndConfigPair
-        val modelConfig = clientConfig.chatModelConfig
 
-//        listOfNotNull(
-//            modelConfig.getSystemPromptPair()?.let {
-//                CodeRequest.Message(
-//                    it.first,
-//                    it.second
-//                )
-//            })
-
-        client.requestStream(
-            CodeRequest(
-                null,
-                modelConfig.name,
-                listOf(
-                    CodeRequest.Message(
-                        modelConfig.getRoleString(ModelConfig.Role.USER),
-                        "Here are changes of current codebase:\n\n```diff\n$diff\n```\n\nWrite a commit message summarizing these changes, not have to cover erevything, key-points only. Response the content only, limited the message to 50 characters, in plain text format, and without quotation marks."
-                    )
-                ),
-                modelConfig.temperature,
-                1,
-                modelConfig.stop.first(),
-                256,
-                clientConfig.chatApiConfig.path
-            ), block
+        val modelConfig = RaccoonClient.clientConfig.chatModelConfig
+        return LLMChatRequest(
+            RaccoonUtils.generateUUID(), maxNewTokens = 256, action = "commit-message", messages = listOfNotNull(
+                modelConfig.getLLMSystemMessage(),
+                LLMUserMessage("Here are changes of current codebase:\n\n```diff\n$diff\n```\n\nWrite a commit message summarizing these changes, not have to cover erevything, key-points only. Response the content only, limited the message to 50 characters, in plain text format, and without quotation marks.")
+            )
         )
     }
 
@@ -154,7 +136,8 @@ class GenerateCommitMessage : AnAction() {
             generateJob = null
             return
         }
-        try {
+
+        RaccoonExceptions.resultOf {
             generateJob = null
             val project = requireNotNull(e.project) { "project is null" }
             val commitPanel = requireNotNull(getCommitPanel(e)) { "commitPanel is null" }
@@ -174,49 +157,43 @@ class GenerateCommitMessage : AnAction() {
                     super.ancestorRemoved(event)
                 }
             })
-            generateJob = RaccoonClientManager.launchClientJob {
-                try {
-                    generateCommitMessage(project, changes) { streamResponse ->
-                        commitPanel.component.invokeOnUIThreadLater {
-                            when (streamResponse) {
-                                CodeStreamResponse.Done -> if (commitPanel.commitMessage.isNotBlank()) {
-                                    showSuccessMessage(e, RaccoonBundle.message("git.commit.success.generatedDone"))
-                                    ApplicationManager.getApplication().messageBus.syncPublisher(
-                                        RACCOON_STATISTICS_TOPIC
-                                    ).onGenerateGitCommitMessageFinished()
-                                }
-
-                                is CodeStreamResponse.Error -> showErrorMessage(e, streamResponse.error)
-                                is CodeStreamResponse.TokenChoices -> streamResponse.choices.firstOrNull()?.token?.takeIf { it.isNotEmpty() }
-                                    ?.let { delta ->
-                                        commitPanel.commitMessage += delta
-                                    }
-
-                                else -> {}
-                            }
+            generateJob = LLMClientManager.getInstance(project).launchLLMChatJob(
+                isEnableNotify = true,
+                commitPanel.component,
+                makeLLMRequest(project, changes),
+                object : LLMClientManager.LLMJobListener<LLMChatChoice, String?>,
+                    LLMClient.LLMUsagesResponseListener<LLMChatChoice>() {
+                    override fun onResponseInsideEdtAndCatching(llmResponse: LLMResponse<LLMChatChoice>) {
+                        llmResponse.throwIfError()
+                        llmResponse.choices?.firstOrNull()?.token?.takeIf { it.isNotEmpty() }?.let { delta ->
+                            commitPanel.commitMessage += delta
                         }
+                        super.onResponseInsideEdtAndCatching(llmResponse)
                     }
-                    commitPanel.component.invokeOnUIThreadLater {
-                        if (commitPanel.commitMessage.isBlank()) {
+
+                    override fun onDoneInsideEdtAndCatching(): String? {
+                        if (commitPanel.commitMessage.isNotBlank()) {
+                            showSuccessMessage(e, RaccoonBundle.message("git.commit.success.generatedDone"))
+                            ApplicationManager.getApplication().messageBus.syncPublisher(
+                                RACCOON_STATISTICS_TOPIC
+                            ).onGenerateGitCommitMessageFinished()
+                        } else {
                             showErrorMessage(e, RaccoonBundle.message("git.commit.warning.emptyResponse"))
                         }
+                        return super.onDoneInsideEdtAndCatching()
                     }
-                } catch (t: Throwable) {
-                    if (t !is CancellationException) {
-                        commitPanel.component.invokeOnUIThreadLater {
-                            showErrorMessage(e, t.localizedMessage)
-                        }
+
+                    override fun onFailureWithoutCancellationInsideEdt(t: Throwable) {
+                        showErrorMessage(e, t.localizedMessage)
                     }
-                } finally {
-                    getCommitMessagePanel(e)?.editorField?.run {
-                        invokeOnUIThreadLater {
-                            editor?.selectionModel?.removeSelection()
-                        }
+
+                    override fun onFinallyInsideEdt() {
+                        getCommitMessagePanel(e)?.editorField?.editor?.selectionModel?.removeSelection()
                     }
                 }
-            }
-        } catch (t: Throwable) {
-            showErrorMessage(e, t.localizedMessage)
+            )
+        }.onFailure {
+            showErrorMessage(e, it.localizedMessage)
         }
     }
 }

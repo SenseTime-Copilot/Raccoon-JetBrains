@@ -1,12 +1,15 @@
 package com.sensetime.sensecode.jetbrains.raccoon.clients.responses
 
 import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientMessageException
+import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientOrgException
 import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientUnauthorizedException
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonConfig
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonSensitiveListener
 import com.sensetime.sensecode.jetbrains.raccoon.utils.getNameFromEmail
 import com.sensetime.sensecode.jetbrains.raccoon.utils.ifNullOrBlank
 import com.sensetime.sensecode.jetbrains.raccoon.utils.takeIfNotBlank
+import com.sensetime.sensecode.jetbrains.raccoon.utils.takeIfNotEmpty
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -41,6 +44,7 @@ internal abstract class RaccoonClientStatus(
                 EMAIL_OR_PASSWD_VERIFY_ERROR_CODE -> RaccoonBundle.message("client.sensecode.response.error.invalidEmailOrPassword")
                 USER_VERIFY_EXCEEDED_LIMIT_CODE -> RaccoonBundle.message("client.sensecode.response.error.tryLoginLimit")
                 EMAIL_VERIFY_EXCEEDED_LIMIT_CODE -> RaccoonBundle.message("client.sensecode.response.error.tryLoginLimit.email")
+                ORG_PLUGIN_CODE_EXPIRED_CODE -> RaccoonBundle.message("client.authorization.organization.error.OrgExpired")
                 else -> null
             }?.let { message -> throw LLMClientMessageException(message, getDetailsInfo()) }
         }
@@ -67,6 +71,7 @@ internal abstract class RaccoonClientStatus(
         private const val EMAIL_OR_PASSWD_VERIFY_ERROR_CODE = 200013
         private const val USER_VERIFY_EXCEEDED_LIMIT_CODE = 200101
         private const val EMAIL_VERIFY_EXCEEDED_LIMIT_CODE = 200105
+        private const val ORG_PLUGIN_CODE_EXPIRED_CODE = 200023
 
         private val paramNamesMap: Map<String, String> = mapOf(
             "phone" to RaccoonBundle.message("login.dialog.label.phone"),
@@ -111,11 +116,11 @@ internal data class RaccoonClientOrgInfo(
     @SerialName("team_code_expired_time")
     val teamCodeExpiredTime: String? = null
 ) {
-    val displayName: String
-        get() = name.ifNullOrBlank(code)
-
     fun isNormal(): Boolean = ("normal" == userStatus)
     fun isAvailable(): Boolean = teamCodeEnabled && isNormal()
+
+    fun getDisplayOrgName(): String = name.ifNullOrBlank(code)
+    override fun toString(): String = getDisplayOrgName()
 }
 
 @Serializable
@@ -134,8 +139,27 @@ internal data class RaccoonClientUserInfo(
     @SerialName("orgs")
     val organizations: List<RaccoonClientOrgInfo>? = null
 ) {
-    fun getFirstAvailableOrganizationOrNull(): RaccoonClientOrgInfo? = organizations?.firstOrNull { it.isAvailable() }
-    fun getDisplayName(): String = name?.takeIfNotBlank() ?: email?.getNameFromEmail()?.takeIfNotBlank() ?: "unknown"
+    fun getAvailableOrganizations(): List<RaccoonClientOrgInfo>? =
+        organizations?.filter { it.isAvailable() }?.takeIfNotEmpty()
+
+    fun getFirstAvailableOrgInfoOrNull(): RaccoonClientOrgInfo? = getAvailableOrganizations()?.firstOrNull()
+    fun getOrgInfoByCodeOrNull(orgCode: String): RaccoonClientOrgInfo? =
+        organizations?.firstOrNull { it.code == orgCode }
+
+    fun getDisplayUserName(orgCode: String?): String? =
+        orgCode?.let { getOrgInfoByCodeOrNull(it)?.userName } ?: name?.takeIfNotBlank() ?: email?.getNameFromEmail()
+            ?.takeIfNotBlank()
+
+    fun checkOrganizations() {
+        if (RaccoonConfig.config.variant.isTeam()) {
+            if (organizations.isNullOrEmpty()) {
+                throw LLMClientOrgException(RaccoonBundle.message("authorization.panel.organizations.list.empty"))
+            }
+            if (getAvailableOrganizations().isNullOrEmpty()) {
+                throw LLMClientOrgException(RaccoonBundle.message("authorization.panel.organizations.list.disabled"))
+            }
+        }
+    }
 }
 
 @Serializable

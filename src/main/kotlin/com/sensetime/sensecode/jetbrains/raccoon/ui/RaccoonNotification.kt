@@ -3,39 +3,23 @@ package com.sensetime.sensecode.jetbrains.raccoon.ui
 import com.intellij.notification.*
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.ui.popup.JBPopupFactory
+import com.sensetime.sensecode.jetbrains.raccoon.llm.tokens.RaccoonTokenUtils
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
-import com.sensetime.sensecode.jetbrains.raccoon.ui.common.LoginDialog
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.RaccoonUIUtils
 import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
 
-object RaccoonNotification {
+
+internal object RaccoonNotification {
     const val GROUP_ID: String = "Raccoon Notification Group"
 
     @JvmStatic
-    private val notificationGroup: NotificationGroup
+    val notificationGroup: NotificationGroup
         get() = NotificationGroupManager.getInstance().getNotificationGroup(GROUP_ID)
 
     @JvmStatic
     fun notifySettingsAction(notification: Notification, actionName: String) {
         notification.addAction(NotificationAction.createSimple(actionName) {
             RaccoonUIUtils.showRaccoonSettings()
-        }).notify(null)
-    }
-
-    private var isNotifiedGotoLogin: Boolean = false
-
-    @JvmStatic
-    fun notifyGotoLogin(once: Boolean) {
-        if (once && isNotifiedGotoLogin) {
-            return
-        }
-        isNotifiedGotoLogin = true
-        notificationGroup.createNotification(
-            RaccoonBundle.message("notification.settings.login.notloggedin"),
-            "",
-            NotificationType.WARNING
-        ).addAction(NotificationAction.createSimple(RaccoonBundle.message("notification.settings.goto.login")) {
-            LoginDialog(null, null).showAndGet()
         }).notify(null)
     }
 
@@ -62,7 +46,7 @@ object RaccoonNotification {
     fun checkEditorSelectedText(maxInputTokens: Int, editor: Editor?, diffOnly: Boolean): String? =
         editor?.let {
             it.selectionModel.selectedText?.letIfNotBlank { text ->
-                if (text.length / 4 > maxInputTokens) {
+                if (RaccoonTokenUtils.estimateTokensNumber(text) > maxInputTokens) {
                     popupMessageInBestPositionForEditor(
                         RaccoonBundle.message("notification.editor.selectedText.tooLong"),
                         editor,
