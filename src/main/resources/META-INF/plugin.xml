@@ -8,11 +8,6 @@
     <depends>com.intellij.modules.lang</depends>
     <resource-bundle>messages.RaccoonBundle</resource-bundle>
 
-    <applicationListeners>
-        <listener class="com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager$CredentialsListener"
-                  topic="com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonCredentialsListener"/>
-    </applicationListeners>
-
     <extensions defaultExtensionNs="com.intellij">
         <!--        Persistent Data-->
         <applicationService
