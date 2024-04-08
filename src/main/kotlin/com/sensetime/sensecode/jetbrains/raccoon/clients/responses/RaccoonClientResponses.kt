@@ -111,13 +111,13 @@ internal data class RaccoonClientOrgInfo(
     val userRole: String? = null,
     @SerialName("user_status")
     val userStatus: String? = null,
-    @SerialName("team_code_enabled")
-    val teamCodeEnabled: Boolean = false,
-    @SerialName("team_code_expired_time")
-    val teamCodeExpiredTime: String? = null
+    @SerialName("pro_code_enabled")
+    val proCodeEnabled: Boolean = false,
+    @SerialName("pro_code_expired_time")
+    val proCodeExpiredTime: String? = null
 ) {
     fun isNormal(): Boolean = ("normal" == userStatus)
-    fun isAvailable(): Boolean = teamCodeEnabled && isNormal()
+    fun isAvailable(): Boolean = proCodeEnabled && isNormal()
 
     fun getDisplayOrgName(): String = name.ifNullOrBlank(code)
     override fun toString(): String = getDisplayOrgName()
