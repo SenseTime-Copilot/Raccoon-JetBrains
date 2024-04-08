@@ -9,6 +9,7 @@ import com.intellij.ui.ColorUtil
 import com.intellij.ui.components.JBRadioButton
 import com.intellij.ui.dsl.builder.*
 import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientManager
+import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClient
 import com.sensetime.sensecode.jetbrains.raccoon.completions.actions.ManualTriggerInlineCompletionAction
 import com.sensetime.sensecode.jetbrains.raccoon.completions.preview.render.GraphicsUtils
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.CompletionModelConfig
@@ -92,6 +93,19 @@ internal class RaccoonConfigurable() : Configurable, Disposable {
 
             row(RaccoonBundle.message("settings.group.InlineCompletion.ColorForCompletions.label")) {
                 cell(inlineCompletionColorPanel)
+            }
+        }
+        val isKnowledgeBaseAllowed = RaccoonClient.getIsKnowledgeBaseAllowed()
+        group(RaccoonBundle.message("settings.group.knowledgeBase.label.title")) {
+            row {
+                checkBox(RaccoonBundle.message("settings.group.knowledgeBase.checkBox.enableLocal")).bindSelected(
+                    RaccoonSettingsState.instance::isLocalKnowledgeBaseEnabled
+                ).enabled(isKnowledgeBaseAllowed)
+            }
+            row {
+                checkBox(RaccoonBundle.message("settings.group.knowledgeBase.checkBox.enableCloud")).bindSelected(
+                    RaccoonSettingsState.instance::isCloudKnowledgeBaseEnabled
+                ).enabled(isKnowledgeBaseAllowed)
             }
         }
     }

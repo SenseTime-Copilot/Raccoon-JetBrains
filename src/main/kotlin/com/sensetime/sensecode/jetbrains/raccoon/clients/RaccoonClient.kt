@@ -489,6 +489,13 @@ internal class RaccoonClient : LLMClient() {
             }
 
         @JvmStatic
+        fun getUserIsCodePro(): Boolean = (true == userInfoSettings?.proCodeEnabled)
+
+        @JvmStatic
+        fun getIsKnowledgeBaseAllowed(): Boolean =
+            (null != userInfoSettings?.takeIf { it.proCodeEnabled || it.currentOrgAvailable() })
+
+        @JvmStatic
         fun getDisplayUserName(): String? = accessTokenCredentials?.letIfFilled { rawUserName, _ ->
             userInfoSettings?.getDisplayUserName() ?: rawUserName
         }
