@@ -7,6 +7,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.AgentModelC
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ChatModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.CompletionModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.utils.plusIfNotNull
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -89,7 +90,12 @@ internal class NovaClientCompletionRequest(
     completionRequest: LLMCompletionRequest,
     modelConfig: CompletionModelConfig
 ) : NovaClientRequest(
-    mapOf("prompt" to JsonPrimitive(completionRequest.prompt)), modelConfig, completionRequest
+    buildMap {
+        put("prompt", JsonPrimitive(completionRequest.prompt))
+        if (RaccoonSettingsState.instance.inlineCompletionPreference == CompletionModelConfig.CompletionPreference.SPEED_PRIORITY) {
+            put("stop", JsonPrimitive("\n"))
+        }
+    }, modelConfig, completionRequest
 )
 
 internal class NovaClientChatRequest(
