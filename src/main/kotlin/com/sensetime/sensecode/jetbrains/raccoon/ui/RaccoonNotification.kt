@@ -2,8 +2,14 @@ package com.sensetime.sensecode.jetbrains.raccoon.ui
 
 import com.intellij.notification.*
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
+import com.intellij.psi.util.PsiUtilBase
+import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClient
+import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMCodeChunk
+import com.sensetime.sensecode.jetbrains.raccoon.llm.knowledgebases.CodeLocalContextFinder
 import com.sensetime.sensecode.jetbrains.raccoon.llm.tokens.RaccoonTokenUtils
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.RaccoonUIUtils
 import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
@@ -43,18 +49,38 @@ internal object RaccoonNotification {
     }
 
     @JvmStatic
-    fun checkEditorSelectedText(maxInputTokens: Int, editor: Editor?, diffOnly: Boolean): String? =
+    fun checkEditorSelectedText(
+        maxInputTokens: Int,
+        editor: Editor?, project: Project,
+        diffOnly: Boolean
+    ): Pair<String, List<LLMCodeChunk>?>? =
         editor?.let {
-            it.selectionModel.selectedText?.letIfNotBlank { text ->
-                if (RaccoonTokenUtils.estimateTokensNumber(text) > maxInputTokens) {
-                    popupMessageInBestPositionForEditor(
-                        RaccoonBundle.message("notification.editor.selectedText.tooLong"),
-                        editor,
-                        diffOnly
-                    )
-                    null
-                } else {
-                    text
+            editor.selectionModel.let { selectionModel ->
+                selectionModel.selectedText?.letIfNotBlank { selectedText ->
+                    val curTokens = RaccoonTokenUtils.estimateTokensNumber(selectedText)
+                    if (curTokens > maxInputTokens) {
+                        popupMessageInBestPositionForEditor(
+                            RaccoonBundle.message("notification.editor.selectedText.tooLong"),
+                            editor,
+                            diffOnly
+                        )
+                        null
+                    } else {
+                        Pair(
+                            selectedText,
+                            PsiUtilBase.getPsiFileInEditor(editor, project)
+                                ?.takeIf { RaccoonClient.getIsKnowledgeBaseAllowed() && RaccoonSettingsState.instance.isLocalKnowledgeBaseEnabled }
+                                ?.let { psiFile ->
+                                    CodeLocalContextFinder.findAllContextsLocally(
+                                        psiFile,
+                                        ((maxInputTokens - curTokens) * 0.75).toInt(),
+                                        selectionModel.selectionStart,
+                                        selectionModel.selectionEnd
+                                    ).map { context ->
+                                        LLMCodeChunk(context.first, context.second)
+                                    }
+                                })
+                    }
                 }
             }
         }

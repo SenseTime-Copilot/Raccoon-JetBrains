@@ -1,5 +1,6 @@
 package com.sensetime.sensecode.jetbrains.raccoon.clients.requests
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 
@@ -60,6 +61,14 @@ internal data class LLMToolMessage(
     override val role: LLMMessage.Role = LLMMessage.Role.TOOL
 }
 
+@Serializable
+internal data class LLMCodeChunk(
+    @SerialName("file_name")
+    val fileName: String,
+    @SerialName("file_chunk")
+    val fileChunk: String
+)
+
 
 // LLM requests, same for all client
 
@@ -85,7 +94,8 @@ internal data class LLMChatRequest(
     override val stream: Boolean? = true,
     override val maxNewTokens: Int = -1,
     override val action: String,
-    val messages: List<LLMChatMessage>
+    val messages: List<LLMChatMessage>,
+    val localKnowledge: List<LLMCodeChunk>? = null
 ) : LLMRequest()
 
 internal data class LLMAgentRequest(

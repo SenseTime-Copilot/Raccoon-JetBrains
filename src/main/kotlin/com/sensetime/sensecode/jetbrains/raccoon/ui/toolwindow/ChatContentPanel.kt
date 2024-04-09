@@ -16,6 +16,7 @@ import com.intellij.util.messages.SimpleMessageBusConnection
 import com.intellij.util.ui.JBUI
 import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClient
+import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMCodeChunk
 import com.sensetime.sensecode.jetbrains.raccoon.llm.prompts.PromptVariables
 import com.sensetime.sensecode.jetbrains.raccoon.llm.prompts.replaceVariables
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.histories.*
@@ -49,6 +50,7 @@ internal class ChatContentPanel(private val project: Project, eventListener: Eve
             e: ActionEvent?,
             action: String,
             conversations: List<ChatConversation>,
+            localKnowledge: List<LLMCodeChunk>?,
             onFinally: () -> Unit
         )
 
@@ -333,7 +335,13 @@ internal class ChatContentPanel(private val project: Project, eventListener: Eve
         loadFromHistory()
     }
 
-    private fun startGenerate(action: String, e: ActionEvent? = null, isRegenerate: Boolean = false) {
+    private var lastLocalKnowledge: List<LLMCodeChunk>? = null
+    private fun startGenerate(
+        action: String,
+        e: ActionEvent? = null,
+        isRegenerate: Boolean = false,
+        localKnowledge: List<LLMCodeChunk>? = null
+    ) {
         eventListener?.let { listener ->
             conversationListPanel.conversationListModel.takeUnless { it.isEmpty }?.run {
                 newChatButton.isVisible = false
@@ -345,9 +353,11 @@ internal class ChatContentPanel(private val project: Project, eventListener: Eve
 
                 if (isRegenerate) {
                     setElementAt(items.last().toPromptConversation(), items.lastIndex)
+                } else {
+                    lastLocalKnowledge = localKnowledge
                 }
                 gotoEnd()
-                listener.onSubmit(e, action, items, this@ChatContentPanel::endGenerate)
+                listener.onSubmit(e, action, items, lastLocalKnowledge, this@ChatContentPanel::endGenerate)
                 if (!isRegenerate) {
                     ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_STATISTICS_TOPIC)
                         .onToolWindowQuestionSubmitted()
@@ -367,14 +377,14 @@ internal class ChatContentPanel(private val project: Project, eventListener: Eve
         startGenerate("regenerate", e, true)
     }
 
-    private fun getSelectedCode(): String =
+    private fun getSelectedCode(): Pair<String, List<LLMCodeChunk>?> =
         CommonDataKeys.PROJECT.getData(DataManager.getInstance().getDataContext(this))?.let { project ->
             FileEditorManager.getInstance(project).selectedTextEditor?.let { editor ->
                 RaccoonNotification.checkEditorSelectedText(
                     RaccoonClient.clientConfig.chatModelConfig.maxInputTokens,
-                    editor,
+                    editor, project,
                     false
-                )?.letIfNotBlank { code ->
+                )?.let { (code, localKnowledge) ->
                     PromptVariables.markdownCodeTemplate.replaceVariables(
                         mapOf(
                             PromptVariables.LANGUAGE to RaccoonLanguages.getMarkdownLanguageFromPsiFile(
@@ -382,17 +392,20 @@ internal class ChatContentPanel(private val project: Project, eventListener: Eve
                                     ?.let { PsiManager.getInstance(project).findFile(it) }),
                             PromptVariables.CODE to code
                         )
-                    )
+                    ).let { Pair(it, localKnowledge) }
                 }
             }
-        }.ifNullOrBlankElse("") { "\n$it\n" }
+        }.let { result ->
+            Pair(result?.first.ifNullOrBlankElse("") { "\n$it\n" }, result?.second)
+        }
 
     private fun onSubmitButtonClick(e: ActionEvent?) {
         userPromptTextArea.text?.letIfNotBlank { userInputText ->
+            val (code, localKnowledge) = getSelectedCode()
             UserMessage.createUserMessage(
                 project,
                 promptType = ChatModelConfig.FREE_CHAT,
-                text = userInputText + getSelectedCode()
+                text = userInputText + code
             )
                 ?.let {
                     conversationListPanel.conversationListModel.add(
@@ -402,14 +415,14 @@ internal class ChatContentPanel(private val project: Project, eventListener: Eve
                         )
                     )
                     userPromptTextArea.text = ""
-                    startGenerate("free chat", e)
+                    startGenerate("free chat", e, localKnowledge = localKnowledge)
                 }
         }
     }
 
-    fun newTask(userMessage: UserMessage) {
+    fun newTask(userMessage: UserMessage, localKnowledge: List<LLMCodeChunk>?) {
         conversationListPanel.conversationListModel.add(ChatConversation(userMessage, id = RaccoonUtils.generateUUID()))
-        startGenerate(userMessage.promptType)
+        startGenerate(userMessage.promptType, localKnowledge = localKnowledge)
     }
 
     fun setGenerateState(generateState: AssistantMessage.GenerateState) {

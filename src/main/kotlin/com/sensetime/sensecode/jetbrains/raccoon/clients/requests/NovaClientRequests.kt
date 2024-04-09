@@ -103,10 +103,16 @@ internal class NovaClientChatRequest(
     modelConfig: ChatModelConfig,
     customRequestArgs: Map<String, JsonElement>? = null
 ) : NovaClientRequest(
-    mapOf("messages" to chatRequest.messages.toNovaChatMessages(modelConfig).toJsonArray()).plusIfNotNull(
-        customRequestArgs
-    ),
-    modelConfig, chatRequest
+    buildMap {
+        put("messages", chatRequest.messages.toNovaChatMessages(modelConfig).toJsonArray())
+        chatRequest.localKnowledge?.let {
+            put(
+                "local_knows",
+                LLMClientJson.encodeToJsonElement(ListSerializer(LLMCodeChunk.serializer()), it)
+            )
+        }
+        customRequestArgs?.let { putAll(it) }
+    }, modelConfig, chatRequest
 )
 
 internal class NovaClientAgentRequest(

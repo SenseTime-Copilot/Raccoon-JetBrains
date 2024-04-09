@@ -13,6 +13,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClient
 import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClient
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMChatRequest
+import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMCodeChunk
 import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.LLMChatChoice
 import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.LLMResponse
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.histories.*
@@ -43,6 +44,7 @@ internal class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposab
                 e: ActionEvent?,
                 action: String,
                 conversations: List<ChatConversation>,
+                localKnowledge: List<LLMCodeChunk>?,
                 onFinally: () -> Unit
             ) {
                 chatJob = LLMClientManager.getInstance(project).launchLLMChatJob(
@@ -51,7 +53,8 @@ internal class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposab
                     LLMChatRequest(
                         conversations.getID() ?: RaccoonUtils.generateUUID(),
                         action = action,
-                        messages = conversations.toCodeRequestMessage(RaccoonClient.clientConfig.chatModelConfig)
+                        messages = conversations.toCodeRequestMessage(RaccoonClient.clientConfig.chatModelConfig),
+                        localKnowledge = localKnowledge
                     ),
                     object : LLMClientManager.LLMJobListener<LLMChatChoice, String?>,
                         LLMClient.LLMUsagesResponseListener<LLMChatChoice>() {
@@ -139,13 +142,13 @@ internal class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposab
 
         project.messageBus.connect().also {
             it.subscribe(RACCOON_TASKS_TOPIC, object : RaccoonTasksListener {
-                override fun onNewTask(userMessage: UserMessage) {
+                override fun onNewTask(userMessage: UserMessage, localKnowledge: List<LLMCodeChunk>?) {
                     toolWindow.contentManager.run {
                         setSelectedContent(getContent(chatContentPanel))
                     }
                     toolWindow.show()
                     if (null == chatJob) {
-                        chatContentPanel.newTask(userMessage)
+                        chatContentPanel.newTask(userMessage, localKnowledge)
                     } else {
                         LLMClientManager.getInstance(project).launchClientJob {
                             chatJob?.run {
@@ -154,7 +157,7 @@ internal class RaccoonToolWindowFactory : ToolWindowFactory, DumbAware, Disposab
                             }
                         }.invokeOnCompletion {
                             RaccoonUIUtils.invokeOnEdtLater {
-                                chatContentPanel.newTask(userMessage)
+                                chatContentPanel.newTask(userMessage, localKnowledge)
                             }
                         }
                     }

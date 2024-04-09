@@ -1,0 +1,112 @@
+package com.sensetime.sensecode.jetbrains.raccoon.llm.knowledgebases
+
+import com.intellij.openapi.util.TextRange
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiWhiteSpace
+import com.intellij.psi.tree.IElementType
+import com.intellij.psi.util.elementType
+import com.sensetime.sensecode.jetbrains.raccoon.llm.tokens.RaccoonTokenUtils
+import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
+import java.util.LinkedList
+
+
+internal object CodeLocalContextFinder {
+    private fun ArrayList<PsiElement>.appendAllTopLevelElementsInsideRange(
+        totalRange: TextRange, psiElements: Array<out PsiElement>
+    ) {
+        for (psiElement in psiElements) {
+            psiElement.takeIf { it.isValid && (it !is PsiWhiteSpace) }?.textRange?.let { curRange ->
+                when {
+                    totalRange.contains(curRange) -> add(psiElement)
+                    totalRange.intersectsStrict(curRange) -> psiElement.children.takeIf { it.isNotEmpty() }
+                        ?.let { appendAllTopLevelElementsInsideRange(totalRange, it) } ?: add(psiElement)
+
+                    else -> Unit
+                }
+            }
+        }
+    }
+
+    private fun getAllTopLevelElements(psiFile: PsiFile, totalRange: TextRange): List<PsiElement> =
+        ArrayList<PsiElement>().apply {
+            appendAllTopLevelElementsInsideRange(totalRange, psiFile.children)
+        }
+
+    private val classTypeNames: List<String> = listOf("class")
+    private val functionTypeNames: List<String> = listOf("func", "method")
+    private val functionBlockTypeNames: List<String> = listOf("block")
+
+    private fun IElementType?.containsAnyNames(names: List<String>): Boolean =
+        (true == this?.toString()?.letIfNotBlank { type -> names.any { type.contains(it, true) } })
+
+    private fun IElementType?.isClass(): Boolean = containsAnyNames(classTypeNames)
+    private fun IElementType?.isFunction(): Boolean = containsAnyNames(functionTypeNames)
+    private fun IElementType?.isFunctionBlock(): Boolean = containsAnyNames(functionBlockTypeNames)
+
+    private fun PsiElement.takeTextIfNotInsideRange(totalRange: TextRange?): String? =
+        text.takeUnless { (true == totalRange?.contains(textRange)) }
+
+    private fun PsiElement.getFunctionSignature(totalRange: TextRange?): String = StringBuilder().apply {
+        for (cur in children) {
+            if (!cur.elementType.isFunctionBlock()) {
+                takeTextIfNotInsideRange(totalRange)?.let { append(it) }
+            }
+        }
+    }.toString().ifBlank { takeTextIfNotInsideRange(totalRange) ?: "" }
+
+    private fun PsiElement.getClassSummary(totalRange: TextRange?): String = StringBuilder().apply {
+        for (cur in children) {
+            cur.elementType.run {
+                when {
+                    isClass() -> append(getClassSummary(totalRange))
+                    isFunction() -> append(getFunctionSignature(totalRange))
+                    else -> takeTextIfNotInsideRange(totalRange)?.let { append(it) }
+                }
+            }
+        }
+    }.toString().ifBlank { takeTextIfNotInsideRange(totalRange) ?: "" }
+
+    private fun PsiElement.insideFile(psiFile: PsiFile): Boolean = containingFile == psiFile
+
+    private fun PsiElement.getContexts(psiFile: PsiFile, totalRange: TextRange): List<Pair<String, String>> =
+        references.mapNotNull { reference ->
+            reference.resolve()?.let { resolvedElement ->
+                val range = totalRange.takeIf { resolvedElement.insideFile(psiFile) }
+                resolvedElement.elementType.run {
+                    when {
+                        isClass() -> getClassSummary(range)
+                        isFunction() -> getFunctionSignature(range)
+                        else -> resolvedElement.takeTextIfNotInsideRange(range)
+                    }
+                }?.letIfNotBlank { Pair(resolvedElement.containingFile.name, it) }
+            }
+        }
+
+    private fun List<Pair<String, String>>.estimateTokensNumber(): Int =
+        fold(0) { prev, cur -> prev + RaccoonTokenUtils.estimateTokensNumber(cur.first + cur.second) }
+
+    fun findAllContextsLocally(
+        psiFile: PsiFile, maxTokens: Int, startOffset: Int, endOffset: Int
+    ): List<Pair<String, String>> {
+        var curTokens = 0
+        val result = ArrayList<Pair<String, String>>()
+        val totalRange = TextRange.create(startOffset, endOffset)
+        val queue = LinkedList(getAllTopLevelElements(psiFile, totalRange))
+        while (queue.isNotEmpty()) {
+            val cur = queue.poll() ?: break
+            val contexts = cur.getContexts(psiFile, totalRange)
+            if (contexts.isEmpty()) {
+                queue.addAll(cur.children)
+            } else {
+                curTokens += contexts.estimateTokensNumber()
+                if (curTokens <= maxTokens) {
+                    result.addAll(contexts)
+                } else {
+                    break
+                }
+            }
+        }
+        return result
+    }
+}
