@@ -4,14 +4,12 @@ import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.impl.ActionButton
+import java.awt.BorderLayout
 import java.awt.event.ActionEvent
-import javax.swing.Icon
-import javax.swing.JButton
-import javax.swing.JComponent
-import javax.swing.JPanel
+import javax.swing.*
 
 
-internal abstract class LoadingPanel : JPanel() {
+internal abstract class LoadingPanel : JPanel(BorderLayout()) {
     abstract val button: JComponent
     protected abstract val loading: JComponent
 
@@ -27,8 +25,16 @@ internal abstract class LoadingPanel : JPanel() {
 
     protected fun build() {
         stopLoading()
-        add(button)
-        add(loading)
+        add(Box.createHorizontalBox().apply {
+            add(button.apply {
+                border = BorderFactory.createEmptyBorder()
+            })
+            add(loading.apply {
+                border = BorderFactory.createEmptyBorder()
+            })
+        }, BorderLayout.CENTER)
+//        minimumSize = button.minimumSize
+//        preferredSize = button.preferredSize
     }
 }
 
@@ -64,7 +70,7 @@ internal class LoadingActionButton(
             anAction,
             anAction.templatePresentation.clone(),
             actionPlace,
-            ActionToolbar.DEFAULT_MINIMUM_BUTTON_SIZE
+            ActionToolbar.NAVBAR_MINIMUM_BUTTON_SIZE
         )
     }
 

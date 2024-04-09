@@ -20,10 +20,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonExceptions
 import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotEmpty
 import java.awt.BorderLayout
 import java.awt.Component
-import javax.swing.JButton
-import javax.swing.JLabel
-import javax.swing.JPanel
-import javax.swing.ListSelectionModel
+import javax.swing.*
 
 
 internal class UserAuthorizationPanel(
@@ -50,7 +47,7 @@ internal class UserAuthorizationPanel(
     private val loginButton: JButton = RaccoonUIUtils.createActionLink()
     private val currentOrgNameLabel: JLabel = JLabel("").apply {
         isOpaque = true
-        font = JBFont.medium()
+        font = JBFont.small()
     }
     private val organizationsSelectorButton: LoadingActionButton = LoadingActionButton(
         RaccoonBundle.message("authorization.panel.action.GetOrganizations.text"), "",
@@ -120,15 +117,21 @@ internal class UserAuthorizationPanel(
             verticalAlign(VerticalAlign.CENTER)
             row {
                 cell(userIconLabel).gap(RightGap.SMALL)
-                panel {
-                    row {
-                        cell(userNameLabel)
-                    }.bottomGap(BottomGap.NONE)
-                    row {
-                        cell(currentOrgNameLabel)
-                        cell(organizationsSelectorButton)
-                    }.topGap(TopGap.SMALL)
-                }.gap(RightGap.COLUMNS)
+                cell(Box.createVerticalBox().apply {
+                    add(userNameLabel.apply {
+                        alignmentX = Component.LEFT_ALIGNMENT
+                        border = BorderFactory.createEmptyBorder()
+                    })
+                    add(Box.createHorizontalBox().apply {
+                        add(currentOrgNameLabel)
+                        add(Box.createHorizontalGlue())
+                        add(organizationsSelectorButton.apply {
+                            border = BorderFactory.createEmptyBorder()
+                        })
+                        alignmentX = Component.LEFT_ALIGNMENT
+                        border = BorderFactory.createEmptyBorder()
+                    })
+                }).gap(RightGap.COLUMNS)
                 cell(LoadingButton(loginButton, JLabel(AnimatedIcon.Big.INSTANCE)) { _, onFinallyInsideEdt ->
                     if (alreadyLoggedIn) {
                         eventListener.onLogoutClicked(onFinallyInsideEdt)
