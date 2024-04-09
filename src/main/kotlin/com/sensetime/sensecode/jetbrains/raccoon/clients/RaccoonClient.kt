@@ -121,7 +121,7 @@ internal class RaccoonClient : LLMClient() {
     // login ui
 
     override suspend fun onUnauthorizedInsideEdt(isEnableNotify: Boolean, project: Project?) {
-        logout(project)
+        clearLoginTokens()
         project?.takeIf { isEnableNotify }?.let {
             notifyGotoLogin(it, null)
         }
@@ -296,7 +296,7 @@ internal class RaccoonClient : LLMClient() {
             updateTokensResponseBodyInsideCatching(tokensResponseBody, true)
         }
 
-    suspend fun logout(project: Project?) {
+    private suspend fun logout(project: Project?) {
         RaccoonExceptions.resultOf({
             withTimeout(5 * 1000L) {
                 runClientJob(isEnableNotify = false, isEnableDebugLog = false, project, null) {
