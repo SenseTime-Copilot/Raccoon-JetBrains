@@ -60,11 +60,11 @@ internal class UserAuthorizationPanel(
                     JBPopupFactory.getInstance().createPopupChooserBuilder(it).setVisibleRowCount(5)
                         .setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
                         .setItemChosenCallback { orgInfo -> eventListener.onOrganizationSelected(orgInfo.code) }
-                        .createPopup().showInBestPositionFor(e.dataContext)
+                        .createPopup().showInCenterOf(this)
                 }
                     ?: throw LLMClientOrgException(RaccoonBundle.message("authorization.panel.organizations.list.disabled"))
             }, onFinallyInsideEdt).onFailure {
-                JBPopupFactory.getInstance().createMessage(it.localizedMessage).showInBestPositionFor(e.dataContext)
+                JBPopupFactory.getInstance().createMessage(it.localizedMessage).showInCenterOf(this)
             }
         }
     }

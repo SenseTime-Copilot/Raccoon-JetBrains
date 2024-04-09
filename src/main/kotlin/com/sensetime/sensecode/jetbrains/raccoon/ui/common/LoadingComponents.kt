@@ -41,7 +41,7 @@ internal abstract class LoadingPanel : JPanel(BorderLayout()) {
 internal class LoadingButton(
     button: JButton,
     override val loading: JComponent,
-    onClick: ((e: ActionEvent, onFinallyInsideEdt: () -> Unit) -> Unit)
+    onClick: (LoadingButton.(e: ActionEvent, onFinallyInsideEdt: () -> Unit) -> Unit)
 ) : LoadingPanel() {
     override val button: JComponent = button.apply {
         addActionListener { e ->
@@ -58,7 +58,7 @@ internal class LoadingButton(
 internal class LoadingActionButton(
     text: String, description: String, icon: Icon, actionPlace: String,
     override val loading: JComponent,
-    onClick: ((e: AnActionEvent, onFinallyInsideEdt: () -> Unit) -> Unit)
+    onClick: (LoadingActionButton.(e: AnActionEvent, onFinallyInsideEdt: () -> Unit) -> Unit)
 ) : LoadingPanel() {
     override val button: JComponent = object : AnAction(text, description, icon) {
         override fun actionPerformed(e: AnActionEvent) {
