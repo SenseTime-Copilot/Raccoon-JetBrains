@@ -151,7 +151,7 @@ internal data class RaccoonClientUserInfo(
             ?.takeIfNotBlank()
 
     fun checkOrganizations() {
-        if (RaccoonConfig.config.variant.isTeam()) {
+        if (RaccoonConfig.config.isTeam()) {
             if (organizations.isNullOrEmpty()) {
                 throw LLMClientOrgException(RaccoonBundle.message("authorization.panel.organizations.list.empty"))
             }

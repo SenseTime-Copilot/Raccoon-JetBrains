@@ -10,6 +10,7 @@ import com.intellij.openapi.diagnostic.trace
 import com.intellij.util.messages.MessageBusConnection
 import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.RaccoonClientBehaviorMetrics
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonConfig
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_SENSITIVE_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_STATISTICS_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonStatisticsListener
@@ -26,6 +27,7 @@ private val LOG = logger<RaccoonStatisticsServer>()
 @Service(Service.Level.APP)
 class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
     private var cachedStatisticsCount: Int = 0
+    private val maxIntervalMs = RaccoonConfig.config.raccoonStatisticsMaxIntervalMs
     private var lastUploadTimeMs: Long = RaccoonUtils.getSteadyTimestampMs()
     private var lastBehaviorMetrics: RaccoonClientBehaviorMetrics = RaccoonClientBehaviorMetrics()
     private val metricsChannel = Channel<RaccoonClientBehaviorMetrics>(Channel.UNLIMITED)
@@ -38,9 +40,6 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
         CoroutineScope(SupervisorJob() + Dispatchers.IO + CoroutineName("RaccoonStatisticsServer"))
 
     companion object {
-        private const val MAX_CACHE_COUNT: Int = 100
-        private const val MAX_INTERVAL_MS: Long = 600L * 1000L
-
         @JvmStatic
         fun getInstance(): RaccoonStatisticsServer = service()
 
@@ -73,7 +72,7 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
 
         timerJob = statisticsCoroutineScope.launch {
             while (true) {
-                delay((MAX_INTERVAL_MS * Random.nextDouble(0.8, 1.2)).toLong())
+                delay((maxIntervalMs * Random.nextDouble(0.8, 1.2)).toLong())
                 updateBehaviorMetrics()
             }
         }
@@ -88,7 +87,7 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
                             break
                         }
                         LOG.debug { "run uploadBehaviorMetrics failed" }
-                        delay((MAX_INTERVAL_MS * Random.nextDouble(0.8, 1.2)).toLong())
+                        delay((maxIntervalMs * Random.nextDouble(0.8, 1.2)).toLong())
                     }
                     LOG.debug { "run uploadBehaviorMetrics finished" }
                 }
@@ -154,7 +153,7 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
                 it.invoke(lastBehaviorMetrics)
                 cachedStatisticsCount += 1
             }
-            if (forceUpload || (cachedStatisticsCount >= MAX_CACHE_COUNT) || ((RaccoonUtils.getSteadyTimestampMs() - lastUploadTimeMs) >= MAX_INTERVAL_MS)) {
+            if (forceUpload || (cachedStatisticsCount >= RaccoonConfig.config.raccoonStatisticsMaxCacheCount) || ((RaccoonUtils.getSteadyTimestampMs() - lastUploadTimeMs) >= maxIntervalMs)) {
                 sendCurrentMetrics()
             }
         }

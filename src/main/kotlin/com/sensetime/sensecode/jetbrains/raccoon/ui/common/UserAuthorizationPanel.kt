@@ -41,7 +41,7 @@ internal class UserAuthorizationPanel(
         )
     }
 
-    private var isBigMode: Boolean = !RaccoonConfig.config.variant.isTeam()
+    private var isBigMode: Boolean = !RaccoonConfig.config.isTeam()
     private var alreadyLoggedIn: Boolean = false
     private val userIconLabel: JLabel = JLabel()
     private val userNameLabel: JLabel = JLabel("").apply {
@@ -94,7 +94,7 @@ internal class UserAuthorizationPanel(
     }
 
     override fun onCurrentOrganizationNameChanged(orgName: String?, isAvailable: Boolean) {
-        isBigMode = !(!RaccoonConfig.config.variant.isTeam() || orgName.isNullOrBlank())
+        isBigMode = !(!RaccoonConfig.config.isTeam() || orgName.isNullOrBlank())
         if (isBigMode) {
             currentOrgNameLabel.text = orgName
             currentOrgNameLabel.apply {

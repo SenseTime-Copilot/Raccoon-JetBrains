@@ -14,7 +14,7 @@ internal data class RaccoonClientUserInfoSettings(
     val userInfo: RaccoonClientUserInfo? = null
 ) {
     val currentOrgCode: String?
-        get() = _currentOrgCode.takeIf { RaccoonConfig.config.variant.isTeam() }
+        get() = _currentOrgCode.takeIf { RaccoonConfig.config.isTeam() }
 
     val proCodeEnabled: Boolean = (true == userInfo?.proCodeEnabled)
 

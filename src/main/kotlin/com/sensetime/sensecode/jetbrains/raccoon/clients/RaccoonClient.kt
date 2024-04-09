@@ -70,7 +70,7 @@ internal class RaccoonClient : LLMClient() {
             .addHeader("x-raccoon-machine-id", RaccoonUtils.machineID)
             .addHeader("x-raccoon-extension", RaccoonPlugin.pluginInfo)
             .addHeader("x-raccoon-ide", RaccoonPlugin.ideInfo).apply {
-                if (RaccoonConfig.config.variant.isTeam() && apiEndpoint.contains("/org/")) {
+                if (RaccoonConfig.config.isTeam() && apiEndpoint.contains("/org/")) {
                     addHeader(
                         "x-org-code",
                         userInfoSettings?.currentOrgCode ?: throw LLMClientUnauthorizedException("org code is empty")
@@ -525,7 +525,7 @@ internal class RaccoonClient : LLMClient() {
         @JvmStatic
         private fun getPluginApiPath(
             pluginApiSubPath: String,
-            isOrgPath: Boolean = RaccoonConfig.config.variant.isTeam()
+            isOrgPath: Boolean = RaccoonConfig.config.isTeam()
         ): String = "/api/plugin" + (if (isOrgPath) "/org" else "") + pluginApiSubPath
 
         @JvmStatic

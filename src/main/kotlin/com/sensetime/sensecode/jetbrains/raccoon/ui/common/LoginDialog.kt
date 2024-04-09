@@ -89,7 +89,7 @@ internal class LoginDialog(
             RaccoonExceptions.resultOf {
                 val raccoonClient = llmClient as RaccoonClient
                 val pwd = passwordField!!.password
-                if (RaccoonConfig.config.variant.isToB()) {
+                if (RaccoonConfig.config.isToB()) {
                     raccoonClient.loginWithEmail(project, contentPanel, emailField!!.text, pwd)
                 } else {
                     raccoonClient.loginWithPhone(
@@ -105,7 +105,7 @@ internal class LoginDialog(
     }
 
     override fun createCenterPanel(): JComponent = panel {
-        if (RaccoonConfig.config.variant.isToB()) {
+        if (RaccoonConfig.config.isToB()) {
             row(RaccoonBundle.message("login.dialog.label.email")) {
                 emailField = textField().validationOnApply {
                     val atIndex = it.text.indexOf('@')
@@ -193,7 +193,7 @@ internal class LoginDialog(
                 })
             }
         }
-        if (RaccoonConfig.config.variant.isToB()) {
+        if (RaccoonConfig.config.isToB()) {
             row {
                 comment(
                     RaccoonBundle.message("login.dialog.text.forgotPassword.toB")
