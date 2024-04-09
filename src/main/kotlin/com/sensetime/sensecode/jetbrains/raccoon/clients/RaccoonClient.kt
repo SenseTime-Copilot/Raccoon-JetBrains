@@ -46,6 +46,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
 import okhttp3.Headers
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
@@ -86,7 +88,17 @@ internal class RaccoonClient : LLMClient() {
     override fun Request.Builder.addLLMBodyInsideEdtAndCatching(llmRequest: LLMRequest): Request.Builder =
         when (llmRequest) {
             is LLMAgentRequest -> Pair(llmRequest.id, NovaClientAgentRequest(llmRequest, clientConfig.agentModelConfig))
-            is LLMChatRequest -> Pair(llmRequest.id, NovaClientChatRequest(llmRequest, clientConfig.chatModelConfig))
+            is LLMChatRequest -> Pair(
+                llmRequest.id,
+                NovaClientChatRequest(
+                    llmRequest,
+                    clientConfig.chatModelConfig,
+                    knowledgeBases?.knowledgeBases?.takeIf { getIsKnowledgeBaseAllowed() && RaccoonSettingsState.instance.isCloudKnowledgeBaseEnabled }
+                        ?.let { knowledgeBases ->
+                            mapOf("know_ids" to JsonArray(knowledgeBases.map { JsonPrimitive(it.code) }))
+                        })
+            )
+
             is LLMCompletionRequest -> Pair(
                 null, NovaClientCompletionRequest(llmRequest, clientConfig.completionModelConfig)
             )
@@ -203,6 +215,21 @@ internal class RaccoonClient : LLMClient() {
 
     // auth request
 
+    private suspend fun ClientJobRunner.requestKnowledgeBasesInsideCatching(): RaccoonClientKnowledgeBases =
+        LLMClientJson.decodeFromString(
+            RaccoonClientKnowledgeBasesResponse.serializer(), requestInsideEdtAndCatching(
+                createRequestBuilderWithCommonHeaderAndAuthorization(
+                    raccoonClientConfig.getKnowledgeBasesApiEndpoint(), false
+                ).get().build()
+            )
+        ).let { knowledgeBasesResponse ->
+            // todo set knowledgeBases null if failed
+            knowledgeBasesResponse.throwIfError()
+            requireNotNull(knowledgeBasesResponse.data) { "not found data field in ${knowledgeBasesResponse::class::simpleName}" }.also {
+                knowledgeBases = it
+            }
+        }
+
     private suspend fun ClientJobRunner.updateTokensResponseBodyInsideCatching(
         body: String, isAutoFirstAvailableOrg: Boolean
     ): String =
@@ -258,6 +285,7 @@ internal class RaccoonClient : LLMClient() {
                     if (isAutoFirstAvailableOrg) it.getFirstAvailableOrgInfoOrNull()?.code else userInfoSettings?.currentOrgCode,
                     it
                 )
+                requestKnowledgeBasesInsideCatching()
             }
         }
 
@@ -430,6 +458,9 @@ internal class RaccoonClient : LLMClient() {
         private val userInfoPath: String = getPluginApiPath("/auth/v1/user_info", false)
         fun getUserInfoPathApiEndpoint(): String = getApiEndpoint(userInfoPath)
 
+        private val knowledgeBasesPath: String = getPluginApiPath("/knowledge_base/v1/knowledge_bases")
+        fun getKnowledgeBasesApiEndpoint(): String = getApiEndpoint(knowledgeBasesPath)
+
         private val behaviorMetricsPath: String = getPluginApiPath("/b/v1/m")
         fun getBehaviorMetricsApiEndpoint(): String = getApiEndpoint(behaviorMetricsPath)
 
@@ -476,6 +507,17 @@ internal class RaccoonClient : LLMClient() {
                         value?.getCurrentOrgDisplayName(), (true == value?.currentOrgAvailable())
                     )
                 }
+            }
+
+        private val knowledgeBasesKey =
+            RaccoonCredentialsManager.generateKeyWithIde("client.user.$NAME.knowledgeBases")
+        private var knowledgeBases: RaccoonClientKnowledgeBases?
+            get() = PropertiesComponent.getInstance().getValue(knowledgeBasesKey)
+                ?.let { LLMClientJson.decodeFromString(RaccoonClientKnowledgeBases.serializer(), it) }
+            set(value) {
+                PropertiesComponent.getInstance().setValue(
+                    knowledgeBasesKey,
+                    value?.let { LLMClientJson.encodeToString(RaccoonClientKnowledgeBases.serializer(), it) })
             }
 
         private var accessTokenCredentials: Credentials?

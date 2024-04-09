@@ -102,6 +102,27 @@ internal typealias RaccoonClientLLMAgentResponse = RaccoonClientLLMResponse<Nova
 // other responses
 
 @Serializable
+internal data class RaccoonClientKnowledgeBase(
+    val code: String,
+    val name: String? = null,
+) {
+    fun getDisplayOrgName(): String = name.ifNullOrBlank(code)
+    override fun toString(): String = getDisplayOrgName()
+}
+
+@Serializable
+internal data class RaccoonClientKnowledgeBases(
+    @SerialName("knowledge_bases")
+    val knowledgeBases: List<RaccoonClientKnowledgeBase>? = null
+)
+
+@Serializable
+internal data class RaccoonClientKnowledgeBasesResponse(
+    val data: RaccoonClientKnowledgeBases? = null
+) : RaccoonClientStatus()
+
+
+@Serializable
 internal data class RaccoonClientOrgInfo(
     val code: String,
     val name: String? = null,

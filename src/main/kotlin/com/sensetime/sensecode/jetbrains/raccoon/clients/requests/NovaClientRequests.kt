@@ -100,9 +100,12 @@ internal class NovaClientCompletionRequest(
 
 internal class NovaClientChatRequest(
     chatRequest: LLMChatRequest,
-    modelConfig: ChatModelConfig
+    modelConfig: ChatModelConfig,
+    customRequestArgs: Map<String, JsonElement>? = null
 ) : NovaClientRequest(
-    mapOf("messages" to chatRequest.messages.toNovaChatMessages(modelConfig).toJsonArray()),
+    mapOf("messages" to chatRequest.messages.toNovaChatMessages(modelConfig).toJsonArray()).plusIfNotNull(
+        customRequestArgs
+    ),
     modelConfig, chatRequest
 )
 
