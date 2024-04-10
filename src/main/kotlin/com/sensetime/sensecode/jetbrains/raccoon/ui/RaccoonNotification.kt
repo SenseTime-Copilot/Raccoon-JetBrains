@@ -2,6 +2,7 @@ package com.sensetime.sensecode.jetbrains.raccoon.ui
 
 import com.intellij.notification.*
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.psi.util.PsiUtilBase
@@ -68,18 +69,20 @@ internal object RaccoonNotification {
                     } else {
                         Pair(
                             selectedText,
-                            PsiUtilBase.getPsiFileInEditor(editor, project)
-                                ?.takeIf { RaccoonClient.getIsKnowledgeBaseAllowed() && RaccoonSettingsState.instance.isLocalKnowledgeBaseEnabled }
-                                ?.let { psiFile ->
-                                    CodeLocalContextFinder.findAllContextsLocally(
-                                        psiFile,
-                                        ((maxInputTokens - curTokens) * 0.75).toInt(),
-                                        selectionModel.selectionStart,
-                                        selectionModel.selectionEnd
-                                    ).map { context ->
-                                        LLMCodeChunk(context.first, context.second)
+                            project.takeUnless { DumbService.isDumb(it) }?.let { notDumbProject ->
+                                PsiUtilBase.getPsiFileInEditor(editor, notDumbProject)
+                                    ?.takeIf { RaccoonClient.getIsKnowledgeBaseAllowed() && RaccoonSettingsState.instance.isLocalKnowledgeBaseEnabled }
+                                    ?.let { psiFile ->
+                                        CodeLocalContextFinder.findAllContextsLocally(
+                                            psiFile,
+                                            ((maxInputTokens - curTokens) * 0.75).toInt(),
+                                            selectionModel.selectionStart,
+                                            selectionModel.selectionEnd
+                                        ).map { context ->
+                                            LLMCodeChunk(context.first, context.second)
+                                        }
                                     }
-                                })
+                            })
                     }
                 }
             }
