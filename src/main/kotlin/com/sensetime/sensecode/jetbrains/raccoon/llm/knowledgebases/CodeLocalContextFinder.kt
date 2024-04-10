@@ -5,6 +5,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.tree.IElementType
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
 import com.sensetime.sensecode.jetbrains.raccoon.llm.tokens.RaccoonTokenUtils
 import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
@@ -34,7 +35,7 @@ internal object CodeLocalContextFinder {
         }
 
     private val classTypeNames: List<String> = listOf("class")
-    private val functionTypeNames: List<String> = listOf("func", "method")
+    private val functionTypeNames: List<String> = listOf("fun", "method")
     private val functionBlockTypeNames: List<String> = listOf("block")
 
     private fun IElementType?.containsAnyNames(names: List<String>): Boolean =
@@ -47,36 +48,54 @@ internal object CodeLocalContextFinder {
     private fun PsiElement.takeTextIfNotInsideRange(totalRange: TextRange?): String? =
         text.takeUnless { (true == totalRange?.contains(textRange)) }
 
-    private fun PsiElement.getFunctionSignature(totalRange: TextRange?): String = StringBuilder().apply {
-        for (cur in children) {
-            if (!cur.elementType.isFunctionBlock()) {
-                takeTextIfNotInsideRange(totalRange)?.let { append(it) }
-            }
-        }
-    }.toString().ifBlank { takeTextIfNotInsideRange(totalRange) ?: "" }
+    //    private fun PsiElement.getFunctionSignature(totalRange: TextRange?): String = StringBuilder().apply {
+//        for (cur in children) {
+//            if (!cur.elementType.isFunctionBlock()) {
+//                cur.takeTextIfNotInsideRange(totalRange)?.let { append(it) }
+//            }
+//        }
+//    }.toString().ifBlank { takeTextIfNotInsideRange(totalRange) ?: "" }
+    private fun PsiElement.getFunctionSignature(totalRange: TextRange?): String =
+        takeTextIfNotInsideRange(totalRange) ?: ""
 
-    private fun PsiElement.getClassSummary(totalRange: TextRange?): String = StringBuilder().apply {
-        for (cur in children) {
-            cur.elementType.run {
-                when {
-                    isClass() -> append(getClassSummary(totalRange))
-                    isFunction() -> append(getFunctionSignature(totalRange))
-                    else -> takeTextIfNotInsideRange(totalRange)?.let { append(it) }
-                }
-            }
-        }
-    }.toString().ifBlank { takeTextIfNotInsideRange(totalRange) ?: "" }
+    //    private fun PsiElement.getClassSummary(totalRange: TextRange?): String = StringBuilder().apply {
+//        for (cur in children) {
+//            cur.elementType.run {
+//                when {
+//                    isClass() -> append(cur.getClassSummary(totalRange))
+//                    isFunction() -> append(cur.getFunctionSignature(totalRange))
+//                    else -> cur.takeTextIfNotInsideRange(totalRange)?.let { append(it) }
+//                }
+//            }
+//        }
+//    }.toString().ifBlank { takeTextIfNotInsideRange(totalRange) ?: "" }
+    private fun PsiElement.getClassSummary(totalRange: TextRange?): String = takeTextIfNotInsideRange(totalRange) ?: ""
 
     private fun PsiElement.insideFile(psiFile: PsiFile): Boolean = containingFile == psiFile
 
-    private fun PsiElement.getContexts(psiFile: PsiFile, totalRange: TextRange): List<Pair<String, String>> =
+    private fun PsiElement.takeIfNotDuplicate(allPsiElements: ArrayList<PsiElement>): PsiElement? =
+        takeUnless { curPsiElement ->
+            allPsiElements.any {
+                PsiTreeUtil.isAncestor(
+                    it,
+                    curPsiElement,
+                    false
+                )
+            }
+        }?.also { curPsiElement -> allPsiElements.add(curPsiElement) }
+
+    private fun PsiElement.getContexts(
+        psiFile: PsiFile,
+        totalRange: TextRange,
+        allPsiElements: ArrayList<PsiElement>
+    ): List<Pair<String, String>> =
         references.mapNotNull { reference ->
-            reference.resolve()?.let { resolvedElement ->
+            reference.takeUnless { it.isSoft }?.resolve()?.takeIfNotDuplicate(allPsiElements)?.let { resolvedElement ->
                 val range = totalRange.takeIf { resolvedElement.insideFile(psiFile) }
                 resolvedElement.elementType.run {
                     when {
-                        isClass() -> getClassSummary(range)
-                        isFunction() -> getFunctionSignature(range)
+                        isClass() -> resolvedElement.getClassSummary(range)
+                        isFunction() -> resolvedElement.getFunctionSignature(range)
                         else -> resolvedElement.takeTextIfNotInsideRange(range)
                     }
                 }?.letIfNotBlank { Pair(resolvedElement.containingFile.name, it) }
@@ -90,22 +109,24 @@ internal object CodeLocalContextFinder {
         psiFile: PsiFile, maxTokens: Int, startOffset: Int, endOffset: Int
     ): List<Pair<String, String>> {
         var curTokens = 0
+        val allPsiElements = ArrayList<PsiElement>()
         val result = ArrayList<Pair<String, String>>()
         val totalRange = TextRange.create(startOffset, endOffset)
         val queue = LinkedList(getAllTopLevelElements(psiFile, totalRange))
         while (queue.isNotEmpty()) {
             val cur = queue.poll() ?: break
-            val contexts = cur.getContexts(psiFile, totalRange)
-            if (contexts.isEmpty()) {
-                queue.addAll(cur.children)
-            } else {
-                curTokens += contexts.estimateTokensNumber()
-                if (curTokens <= maxTokens) {
+            val contexts = cur.getContexts(psiFile, totalRange, allPsiElements)
+            if (contexts.isNotEmpty()) {
+                val contextsTokens = contexts.estimateTokensNumber()
+                if (curTokens + contextsTokens <= maxTokens) {
                     result.addAll(contexts)
-                } else {
-                    break
+                    curTokens += contextsTokens
+                    if (curTokens > (maxTokens - 20)) {
+                        break
+                    }
                 }
             }
+            queue.addAll(cur.children)
         }
         return result
     }
