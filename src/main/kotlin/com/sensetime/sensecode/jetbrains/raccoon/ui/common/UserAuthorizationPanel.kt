@@ -47,7 +47,7 @@ internal class UserAuthorizationPanel(
     private val loginButton: JButton = RaccoonUIUtils.createActionLink()
     private val currentOrgNameLabel: JLabel = JLabel("").apply {
         isOpaque = true
-        font = JBFont.small()
+        font = JBFont.medium()
     }
     private val organizationsSelectorButton: LoadingActionButton = LoadingActionButton(
         RaccoonBundle.message("authorization.panel.action.GetOrganizations.text"), "",
