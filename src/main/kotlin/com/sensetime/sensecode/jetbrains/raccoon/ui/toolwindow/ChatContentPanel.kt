@@ -489,14 +489,14 @@ internal class ChatContentPanel(private val project: Project, eventListener: Eve
 
         conversationListPanel.lastConversation?.assistant?.takeIf { AssistantMessage.GenerateState.PROMPT == it.generateState }
             ?.let {
-                if (it.hasData()) {
-                    setGenerateState(AssistantMessage.GenerateState.STOPPED)
-                } else {
-                    appendAssistantTextAndSetGenerateState(
-                        RaccoonBundle.message("toolwindow.content.chat.assistant.empty.stopped"),
-                        AssistantMessage.GenerateState.STOPPED
-                    )
-                }
+//                if (it.hasData()) {
+                setGenerateState(AssistantMessage.GenerateState.STOPPED)
+//                } else {
+//                    appendAssistantTextAndSetGenerateState(
+//                        RaccoonBundle.message("toolwindow.content.chat.assistant.empty.stopped"),
+//                        AssistantMessage.GenerateState.STOPPED
+//                    )
+//                }
             }
     }
 
