@@ -527,12 +527,12 @@ internal class RaccoonClient : LLMClient() {
             RaccoonUserInformation.getInstance().restore()
             ApplicationManager.getApplication().messageBus.syncPublisher(
                 RACCOON_CLIENT_AUTHORIZATION_TOPIC
+            ).onUserNameChanged(null)
+            ApplicationManager.getApplication().messageBus.syncPublisher(
+                RACCOON_CLIENT_AUTHORIZATION_TOPIC
             ).onCurrentOrganizationNameChanged(
                 null, false, false
             )
-            ApplicationManager.getApplication().messageBus.syncPublisher(
-                RACCOON_CLIENT_AUTHORIZATION_TOPIC
-            ).onUserNameChanged(null)
         }
 
         @JvmStatic
