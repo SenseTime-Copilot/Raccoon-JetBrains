@@ -91,8 +91,8 @@ internal class UserAuthorizationPanel(
             currentOrgNameLabel.text = orgName.ifNullOrBlank(getPersonalLabelName(isCodePro))
             currentOrgNameLabel.apply {
 //                if (isAvailable) {
-                foreground = JBUI.CurrentTheme.NotificationInfo.foregroundColor()
-                background = JBUI.CurrentTheme.NotificationInfo.backgroundColor()
+//                foreground = JBUI.CurrentTheme.NotificationInfo.foregroundColor()
+//                background = JBUI.CurrentTheme.NotificationInfo.backgroundColor()
 //                } else {
 //                    foreground = JBUI.CurrentTheme.NotificationWarning.foregroundColor()
 //                    background = JBUI.CurrentTheme.NotificationWarning.backgroundColor()
