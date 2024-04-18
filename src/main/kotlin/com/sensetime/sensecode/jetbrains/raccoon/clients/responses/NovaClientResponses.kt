@@ -47,7 +47,12 @@ internal data class NovaClientStatus(
 }
 
 @Serializable
-internal data class NovaClientLLMUsage(override val prompt: Int = 0, override val completion: Int = 0) : LLMUsage
+internal data class NovaClientLLMUsage(
+    @SerialName("prompt_tokens")
+    override val prompt: Int = 0,
+    @SerialName("completion_tokens")
+    override val completion: Int = 0
+) : LLMUsage
 
 @Serializable
 internal sealed class NovaClientLLMChoice(

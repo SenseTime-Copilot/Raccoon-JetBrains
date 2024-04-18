@@ -1,6 +1,5 @@
 package com.sensetime.sensecode.jetbrains.raccoon.ui
 
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.StatusBar
@@ -33,10 +32,11 @@ internal class RaccoonStatusBarWidgetFactory : StatusBarWidgetFactory {
 
     override fun getDisplayName(): String = RaccoonPlugin.name
 
-    override fun createWidget(project: Project): StatusBarWidget = RaccoonStatusBarWidget()
+    override fun createWidget(project: Project): StatusBarWidget = RaccoonStatusBarWidget(project)
 
-    private class RaccoonStatusBarWidget : StatusBarWidget, StatusBarWidget.IconPresentation,
-        RaccoonRequestStateListener {
+    private class RaccoonStatusBarWidget(
+        project: Project
+    ) : StatusBarWidget, StatusBarWidget.IconPresentation, RaccoonRequestStateListener {
         private var myStatusBar: StatusBar? = null
         private var currentTooltipText: String? = null
         private var currentIcon: Icon = RaccoonIcons.STATUS_BAR_DEFAULT
@@ -67,7 +67,7 @@ internal class RaccoonStatusBarWidgetFactory : StatusBarWidgetFactory {
             }
 
         init {
-            clientMessageBusConnection = ApplicationManager.getApplication().messageBus.connect().also {
+            clientMessageBusConnection = project.messageBus.connect().also {
                 it.subscribe(RACCOON_REQUEST_STATE_TOPIC, this)
             }
         }
