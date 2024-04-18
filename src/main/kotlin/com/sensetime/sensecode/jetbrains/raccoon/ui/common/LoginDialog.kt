@@ -1,11 +1,13 @@
 package com.sensetime.sensecode.jetbrains.raccoon.ui.common
 
+import com.intellij.credentialStore.Credentials
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.ColorUtil
 import com.intellij.ui.DocumentAdapter
+import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.RightGap
@@ -15,7 +17,9 @@ import com.intellij.util.Urls.newFromEncoded
 import com.intellij.util.ui.UIUtil
 import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClient
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.RaccoonCredentialsManager
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonConfig
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.takeIfNotEmpty
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonExceptions
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
@@ -40,6 +44,7 @@ internal class LoginDialog(
     private var phoneField: JBTextField? = null
     private var passwordField: JBPasswordField? = null
     private var phoneNationCodeComboBox: ComboBox<String>? = null
+    private var savePasswordCheckBox: JBCheckBox? = null
 
     private var loginErrorEditorPane: JEditorPane? = null
     private var loginErrorText: String?
@@ -89,6 +94,11 @@ internal class LoginDialog(
             RaccoonExceptions.resultOf {
                 val raccoonClient = llmClient as RaccoonClient
                 val pwd = passwordField!!.password
+                val user = if (RaccoonConfig.config.isToB()) emailField!!.text else phoneField!!.text
+                RaccoonCredentialsManager.setLoginInfo(
+                    LLMClientManager.currentLLMClient.name,
+                    if (true == savePasswordCheckBox?.isSelected) Credentials(user, pwd) else null
+                )
                 if (RaccoonConfig.config.isToB()) {
                     raccoonClient.loginWithEmail(project, contentPanel, emailField!!.text, pwd)
                 } else {
@@ -105,6 +115,7 @@ internal class LoginDialog(
     }
 
     override fun createCenterPanel(): JComponent = panel {
+        val loginInfo = RaccoonCredentialsManager.getLoginInfo(LLMClientManager.currentLLMClient.name)?.takeIfNotEmpty()
         if (RaccoonConfig.config.isToB()) {
             row(RaccoonBundle.message("login.dialog.label.email")) {
                 emailField = textField().validationOnApply {
@@ -120,6 +131,9 @@ internal class LoginDialog(
                         null
                     }
                 }.horizontalAlign(HorizontalAlign.FILL).component.apply {
+                    loginInfo?.let {
+                        text = it.userName
+                    }
                     document.addDocumentListener(object : DocumentAdapter() {
                         override fun textChanged(e: DocumentEvent) {
                             loginErrorText = null
@@ -151,6 +165,9 @@ internal class LoginDialog(
                         null
                     }
                 }.horizontalAlign(HorizontalAlign.FILL).component.apply {
+                    loginInfo?.let {
+                        text = it.userName
+                    }
                     document.addDocumentListener(object : DocumentAdapter() {
                         override fun textChanged(e: DocumentEvent) {
                             loginErrorText = null
@@ -186,12 +203,21 @@ internal class LoginDialog(
                     null
                 }
             }.horizontalAlign(HorizontalAlign.FILL).component.apply {
+                loginInfo?.let {
+                    text = it.getPasswordAsString()
+                }
                 document.addDocumentListener(object : DocumentAdapter() {
                     override fun textChanged(e: DocumentEvent) {
                         loginErrorText = null
                     }
                 })
             }
+        }
+        row {
+            savePasswordCheckBox =
+                checkBox(RaccoonBundle.message("login.dialog.checkbox.savePassword")).component.apply {
+                    isSelected = (null != loginInfo)
+                }
         }
         if (RaccoonConfig.config.isToB()) {
             row {
