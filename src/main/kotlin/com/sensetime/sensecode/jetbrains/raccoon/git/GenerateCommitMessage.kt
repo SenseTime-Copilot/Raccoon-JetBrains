@@ -24,6 +24,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMChatRequest
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMUserMessage
 import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.LLMChatChoice
 import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.LLMResponse
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonPromptSettings
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_STATISTICS_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonNotification
@@ -116,7 +117,7 @@ internal class GenerateCommitMessage : AnAction() {
         return LLMChatRequest(
             RaccoonUtils.generateUUID(), maxNewTokens = 256, action = "commit-message", messages = listOfNotNull(
                 modelConfig.getLLMSystemMessage(),
-                LLMUserMessage("Here are changes of current codebase:\n\n```diff\n$diff\n```\n\nWrite a commit message summarizing these changes, not have to cover erevything, key-points only. Response the content only, limited the message to 50 characters, in plain text format, and without quotation marks.")
+                LLMUserMessage(RaccoonPromptSettings.getInstance().getCommitPrompt(diff))
             )
         )
     }

@@ -19,6 +19,7 @@ internal fun String.replaceVariables(variables: Map<String, String>?): String =
 internal object PromptVariables {
     const val TEXT = "text"
     const val CODE = "code"
+    const val DIFF = "diff"
     const val LANGUAGE = "language"
 
     const val PREFIX_LINES = "prefixLines"
@@ -32,6 +33,9 @@ internal object PromptVariables {
 
     @JvmField
     val codeExpression: String = CODE.toVariableExpression()
+
+    @JvmField
+    val diffExpression: String = DIFF.toVariableExpression()
 
     @JvmField
     val languageExpression: String = LANGUAGE.toVariableExpression()

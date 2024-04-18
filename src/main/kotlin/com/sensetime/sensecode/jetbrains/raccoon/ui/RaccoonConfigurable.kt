@@ -8,11 +8,14 @@ import com.intellij.ui.ColorPanel
 import com.intellij.ui.ColorUtil
 import com.intellij.ui.components.JBRadioButton
 import com.intellij.ui.dsl.builder.*
+import com.intellij.ui.dsl.gridLayout.HorizontalAlign
+import com.intellij.ui.dsl.gridLayout.VerticalAlign
 import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClient
 import com.sensetime.sensecode.jetbrains.raccoon.completions.actions.ManualTriggerInlineCompletionAction
 import com.sensetime.sensecode.jetbrains.raccoon.completions.preview.render.GraphicsUtils
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.CompletionModelConfig
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonPromptSettings
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonActionUtils
@@ -106,6 +109,21 @@ internal class RaccoonConfigurable() : Configurable, Disposable {
                 checkBox(RaccoonBundle.message("settings.group.knowledgeBase.checkBox.enableCloud")).bindSelected(
                     RaccoonSettingsState.instance::isCloudKnowledgeBaseEnabled
                 ).enabled(isKnowledgeBaseAllowed)
+            }
+        }
+        group(RaccoonBundle.message("settings.group.prompt.label.title")) {
+            row {
+                label("Git commit:")
+                    .verticalAlign(VerticalAlign.TOP)
+                    .gap(RightGap.SMALL)
+                textArea()
+                    .rows(7)
+                    .horizontalAlign(HorizontalAlign.FILL)
+                    .bindText(RaccoonPromptSettings.getInstance()::commitPromptTemplate)
+                    .comment(
+                        RaccoonBundle.message("settings.group.prompt.gitcommit.comment"),
+                        MAX_LINE_LENGTH_WORD_WRAP
+                    )
             }
         }
     }
