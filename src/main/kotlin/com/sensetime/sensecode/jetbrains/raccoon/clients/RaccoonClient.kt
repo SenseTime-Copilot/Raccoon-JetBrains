@@ -385,7 +385,8 @@ internal class RaccoonClient : LLMClient() {
                     }
                 }
             }
-            headers.values("x-raccoon-know-status").firstOrNull()?.takeIf { it == "expired" }.let {
+            headers.values("x-raccoon-know-status").firstOrNull()
+                ?.takeIf { it.equals("expired", true) || it.equals("invalid", true) }?.let {
                 requestUserInfo(false, true, null, null)
             }
         }
