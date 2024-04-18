@@ -29,6 +29,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.CompletionM
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonConfigJson
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonResources
+import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_CLIENT_AUTHORIZATION_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_SENSITIVE_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonSensitiveListener
 import com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonNotification
@@ -524,6 +525,14 @@ internal class RaccoonClient : LLMClient() {
         @JvmStatic
         private fun clearLoginTokens() {
             RaccoonUserInformation.getInstance().restore()
+            ApplicationManager.getApplication().messageBus.syncPublisher(
+                RACCOON_CLIENT_AUTHORIZATION_TOPIC
+            ).onCurrentOrganizationNameChanged(
+                null, false, false
+            )
+            ApplicationManager.getApplication().messageBus.syncPublisher(
+                RACCOON_CLIENT_AUTHORIZATION_TOPIC
+            ).onUserNameChanged(null)
         }
 
         @JvmStatic
