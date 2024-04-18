@@ -1,7 +1,5 @@
 package com.sensetime.sensecode.jetbrains.raccoon.clients
 
-import com.intellij.credentialStore.Credentials
-import com.intellij.ide.util.PropertiesComponent
 import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.Disposable
@@ -11,6 +9,7 @@ import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.diagnostic.trace
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
+import com.intellij.util.applyIf
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.*
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMAgentRequest
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMChatRequest
@@ -21,8 +20,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.LLMResponseEr
 import com.sensetime.sensecode.jetbrains.raccoon.llm.models.PenroseAgentModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.llm.models.PenroseChatModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.llm.models.PenroseCompletionModelConfig
-import com.sensetime.sensecode.jetbrains.raccoon.persistent.RaccoonCredentialsManager
-import com.sensetime.sensecode.jetbrains.raccoon.persistent.letIfFilled
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.others.RaccoonUserInformation
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.*
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.AgentModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ChatModelConfig
@@ -31,16 +29,15 @@ import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.CompletionM
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonConfigJson
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonResources
-import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_CLIENT_AUTHORIZATION_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_SENSITIVE_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonSensitiveListener
 import com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonNotification
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.LoginDialog
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.UserAuthorizationPanel
+import com.sensetime.sensecode.jetbrains.raccoon.utils.*
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonExceptions
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils
-import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils.isExpiredS
 import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.withTimeout
@@ -54,7 +51,6 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.awt.Component
 import java.io.IOException
-import java.util.*
 import java.util.concurrent.atomic.AtomicLong
 import javax.swing.JPanel
 
@@ -67,23 +63,23 @@ internal class RaccoonClient : LLMClient() {
 
     // build requests
 
-    override fun createRequestBuilderWithCommonHeader(apiEndpoint: String, stream: Boolean): Request.Builder =
-        super.createRequestBuilderWithCommonHeader(apiEndpoint, stream)
-            .addHeader("x-raccoon-machine-id", RaccoonUtils.machineID)
+    override fun createRequestBuilderWithCommonHeader(apiEndpoint: String, stream: Boolean): Request.Builder {
+        val orgCode = RaccoonUserInformation.getInstance().currentOrgCode
+        val isOrg = !orgCode.isNullOrBlank()
+        return super.createRequestBuilderWithCommonHeader(
+            if (isOrg) RaccoonClientConfig.apiPathToOrg(apiEndpoint) else apiEndpoint, stream
+        ).addHeader("x-raccoon-machine-id", RaccoonUtils.machineID)
             .addHeader("x-raccoon-extension", RaccoonPlugin.pluginInfo)
-            .addHeader("x-raccoon-ide", RaccoonPlugin.ideInfo).apply {
-                if (RaccoonConfig.config.isTeam() && apiEndpoint.contains("/org/")) {
-                    addHeader(
-                        "x-org-code",
-                        userInfoSettings?.currentOrgCode ?: throw LLMClientUnauthorizedException("org code is empty")
-                    )
-                }
+            .addHeader("x-raccoon-ide", RaccoonPlugin.ideInfo).applyIf(isOrg) {
+                addHeader("x-org-code", orgCode!!)
             }
+    }
+
+    private fun Request.Builder.addAuthorizationHeaderInsideEdtAndCatching(accessToken: String): Request.Builder =
+        apply { addHeader("Authorization", "Bearer $accessToken") }
 
     override suspend fun Request.Builder.addAuthorizationHeaderInsideEdtAndCatching(clientJobRunner: ClientJobRunner): Request.Builder =
-        apply {
-            addHeader("Authorization", "Bearer ${clientJobRunner.getAccessTokenWithRefreshInsideCatching()}")
-        }
+        addAuthorizationHeaderInsideEdtAndCatching(clientJobRunner.getAccessTokenWithRefreshInsideCatching())
 
     override fun Request.Builder.addLLMBodyInsideEdtAndCatching(llmRequest: LLMRequest): Request.Builder =
         when (llmRequest) {
@@ -93,7 +89,7 @@ internal class RaccoonClient : LLMClient() {
                 NovaClientChatRequest(
                     llmRequest,
                     clientConfig.chatModelConfig,
-                    knowledgeBases?.knowledgeBases?.takeIf { getIsKnowledgeBaseAllowed() && RaccoonSettingsState.instance.isCloudKnowledgeBaseEnabled }
+                    RaccoonUserInformation.getInstance().knowledgeBases?.knowledgeBases?.takeIf { getIsKnowledgeBaseAllowed() && RaccoonSettingsState.instance.isCloudKnowledgeBaseEnabled }
                         ?.let { knowledgeBases ->
                             mapOf("know_ids" to JsonArray(knowledgeBases.map { JsonPrimitive(it.code) }))
                         })
@@ -140,10 +136,10 @@ internal class RaccoonClient : LLMClient() {
     }
 
     override fun makeUserAuthorizationPanel(parent: Disposable): JPanel {
-        val tmpUserInfoSettings = userInfoSettings
+        val userInformation = RaccoonUserInformation.getInstance()
         return UserAuthorizationPanel(
-            getDisplayUserName(), (true == tmpUserInfoSettings?.proCodeEnabled),
-            tmpUserInfoSettings?.getCurrentOrgDisplayName(), (true == tmpUserInfoSettings?.currentOrgAvailable()),
+            userInformation.getDisplayUserName(), userInformation.isProCodeEnabled(),
+            userInformation.getCurrentOrgDisplayName(), userInformation.currentOrgAvailable(),
             object : UserAuthorizationPanel.EventListener {
                 private var logoutJob: Job? = null
                     set(value) {
@@ -182,30 +178,38 @@ internal class RaccoonClient : LLMClient() {
                 }
 
                 override fun onOrganizationSelected(orgCode: String) {
-                    userInfoSettings = RaccoonClientUserInfoSettings(orgCode, userInfoSettings?.userInfo)
+                    userInformation.currentOrgCode = orgCode
+                    getOrganizationsJob = LLMClientManager.launchClientJob {
+                        RaccoonExceptions.resultOf {
+                            runClientJob(isEnableNotify = true, true, null, null) {
+                                RaccoonUserInformation.getInstance().knowledgeBases =
+                                    requestKnowledgeBasesInsideCatching(getAccessTokenWithRefreshInsideCatching())
+                            }
+                        }
+                    }
                 }
 
                 override fun getOrganizations(
                     parent: Component,
-                    onFinallyInsideEdt: (t: Throwable?, List<RaccoonClientOrgInfo>?) -> Unit
+                    onFinallyInsideEdt: (t: Throwable?, isCodePro: Boolean, List<RaccoonClientOrgInfo>?) -> Unit
                 ) {
                     getOrganizationsJob = LLMClientManager.launchClientJob {
-                        var t: Throwable? = null
-                        var result: List<RaccoonClientOrgInfo>? = null
-                        RaccoonExceptions.resultOf({
+                        var t: Exception? = null
+                        var result: RaccoonClientUserInfo? = null
+                        try {
                             result = withTimeout(5 * 1000L) {
                                 requestUserInfo(
                                     isEnableNotify = true,
                                     isEnableDebugLog = true,
                                     null,
-                                    parent,
-                                    false
-                                ).organizations
+                                    parent
+                                )
                             }
-                        }, {
-                            onFinallyInsideEdt(t, result)
-                        }).onFailure {
-                            t = it
+                        } catch (e: Exception) {
+                            t = e
+                            e.throwIfMustRethrow()
+                        } finally {
+                            onFinallyInsideEdt(t, (true == result?.proCodeEnabled), result?.organizations)
                         }
                     }
                 }
@@ -215,42 +219,41 @@ internal class RaccoonClient : LLMClient() {
 
     // auth request
 
-    private suspend fun ClientJobRunner.requestKnowledgeBasesInsideCatching(): RaccoonClientKnowledgeBases =
+    private suspend fun ClientJobRunner.requestKnowledgeBasesInsideCatching(accessToken: String): RaccoonClientKnowledgeBases =
         LLMClientJson.decodeFromString(
             RaccoonClientKnowledgeBasesResponse.serializer(), requestInsideEdtAndCatching(
-                createRequestBuilderWithCommonHeaderAndAuthorization(
+                createRequestBuilderWithCommonHeader(
                     raccoonClientConfig.getKnowledgeBasesApiEndpoint(), false
-                ).get().build()
+                ).addAuthorizationHeaderInsideEdtAndCatching(accessToken).get().build()
             )
         ).let { knowledgeBasesResponse ->
             // todo set knowledgeBases null if failed
             knowledgeBasesResponse.throwIfError()
-            requireNotNull(knowledgeBasesResponse.data) { "not found data field in ${knowledgeBasesResponse::class::simpleName}" }.also {
-                knowledgeBases = it
-            }
+            requireNotNull(knowledgeBasesResponse.data) { "not found data field in ${knowledgeBasesResponse::class::simpleName}" }
         }
 
-    private suspend fun ClientJobRunner.updateTokensResponseBodyInsideCatching(
-        body: String, isAutoFirstAvailableOrg: Boolean
-    ): String =
+    private suspend fun ClientJobRunner.updateTokensResponseBodyInsideCatching(body: String): String =
         LLMClientJson.decodeFromString(RaccoonClientTokensResponse.serializer(), body).let { tokensResponse ->
             tokensResponse.throwIfError()
             requireNotNull(tokensResponse.data) { "not found data field in ${tokensResponse::class::simpleName}" }.let { tokensResponseData ->
-                tokensResponseData.accessToken.also { accessToken ->
-                    decodeTokenToCredentialsInsideCatching(accessToken).run {
-                        accessTokenCredentials = Credentials(name, accessToken)
-                        refreshTokenCredentials = Credentials(exp.toString(), tokensResponseData.refreshToken)
-                    }
-                    requestUserInfoInsideCatching(isAutoFirstAvailableOrg)
+                requestUserInfoInsideCatching(tokensResponseData.accessToken).let { userInfo ->
+                    RaccoonUserInformation.getInstance().updateAuthorizationTokens(
+                        tokensResponseData.accessToken,
+                        tokensResponseData.refreshToken,
+                        userInfo
+                    )
                 }
+                RaccoonUserInformation.getInstance().knowledgeBases =
+                    requestKnowledgeBasesInsideCatching(tokensResponseData.accessToken)
+                tokensResponseData.accessToken
             }
         }
 
     private suspend fun ClientJobRunner.getAccessTokenWithRefreshInsideCatching(): String =
-        RaccoonExceptions.resultOf {
-            // ignore refreshToken exceptions, fallback to accessToken
-            refreshTokenCredentials?.letIfFilled { accessTokenExp, refreshToken ->
-                accessTokenExp.toLong().takeIf { it.isExpiredS(15L) }?.let {
+        RaccoonUserInformation.getInstance().getAuthorizationTokens().let { (accessToken, refreshTokenIfExpired) ->
+            RaccoonExceptions.resultOf {
+                // ignore refreshToken exceptions, fallback to accessToken
+                refreshTokenIfExpired?.let { refreshToken ->
                     updateTokensResponseBodyInsideCatching(
                         requestInsideEdtAndCatching(
                             createRequestBuilderWithCommonHeader(
@@ -262,31 +265,23 @@ internal class RaccoonClient : LLMClient() {
                                     RaccoonClientRefreshTokenRequest(refreshToken)
                                 ).toRequestBody()
                             ).build()
-                        ), false
+                        )
                     )
                 }
-            }
-        }.getOrNull() ?: accessTokenCredentials?.letIfFilled { _, accessToken -> accessToken }
-        ?: throw LLMClientUnauthorizedException("access token is empty")
+            }.getOrNull() ?: accessToken
+        } ?: throw LLMClientUnauthorizedException("access token is empty")
 
-    private suspend fun ClientJobRunner.requestUserInfoInsideCatching(isAutoFirstAvailableOrg: Boolean): RaccoonClientUserInfo =
+    private suspend fun ClientJobRunner.requestUserInfoInsideCatching(accessToken: String): RaccoonClientUserInfo =
         LLMClientJson.decodeFromString(
             RaccoonClientUserInfoResponse.serializer(), requestInsideEdtAndCatching(
-                createRequestBuilderWithCommonHeaderAndAuthorization(
+                createRequestBuilderWithCommonHeader(
                     raccoonClientConfig.getUserInfoPathApiEndpoint(),
                     false
-                ).get().build()
+                ).addAuthorizationHeaderInsideEdtAndCatching(accessToken).get().build()
             )
         ).let { userInfoResponse ->
             userInfoResponse.throwIfError()
-            requireNotNull(userInfoResponse.data) { "not found data field in ${userInfoResponse::class::simpleName}" }.also {
-                it.checkOrganizations()
-                userInfoSettings = RaccoonClientUserInfoSettings(
-                    if (isAutoFirstAvailableOrg) it.getFirstAvailableOrgInfoOrNull()?.code else userInfoSettings?.currentOrgCode,
-                    it
-                )
-                requestKnowledgeBasesInsideCatching()
-            }
+            requireNotNull(userInfoResponse.data) { "not found data field in ${userInfoResponse::class::simpleName}" }
         }
 
     suspend fun loginWithPhone(
@@ -304,7 +299,7 @@ internal class RaccoonClient : LLMClient() {
             project,
             uiComponentForEdt
         ) { tokensResponseBody ->
-            updateTokensResponseBodyInsideCatching(tokensResponseBody, true)
+            updateTokensResponseBodyInsideCatching(tokensResponseBody)
         }
 
     suspend fun loginWithEmail(
@@ -321,7 +316,7 @@ internal class RaccoonClient : LLMClient() {
             project,
             uiComponentForEdt
         ) { tokensResponseBody ->
-            updateTokensResponseBodyInsideCatching(tokensResponseBody, true)
+            updateTokensResponseBodyInsideCatching(tokensResponseBody)
         }
 
     private suspend fun logout(project: Project?) {
@@ -342,10 +337,13 @@ internal class RaccoonClient : LLMClient() {
         isEnableNotify: Boolean,
         isEnableDebugLog: Boolean,
         project: Project?,
-        uiComponentForEdt: Component?,
-        isAutoFirstAvailableOrg: Boolean
+        uiComponentForEdt: Component?
     ): RaccoonClientUserInfo = runClientJob(isEnableNotify, isEnableDebugLog, project, uiComponentForEdt) {
-        requestUserInfoInsideCatching(isAutoFirstAvailableOrg)
+        val accessToken = getAccessTokenWithRefreshInsideCatching()
+        requestUserInfoInsideCatching(accessToken).also {
+            RaccoonUserInformation.getInstance().updateUserInfo(it)
+            RaccoonUserInformation.getInstance().knowledgeBases = requestKnowledgeBasesInsideCatching(accessToken)
+        }
     }
 
 
@@ -411,19 +409,19 @@ internal class RaccoonClient : LLMClient() {
 
     @Serializable
     private data class RaccoonCompletionApiConfig(
-        override val path: String = getPluginApiPath("/llm/v1/completions"),
+        override val path: String = RaccoonClientConfig.getPluginApiPath("/llm/v1/completions"),
         override val models: List<PenroseCompletionModelConfig> = listOf(PenroseCompletionModelConfig())
     ) : ClientConfig.ClientApiConfig<CompletionModelConfig>()
 
     @Serializable
     private data class RaccoonChatApiConfig(
-        override val path: String = getPluginApiPath("/llm/v1/chat-completions"),
+        override val path: String = RaccoonClientConfig.getPluginApiPath("/llm/v1/chat-completions"),
         override val models: List<PenroseChatModelConfig> = listOf(PenroseChatModelConfig())
     ) : ClientConfig.ClientApiConfig<ChatModelConfig>()
 
     @Serializable
     private data class RaccoonAgentApiConfig(
-        override val path: String = getPluginApiPath("/llm/v1/chat-completions"),
+        override val path: String = RaccoonClientConfig.getPluginApiPath("/llm/v1/chat-completions"),
         override val models: List<PenroseAgentModelConfig> = listOf(PenroseAgentModelConfig())
     ) : ClientConfig.ClientApiConfig<AgentModelConfig>()
 
@@ -443,19 +441,19 @@ internal class RaccoonClient : LLMClient() {
         private val webForgotPasswordPath = "$webLoginPath?step=forgot-password"
         fun getWebForgotPasswordUrl(): String = webBaseUrl + webForgotPasswordPath
 
-        private val loginWithPhonePath: String = getPluginApiPath("/auth/v1/login_with_password", false)
+        private val loginWithPhonePath: String = getPluginApiPath("/auth/v1/login_with_password")
         fun getLoginWithPhoneApiEndpoint(): String = getApiEndpoint(loginWithPhonePath)
 
-        private val loginWithEmailPath: String = getPluginApiPath("/auth/v1/login_with_email_password", false)
+        private val loginWithEmailPath: String = getPluginApiPath("/auth/v1/login_with_email_password")
         fun getLoginWithEmailApiEndpoint(): String = getApiEndpoint(loginWithEmailPath)
 
-        private val logoutPath: String = getPluginApiPath("/auth/v1/logout", false)
+        private val logoutPath: String = getPluginApiPath("/auth/v1/logout")
         fun getLogoutPathApiEndpoint(): String = getApiEndpoint(logoutPath)
 
-        private val refreshTokenPath: String = getPluginApiPath("/auth/v1/refresh", false)
+        private val refreshTokenPath: String = getPluginApiPath("/auth/v1/refresh")
         fun getRefreshTokenPathApiEndpoint(): String = getApiEndpoint(refreshTokenPath)
 
-        private val userInfoPath: String = getPluginApiPath("/auth/v1/user_info", false)
+        private val userInfoPath: String = getPluginApiPath("/auth/v1/user_info")
         fun getUserInfoPathApiEndpoint(): String = getApiEndpoint(userInfoPath)
 
         private val knowledgeBasesPath: String = getPluginApiPath("/knowledge_base/v1/knowledge_bases")
@@ -468,6 +466,21 @@ internal class RaccoonClient : LLMClient() {
         fun getSensitiveApiEndpoint(): String = getApiEndpoint(sensitivePath)
 
         companion object {
+            private const val PLUGIN_API_BASE_PATH: String = "/api/plugin"
+            fun apiPathToOrg(srcPath: String): String {
+                val startIndex = srcPath.indexOf(PLUGIN_API_BASE_PATH)
+                require(startIndex >= 0) { "Not found plugin api path $PLUGIN_API_BASE_PATH in $srcPath" }
+                val endIndex = startIndex + PLUGIN_API_BASE_PATH.length
+                if (srcPath.indexOf("/auth", endIndex) == endIndex) {
+                    return srcPath
+                }
+                return srcPath.substring(0, endIndex) + "/org" + srcPath.substring(endIndex)
+            }
+
+            fun getPluginApiPath(
+                pluginApiSubPath: String
+            ): String = PLUGIN_API_BASE_PATH + pluginApiSubPath
+
             @JvmStatic
             fun loadFromJsonString(jsonString: String): RaccoonClientConfig = RaccoonConfigJson.decodeFromString(
                 serializer(), jsonString.also { LOG.debug { "Load $NAME config from json $it" } })
@@ -492,57 +505,8 @@ internal class RaccoonClient : LLMClient() {
         val clientConfig: ClientConfig
             get() = raccoonClientConfig
 
-        private val userInfoSettingsKey =
-            RaccoonCredentialsManager.generateKeyWithIde("client.user.$NAME.userInfoSettings")
-        private var userInfoSettings: RaccoonClientUserInfoSettings?
-            get() = PropertiesComponent.getInstance().getValue(userInfoSettingsKey)
-                ?.let { LLMClientJson.decodeFromString(RaccoonClientUserInfoSettings.serializer(), it) }
-            set(value) {
-                PropertiesComponent.getInstance().setValue(
-                    userInfoSettingsKey,
-                    value?.let { LLMClientJson.encodeToString(RaccoonClientUserInfoSettings.serializer(), it) })
-                ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_CLIENT_AUTHORIZATION_TOPIC).run {
-                    onUserNameChanged(getDisplayUserName(), (true == value?.proCodeEnabled))
-                    onCurrentOrganizationNameChanged(
-                        value?.getCurrentOrgDisplayName(), (true == value?.currentOrgAvailable())
-                    )
-                }
-            }
-
-        private val knowledgeBasesKey =
-            RaccoonCredentialsManager.generateKeyWithIde("client.user.$NAME.knowledgeBases")
-        private var knowledgeBases: RaccoonClientKnowledgeBases?
-            get() = PropertiesComponent.getInstance().getValue(knowledgeBasesKey)
-                ?.let { LLMClientJson.decodeFromString(RaccoonClientKnowledgeBases.serializer(), it) }
-            set(value) {
-                PropertiesComponent.getInstance().setValue(
-                    knowledgeBasesKey,
-                    value?.let { LLMClientJson.encodeToString(RaccoonClientKnowledgeBases.serializer(), it) })
-            }
-
-        private var accessTokenCredentials: Credentials?
-            get() = RaccoonCredentialsManager.getAccessToken(NAME)
-            set(value) {
-                RaccoonCredentialsManager.setAccessToken(NAME, value)
-            }
-
-        private var refreshTokenCredentials: Credentials?
-            get() = RaccoonCredentialsManager.getRefreshToken(NAME)
-            set(value) {
-                RaccoonCredentialsManager.setRefreshToken(NAME, value)
-            }
-
         @JvmStatic
-        fun getUserIsCodePro(): Boolean = (true == userInfoSettings?.proCodeEnabled)
-
-        @JvmStatic
-        fun getIsKnowledgeBaseAllowed(): Boolean =
-            (null != userInfoSettings?.takeIf { it.proCodeEnabled || it.currentOrgAvailable() })
-
-        @JvmStatic
-        fun getDisplayUserName(): String? = accessTokenCredentials?.letIfFilled { rawUserName, _ ->
-            userInfoSettings?.getDisplayUserName() ?: rawUserName
-        }
+        fun getIsKnowledgeBaseAllowed(): Boolean = RaccoonUserInformation.getInstance().IsKnowledgeBaseAllowed()
 
         @JvmStatic
         fun notifyGotoLogin(project: Project, parent: Component?) {
@@ -559,23 +523,8 @@ internal class RaccoonClient : LLMClient() {
 
         @JvmStatic
         private fun clearLoginTokens() {
-            accessTokenCredentials = null
-            refreshTokenCredentials = null
-            userInfoSettings = null
+            RaccoonUserInformation.getInstance().restore()
         }
-
-        @JvmStatic
-        private fun getPluginApiPath(
-            pluginApiSubPath: String,
-            isOrgPath: Boolean = RaccoonConfig.config.isTeam()
-        ): String = "/api/plugin" + (if (isOrgPath) "/org" else "") + pluginApiSubPath
-
-        @JvmStatic
-        private fun decodeTokenToCredentialsInsideCatching(token: String): RaccoonClientJWTPayload =
-            LLMClientJson.decodeFromString(
-                RaccoonClientJWTPayload.serializer(),
-                Base64.getUrlDecoder().decode(token.split(".")[1]).decodeToString()
-            )
 
         @JvmStatic
         private fun buildSensitiveGetUrl(

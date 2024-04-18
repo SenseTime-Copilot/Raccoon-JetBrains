@@ -20,6 +20,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonSensitiveListener
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.invokeOnEdtSync
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.toCoroutineContext
 import com.sensetime.sensecode.jetbrains.raccoon.utils.*
+import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils.EMPTY_JSON_OBJECT_STRING
 import kotlinx.coroutines.*
 import okhttp3.*
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -380,7 +381,7 @@ internal abstract class LLMClient {
         private const val CONNECT_TIMEOUT_S = 10L
         private const val READ_TIMEOUT_S = 60L
         private const val WRITE_TIMEOUT_S = 30L
-        val EMPTY_POST_REQUEST_BODY = "{}".toRequestBody()
+        val EMPTY_POST_REQUEST_BODY = EMPTY_JSON_OBJECT_STRING.toRequestBody()
 
         private val LOG = logger<LLMClient>()
     }

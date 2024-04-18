@@ -28,6 +28,7 @@ internal fun String.getNameFromEmail(): String = substringBefore('@')
 
 internal fun <T> List<T>.takeIfNotEmpty(): List<T>? = takeIf { it.isNotEmpty() }
 internal inline fun <T, R> List<T>.letIfNotEmpty(block: (List<T>) -> R): R? = takeIfNotEmpty()?.let(block)
+internal fun <T> List<T>.plusIfNotNull(other: List<T>?): List<T> = (other?.let { this + it }) ?: this
 
 // Map
 
@@ -63,6 +64,10 @@ internal fun CoroutineContext.plusIfNotNull(other: CoroutineContext?): Coroutine
 
 
 internal object RaccoonUtils {
+    // Json
+    const val EMPTY_JSON_OBJECT_STRING = "{}"
+
+
     // Date
 
     fun getDateTimestampMs(): Long = System.currentTimeMillis()

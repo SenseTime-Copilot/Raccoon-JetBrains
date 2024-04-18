@@ -1,15 +1,10 @@
 package com.sensetime.sensecode.jetbrains.raccoon.clients.responses
 
 import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientMessageException
-import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientOrgException
 import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientUnauthorizedException
-import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonConfig
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonSensitiveListener
-import com.sensetime.sensecode.jetbrains.raccoon.utils.getNameFromEmail
-import com.sensetime.sensecode.jetbrains.raccoon.utils.ifNullOrBlank
-import com.sensetime.sensecode.jetbrains.raccoon.utils.takeIfNotBlank
-import com.sensetime.sensecode.jetbrains.raccoon.utils.takeIfNotEmpty
+import com.sensetime.sensecode.jetbrains.raccoon.utils.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -160,27 +155,13 @@ internal data class RaccoonClientUserInfo(
     @SerialName("orgs")
     val organizations: List<RaccoonClientOrgInfo>? = null
 ) {
-    fun getAvailableOrganizations(): List<RaccoonClientOrgInfo>? =
-        organizations?.filter { it.isAvailable() }?.takeIfNotEmpty()
-
-    fun getFirstAvailableOrgInfoOrNull(): RaccoonClientOrgInfo? = getAvailableOrganizations()?.firstOrNull()
-    fun getOrgInfoByCodeOrNull(orgCode: String): RaccoonClientOrgInfo? =
-        organizations?.firstOrNull { it.code == orgCode }
+    fun getFirstAvailableOrgInfoOrNull(): RaccoonClientOrgInfo? = organizations?.firstOrNull { it.isAvailable() }
+    fun getOrgInfoByCodeOrNull(orgCode: String?): RaccoonClientOrgInfo? =
+        orgCode?.letIfNotBlank { organizations?.firstOrNull { it.code == orgCode } }
 
     fun getDisplayUserName(orgCode: String?): String? =
-        orgCode?.let { getOrgInfoByCodeOrNull(it)?.userName } ?: name?.takeIfNotBlank() ?: email?.getNameFromEmail()
-            ?.takeIfNotBlank()
-
-    fun checkOrganizations() {
-        if (RaccoonConfig.config.isTeam()) {
-            if (organizations.isNullOrEmpty()) {
-                throw LLMClientOrgException(RaccoonBundle.message("authorization.panel.organizations.list.empty"))
-            }
-            if (getAvailableOrganizations().isNullOrEmpty()) {
-                throw LLMClientOrgException(RaccoonBundle.message("authorization.panel.organizations.list.disabled"))
-            }
-        }
-    }
+        getOrgInfoByCodeOrNull(orgCode)?.userName?.takeIfNotBlank() ?: name?.takeIfNotBlank()
+        ?: email?.getNameFromEmail()?.takeIfNotBlank()
 }
 
 @Serializable

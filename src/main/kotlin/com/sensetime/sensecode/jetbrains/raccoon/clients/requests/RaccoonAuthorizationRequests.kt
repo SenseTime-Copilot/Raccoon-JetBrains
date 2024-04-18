@@ -49,6 +49,3 @@ internal data class RaccoonClientRefreshTokenRequest(
     @SerialName("refresh_token")
     private val refreshToken: String
 )
-
-@Serializable
-internal data class RaccoonClientJWTPayload(val name: String, val exp: Int)

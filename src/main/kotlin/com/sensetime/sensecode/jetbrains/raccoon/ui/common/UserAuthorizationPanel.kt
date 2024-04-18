@@ -9,15 +9,14 @@ import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.dsl.gridLayout.VerticalAlign
 import com.intellij.util.ui.JBFont
 import com.intellij.util.ui.JBUI
-import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientOrgException
 import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.RaccoonClientOrgInfo
-import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonConfig
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonIcons
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_CLIENT_AUTHORIZATION_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonClientAuthorizationListener
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonExceptions
-import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotEmpty
+import com.sensetime.sensecode.jetbrains.raccoon.utils.ifNullOrBlank
+import com.sensetime.sensecode.jetbrains.raccoon.utils.plusIfNotNull
 import java.awt.BorderLayout
 import java.awt.Component
 import javax.swing.*
@@ -34,11 +33,10 @@ internal class UserAuthorizationPanel(
         fun onOrganizationSelected(orgCode: String)
         fun getOrganizations(
             parent: Component,
-            onFinallyInsideEdt: (t: Throwable?, List<RaccoonClientOrgInfo>?) -> Unit
+            onFinallyInsideEdt: (t: Throwable?, isCodePro: Boolean, List<RaccoonClientOrgInfo>?) -> Unit
         )
     }
 
-    private var isBigMode: Boolean = !RaccoonConfig.config.isTeam()
     private var alreadyLoggedIn: Boolean = false
     private val userIconLabel: JLabel = JLabel()
     private val userNameLabel: JLabel = JLabel("").apply {
@@ -53,66 +51,61 @@ internal class UserAuthorizationPanel(
         RaccoonBundle.message("authorization.panel.action.GetOrganizations.text"), "",
         AllIcons.General.GearPlain, ActionPlaces.UNKNOWN, JLabel(AnimatedIcon.Default.INSTANCE)
     ) { e, onFinallyInsideEdt ->
-        eventListener.getOrganizations(this) { t, organizations ->
+        eventListener.getOrganizations(this) { t, isCodePro, organizations ->
             RaccoonExceptions.resultOf({
                 t?.let { throw t }
-                organizations?.filter { it.isAvailable() }?.letIfNotEmpty {
+                listOf(
+                    RaccoonClientOrgInfo(
+                        "",
+                        getPersonalLabelName(isCodePro)
+                    )
+                ).plusIfNotNull(organizations?.filter { it.isAvailable() }).let {
                     JBPopupFactory.getInstance().createPopupChooserBuilder(it).setVisibleRowCount(5)
                         .setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
                         .setItemChosenCallback { orgInfo -> eventListener.onOrganizationSelected(orgInfo.code) }
                         .createPopup().showInCenterOf(this)
                 }
-                    ?: throw LLMClientOrgException(RaccoonBundle.message("authorization.panel.organizations.list.disabled"))
             }, onFinallyInsideEdt).onFailure {
                 JBPopupFactory.getInstance().createMessage(it.localizedMessage).showInCenterOf(this)
             }
         }
     }
 
-    private fun updateUserIconLabel() {
-        if (alreadyLoggedIn) {
-            userIconLabel.icon = if (isBigMode) RaccoonIcons.AUTHENTICATED_USER_BIG else RaccoonIcons.AUTHENTICATED_USER
-        } else {
-            userIconLabel.icon =
-                if (isBigMode) RaccoonIcons.UNAUTHENTICATED_USER_BIG else RaccoonIcons.UNAUTHENTICATED_USER
-        }
-    }
-
-    override fun onUserNameChanged(userName: String?, isCodePro: Boolean) {
+    override fun onUserNameChanged(userName: String?) {
         alreadyLoggedIn = !userName.isNullOrBlank()
         if (!alreadyLoggedIn) {
             loginButton.text = RaccoonBundle.message("authorization.panel.button.login")
             userNameLabel.text = RaccoonBundle.message("authorization.panel.label.unauthenticated")
+            userIconLabel.icon = RaccoonIcons.UNAUTHENTICATED_USER
+            loginButton.font = JBFont.label().biggerOn(1f)
         } else {
             loginButton.text = RaccoonBundle.message("authorization.panel.button.logout")
-            userNameLabel.text = "$userName${if (isCodePro) "(Pro)" else ""}"
+            userNameLabel.text = userName
+            userIconLabel.icon = RaccoonIcons.AUTHENTICATED_USER_BIG
+            loginButton.font = JBFont.label().biggerOn(3f)
         }
-        updateUserIconLabel()
     }
 
-    override fun onCurrentOrganizationNameChanged(orgName: String?, isAvailable: Boolean) {
-        isBigMode = !(!RaccoonConfig.config.isTeam() || orgName.isNullOrBlank())
-        if (isBigMode) {
-            currentOrgNameLabel.text = orgName
+    override fun onCurrentOrganizationNameChanged(orgName: String?, isAvailable: Boolean, isCodePro: Boolean) {
+        if (alreadyLoggedIn) {
+            currentOrgNameLabel.text = orgName.ifNullOrBlank(getPersonalLabelName(isCodePro))
             currentOrgNameLabel.apply {
-                if (isAvailable) {
-                    foreground = JBUI.CurrentTheme.NotificationInfo.foregroundColor()
-                    background = JBUI.CurrentTheme.NotificationInfo.backgroundColor()
-                } else {
-                    foreground = JBUI.CurrentTheme.NotificationWarning.foregroundColor()
-                    background = JBUI.CurrentTheme.NotificationWarning.backgroundColor()
-                }
+//                if (isAvailable) {
+                foreground = JBUI.CurrentTheme.NotificationInfo.foregroundColor()
+                background = JBUI.CurrentTheme.NotificationInfo.backgroundColor()
+//                } else {
+//                    foreground = JBUI.CurrentTheme.NotificationWarning.foregroundColor()
+//                    background = JBUI.CurrentTheme.NotificationWarning.backgroundColor()
+//                }
             }
         }
-        loginButton.font = JBFont.label().biggerOn(if (isBigMode) 3f else 1f)
-        currentOrgNameLabel.isVisible = isBigMode
-        organizationsSelectorButton.isVisible = isBigMode
-        updateUserIconLabel()
+        currentOrgNameLabel.isVisible = alreadyLoggedIn
+        organizationsSelectorButton.isVisible = alreadyLoggedIn
     }
 
     init {
-        onUserNameChanged(userName, isCodePro)
-        onCurrentOrganizationNameChanged(currentOrgName, isAvailable)
+        onUserNameChanged(userName)
+        onCurrentOrganizationNameChanged(currentOrgName, isAvailable, isCodePro)
         add(panel {
             verticalAlign(VerticalAlign.CENTER)
             row {
@@ -142,5 +135,10 @@ internal class UserAuthorizationPanel(
             }
         }, BorderLayout.CENTER)
         ApplicationManager.getApplication().messageBus.connect().subscribe(RACCOON_CLIENT_AUTHORIZATION_TOPIC, this)
+    }
+
+    companion object {
+        private fun getPersonalLabelName(isCodePro: Boolean): String =
+            "${RaccoonBundle.message("authorization.panel.organizations.personal.label")}${if (isCodePro) "(Pro)" else ""}"
     }
 }

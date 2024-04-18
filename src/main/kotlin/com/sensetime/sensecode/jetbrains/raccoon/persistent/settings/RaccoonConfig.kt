@@ -19,13 +19,12 @@ internal data class RaccoonConfig(
     private val _raccoonStatisticsMaxIntervalMs: Int = RACCOON_STATISTICS_MAX_INTERVAL_MS
 ) {
     enum class Variant {
-        TOC, TOB, TEAM
+        TOC, TOB
     }
 
     private val variant: Variant = Variant.TOC
     fun isToC(): Boolean = (variant == Variant.TOC)
     fun isToB(): Boolean = (variant == Variant.TOB)
-    fun isTeam(): Boolean = (variant == Variant.TEAM)
 
     val raccoonStatisticsMaxCacheCount: Int
         get() = _raccoonStatisticsMaxCacheCount.coerceIn(1, RACCOON_STATISTICS_MAX_CACHE_COUNT)

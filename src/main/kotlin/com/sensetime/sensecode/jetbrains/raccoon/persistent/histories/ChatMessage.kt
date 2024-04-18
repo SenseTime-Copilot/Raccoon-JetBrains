@@ -3,9 +3,9 @@ package com.sensetime.sensecode.jetbrains.raccoon.persistent.histories
 import com.intellij.openapi.project.Project
 import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClient
 import com.sensetime.sensecode.jetbrains.raccoon.llm.prompts.PromptVariables
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.others.RaccoonUserInformation
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ChatModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
-import com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonNotification
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils
 import kotlinx.serialization.SerialName
@@ -44,7 +44,7 @@ internal data class UserMessage(
     companion object {
         fun createUserMessage(
             project: Project?,
-            name: String? = RaccoonClient.getDisplayUserName(),
+            name: String? = RaccoonUserInformation.getInstance().getDisplayUserName(),
             promptType: String,
             text: String? = null,
             code: String? = null,

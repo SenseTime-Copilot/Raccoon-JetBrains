@@ -6,6 +6,7 @@ import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.util.xmlb.XmlSerializerUtil
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
+import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils.EMPTY_JSON_OBJECT_STRING
 
 
 @State(
@@ -16,7 +17,7 @@ data class RaccoonChatHistoriesState(
     var version: String = ""
 ) : PersistentStateComponent<RaccoonChatHistoriesState> {
     var historiesJsonString: String = "[]"
-    var lastChatHistoryString: String = "{}"
+    var lastChatHistoryString: String = EMPTY_JSON_OBJECT_STRING
 
     fun restore() {
         loadState(RaccoonChatHistoriesState(RaccoonPlugin.getVersion()))

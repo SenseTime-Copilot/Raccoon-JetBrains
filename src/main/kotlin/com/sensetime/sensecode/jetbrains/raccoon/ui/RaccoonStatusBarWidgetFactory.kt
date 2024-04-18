@@ -10,7 +10,7 @@ import com.intellij.ui.AnimatedIcon
 import com.intellij.util.Consumer
 import com.intellij.util.messages.SimpleMessageBusConnection
 import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientManager
-import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClient
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.others.RaccoonUserInformation
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonIcons
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_REQUEST_STATE_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonRequestStateListener
@@ -138,7 +138,9 @@ internal class RaccoonStatusBarWidgetFactory : StatusBarWidgetFactory {
         override fun getIcon(): Icon = currentIcon
 
         override fun getTooltipText(): String =
-            currentTooltipText ?: "${LLMClientManager.currentLLMClient.name}: ${RaccoonClient.getDisplayUserName()}"
+            currentTooltipText ?: "${LLMClientManager.currentLLMClient.name}: ${
+                RaccoonUserInformation.getInstance().getDisplayUserName()
+            }"
 
         override fun getClickConsumer(): Consumer<MouseEvent> = Consumer {
             RaccoonUIUtils.showRaccoonSettings()

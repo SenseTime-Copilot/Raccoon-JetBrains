@@ -20,6 +20,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMCodeChunk
 import com.sensetime.sensecode.jetbrains.raccoon.llm.prompts.PromptVariables
 import com.sensetime.sensecode.jetbrains.raccoon.llm.prompts.replaceVariables
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.histories.*
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.others.RaccoonUserInformation
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ChatModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonIcons
@@ -179,7 +180,8 @@ internal class ChatContentPanel(private val project: Project, eventListener: Eve
                     AssistantMessage(generateState = AssistantMessage.GenerateState.DONE).apply {
                         content = RaccoonBundle.message(
                             "toolwindow.content.chat.assistant.hello",
-                            RaccoonClient.getDisplayUserName().ifNullOrBlankElse("") { " __@${it}__" },
+                            RaccoonUserInformation.getInstance().getDisplayUserName()
+                                .ifNullOrBlankElse("") { " __@${it}__" },
                             "__${name}__"
                         )
                     }.let {
