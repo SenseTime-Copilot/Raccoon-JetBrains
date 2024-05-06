@@ -4,6 +4,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMMessage
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMSystemMessage
 import com.sensetime.sensecode.jetbrains.raccoon.llm.prompts.DisplayTextTemplate
 import com.sensetime.sensecode.jetbrains.raccoon.llm.prompts.replaceVariables
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.others.RaccoonUserInformation
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
@@ -25,8 +26,9 @@ internal abstract class ModelConfig {
     @SerialName("maxNewTokens")
     private val _maxNewTokens: Int? = null
     private fun getNewTokenLimit(): Int = tokenLimit - maxInputTokens
-    protected open fun getDefaultMaxNewTokens(): Int = getNewTokenLimit()
-    fun getMaxNewTokens(): Int = min((_maxNewTokens?.takeIf { it > 0 } ?: getDefaultMaxNewTokens()), getNewTokenLimit())
+    protected open fun getDefaultMaxNewTokens(): Int? = getNewTokenLimit()
+    fun getMaxNewTokens(): Int? =
+        (_maxNewTokens?.takeIf { it > 0 } ?: getDefaultMaxNewTokens())?.let { min(it, getNewTokenLimit()) }
 
     fun getRoleString(role: LLMMessage.Role): String = (roleMap?.get(role)) ?: role.defaultName
     fun getLLMSystemMessage(): LLMSystemMessage? = systemPrompt?.let { LLMSystemMessage(it) }
@@ -53,6 +55,9 @@ internal abstract class CompletionModelConfig : ModelConfig() {
 internal abstract class ChatModelConfig : ModelConfig() {
     protected abstract val promptTemplates: Map<String, DisplayTextTemplate>
     fun getPromptTemplate(type: String): DisplayTextTemplate? = promptTemplates[type]
+
+    override fun getDefaultMaxNewTokens(): Int? =
+        super.getDefaultMaxNewTokens().takeIf { RaccoonUserInformation.getInstance().IsKnowledgeBaseAllowed() }
 
     companion object {
         const val FREE_CHAT = "Chat"
