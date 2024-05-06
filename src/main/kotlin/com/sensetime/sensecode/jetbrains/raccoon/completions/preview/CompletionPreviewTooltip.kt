@@ -18,12 +18,13 @@ import com.sensetime.sensecode.jetbrains.raccoon.completions.actions.ShowPreviou
 import com.sensetime.sensecode.jetbrains.raccoon.completions.preview.render.CompletionInlays
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonActionUtils
+import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonExceptions
 import java.awt.Component
 import java.awt.Point
 import javax.swing.JComponent
 import javax.swing.SwingUtilities
 
-class CompletionPreviewTooltip(
+internal class CompletionPreviewTooltip(
     parent: Disposable,
     private var indexGetter: (() -> Int)?,
     private var countGetter: (() -> Int?)?,
@@ -49,7 +50,7 @@ class CompletionPreviewTooltip(
                 lastPoint = tmpPoint
                 indexGetter?.invoke()?.let { index ->
                     countGetter?.invoke()?.let { count ->
-                        kotlin.runCatching {
+                        RaccoonExceptions.resultOf {
                             HintManagerImpl.getInstanceImpl().showEditorHint(
                                 LightweightHint(createTooltipComponent(index, count)),
                                 tmpEditor, tmpPoint,

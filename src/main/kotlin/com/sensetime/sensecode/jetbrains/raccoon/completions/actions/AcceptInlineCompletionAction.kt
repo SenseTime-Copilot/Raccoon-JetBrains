@@ -8,7 +8,8 @@ import com.intellij.openapi.editor.actionSystem.EditorAction
 import com.intellij.openapi.editor.actionSystem.EditorWriteActionHandler
 import com.sensetime.sensecode.jetbrains.raccoon.completions.preview.CompletionPreview
 
-object AcceptInlineCompletionAction : EditorAction(AcceptInlineCompletionHandler()), HintManagerImpl.ActionToIgnore,
+internal object AcceptInlineCompletionAction : EditorAction(AcceptInlineCompletionHandler()),
+    HintManagerImpl.ActionToIgnore,
     InlineCompletionAction {
     class AcceptInlineCompletionHandler : EditorWriteActionHandler() {
         override fun executeWriteAction(editor: Editor, caret: Caret?, dataContext: DataContext) {

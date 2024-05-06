@@ -23,17 +23,18 @@ import com.intellij.util.messages.SimpleMessageBusConnection
 import com.sensetime.sensecode.jetbrains.raccoon.completions.actions.ManualTriggerInlineCompletionAction
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.statistics.RaccoonStatisticsServer
-import com.sensetime.sensecode.jetbrains.raccoon.topics.SENSE_CODE_EDITOR_CHANGED_TOPIC
+import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_EDITOR_CHANGED_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonEditorChangedListener
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonActionUtils
+import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonExceptions
 import kotlinx.coroutines.*
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.max
 
 @Service(Service.Level.PROJECT)
-class AutoCompletionServer(
-    private var project: Project?
+internal class AutoCompletionServer(
+    private var project: Project
 ) : RaccoonEditorChangedListener, EditorFactoryListener, CaretListener, FocusChangeListener, Disposable {
     private val lastEditorChangedType: AtomicInteger = AtomicInteger(-1)
     private val lastEditorChangedTimeMs: AtomicLong = AtomicLong(getCurrentTimeMs())
@@ -47,8 +48,8 @@ class AutoCompletionServer(
 
     init {
         ApplicationManager.getApplication().invokeLater {
-            editorChangedMessageBusConnection = ApplicationManager.getApplication().messageBus.connect().also {
-                it.subscribe(SENSE_CODE_EDITOR_CHANGED_TOPIC, this)
+            editorChangedMessageBusConnection = project.messageBus.connect().also {
+                it.subscribe(RACCOON_EDITOR_CHANGED_TOPIC, this)
             }
 
             EditorFactory.getInstance().addEditorFactoryListener(this, this)
@@ -56,15 +57,11 @@ class AutoCompletionServer(
             autoCompletionCoroutineScope.launch {
                 val waitForTimeMs = AtomicLong(1000)
                 while (true) {
-                    kotlin.runCatching {
+                    RaccoonExceptions.resultOf {
                         ApplicationManager.getApplication().invokeAndWait {
                             waitForTimeMs.set(tryTriggerCompletion())
                         }
                         delay(waitForTimeMs.get())
-                    }.onFailure { e ->
-                        if (e is CancellationException) {
-                            throw e
-                        }
                     }
                 }
             }
@@ -86,19 +83,19 @@ class AutoCompletionServer(
         ApplicationManager.getApplication().invokeLater {
             autoCompletionCoroutineScope.cancel()
             editorChangedMessageBusConnection = null
-            project = null
         }
     }
 
     override fun caretPositionChanged(event: CaretEvent) {
         RaccoonEditorChangedListener.onEditorChanged(
+            project,
             RaccoonEditorChangedListener.Type.CARET_POSITION_CHANGED,
             event.editor
         )
     }
 
     override fun focusLost(editor: Editor) {
-        RaccoonEditorChangedListener.onEditorChanged(RaccoonEditorChangedListener.Type.FOCUS_LOST, editor)
+        RaccoonEditorChangedListener.onEditorChanged(project, RaccoonEditorChangedListener.Type.FOCUS_LOST, editor)
     }
 
     override fun onEditorChanged(type: RaccoonEditorChangedListener.Type, editor: Editor) {

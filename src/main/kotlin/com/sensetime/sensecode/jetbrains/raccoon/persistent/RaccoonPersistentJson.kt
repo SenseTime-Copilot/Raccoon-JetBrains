@@ -1,9 +1,6 @@
 package com.sensetime.sensecode.jetbrains.raccoon.persistent
 
-import kotlinx.serialization.json.Json
+import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonBaseJson
 
-val RaccoonPersistentJson = Json {
-    encodeDefaults = true
-    coerceInputValues = true
-    ignoreUnknownKeys = true
-}
+
+internal val RaccoonPersistentJson = RaccoonBaseJson

@@ -3,15 +3,31 @@ package com.sensetime.sensecode.jetbrains.raccoon.tasks
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
+import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMCodeChunk
 import com.sensetime.sensecode.jetbrains.raccoon.llm.prompts.toVariableExpression
 import javax.swing.ListSelectionModel
 
-class CodeConversion : CodeTaskActionBase() {
-    override fun sendNewTaskMessage(project: Project, editor: Editor, code: String, language: String) {
+
+internal class CodeConversion : CodeTaskActionBase() {
+    override fun sendNewTaskMessage(
+        project: Project,
+        editor: Editor,
+        code: String,
+        language: String,
+        localKnowledge: List<LLMCodeChunk>?
+    ) {
         JBPopupFactory.getInstance().createPopupChooserBuilder(LANGUAGES)
             .setVisibleRowCount(7)
             .setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
-            .setItemChosenCallback { sendNewTaskMessage(project, code, language, mapOf(DST_LANGUAGE to it)) }
+            .setItemChosenCallback {
+                sendNewTaskMessage(
+                    project,
+                    code,
+                    language,
+                    mapOf(DST_LANGUAGE to it),
+                    localKnowledge
+                )
+            }
             .createPopup().showInBestPositionFor(editor)
     }
 

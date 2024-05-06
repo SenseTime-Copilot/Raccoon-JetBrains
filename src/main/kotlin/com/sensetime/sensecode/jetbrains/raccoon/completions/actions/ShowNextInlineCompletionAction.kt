@@ -6,7 +6,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.DumbAware
 import com.sensetime.sensecode.jetbrains.raccoon.completions.preview.CompletionPreview
 
-class ShowNextInlineCompletionAction : BaseCodeInsightAction(false), DumbAware, InlineCompletionAction {
+internal class ShowNextInlineCompletionAction : BaseCodeInsightAction(false), DumbAware, InlineCompletionAction {
     override fun getHandler(): CodeInsightActionHandler =
         CodeInsightActionHandler { _, editor: Editor, _ ->
             CompletionPreview.getInstance(editor)?.showNextCompletion()

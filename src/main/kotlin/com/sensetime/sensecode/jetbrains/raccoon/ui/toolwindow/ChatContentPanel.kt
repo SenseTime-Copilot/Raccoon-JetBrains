@@ -14,14 +14,14 @@ import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextArea
 import com.intellij.util.messages.SimpleMessageBusConnection
 import com.intellij.util.ui.JBUI
-import com.sensetime.sensecode.jetbrains.raccoon.clients.CodeClient
-import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
+import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientManager
+import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClient
+import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMCodeChunk
 import com.sensetime.sensecode.jetbrains.raccoon.llm.prompts.PromptVariables
 import com.sensetime.sensecode.jetbrains.raccoon.llm.prompts.replaceVariables
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.histories.*
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.others.RaccoonUserInformation
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ChatModelConfig
-import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
-import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonIcons
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_SENSITIVE_TOPIC
@@ -42,12 +42,16 @@ import javax.swing.event.AncestorEvent
 import javax.swing.event.ListDataEvent
 import javax.swing.event.ListDataListener
 
-class ChatContentPanel(project: Project?, eventListener: EventListener? = null) : JPanel(BorderLayout()),
+
+internal class ChatContentPanel(private val project: Project, eventListener: EventListener? = null) :
+    JPanel(BorderLayout()),
     RaccoonSensitiveListener, ListDataListener, Disposable {
     interface EventListener {
         fun onSubmit(
             e: ActionEvent?,
+            action: String,
             conversations: List<ChatConversation>,
+            localKnowledge: List<LLMCodeChunk>?,
             onFinally: () -> Unit
         )
 
@@ -166,7 +170,7 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
         }
 
     init {
-        add(UserAuthorizationPanelBuilder().build(this).apply {
+        add(LLMClientManager.currentLLMClient.makeUserAuthorizationPanel(this).apply {
             border = BorderFactory.createEmptyBorder(16, 16, 16, 16)
         }, BorderLayout.NORTH)
         add(
@@ -176,7 +180,8 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
                     AssistantMessage(generateState = AssistantMessage.GenerateState.DONE).apply {
                         content = RaccoonBundle.message(
                             "toolwindow.content.chat.assistant.hello",
-                            RaccoonClientManager.userName.ifNullOrBlankElse("") { " __@${it}__" },
+                            RaccoonUserInformation.getInstance().getDisplayUserName()
+                                .ifNullOrBlankElse("") { " __@${it}__" },
                             "__${name}__"
                         )
                     }.let {
@@ -254,16 +259,12 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
             override fun ancestorAdded(event: AncestorEvent?) {
                 sensitiveJob = getStartTime()?.let { startTime ->
                     startSensitiveFilter()
-                    RaccoonClientManager.launchClientJob {
+                    LLMClientManager.getInstance(project).launchClientJob {
                         var sensitiveConversations: Map<String, RaccoonSensitiveListener.SensitiveConversation> =
                             emptyMap()
-                        try {
+                        RaccoonExceptions.resultOf({
                             sensitiveConversations = it.getSensitiveConversations(startTime, action = "chat visible")
-                        } catch (e: Throwable) {
-                            if (e is CodeClient.UnauthorizedException) {
-                                invokeOnUIThreadLater { RaccoonNotification.notifyGotoLogin(true) }
-                            }
-                        } finally {
+                        }) {
                             stopSensitiveFilter(sensitiveConversations)
                         }
                     }
@@ -307,7 +308,7 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
 
     private fun gotoEnd() {
         // todo fix trick
-        RaccoonUIUtils.invokeOnUIThreadLater {
+        RaccoonUIUtils.invokeOnEdtLater {
             scrollBar?.apply {
                 this@ChatContentPanel.validate()
                 value = maximum
@@ -336,7 +337,13 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
         loadFromHistory()
     }
 
-    private fun startGenerate(e: ActionEvent? = null, isRegenerate: Boolean = false) {
+    private var lastLocalKnowledge: List<LLMCodeChunk>? = null
+    private fun startGenerate(
+        action: String,
+        e: ActionEvent? = null,
+        isRegenerate: Boolean = false,
+        localKnowledge: List<LLMCodeChunk>? = null
+    ) {
         eventListener?.let { listener ->
             conversationListPanel.conversationListModel.takeUnless { it.isEmpty }?.run {
                 newChatButton.isVisible = false
@@ -348,9 +355,11 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
 
                 if (isRegenerate) {
                     setElementAt(items.last().toPromptConversation(), items.lastIndex)
+                } else {
+                    lastLocalKnowledge = localKnowledge
                 }
                 gotoEnd()
-                listener.onSubmit(e, items, this@ChatContentPanel::endGenerate)
+                listener.onSubmit(e, action, items, lastLocalKnowledge, this@ChatContentPanel::endGenerate)
                 if (!isRegenerate) {
                     ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_STATISTICS_TOPIC)
                         .onToolWindowQuestionSubmitted()
@@ -367,17 +376,17 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
     }
 
     private fun onRegenerate(e: ActionEvent?) {
-        startGenerate(e, true)
+        startGenerate("regenerate", e, true)
     }
 
-    private fun getSelectedCode(): String =
+    private fun getSelectedCode(): Pair<String, List<LLMCodeChunk>?> =
         CommonDataKeys.PROJECT.getData(DataManager.getInstance().getDataContext(this))?.let { project ->
             FileEditorManager.getInstance(project).selectedTextEditor?.let { editor ->
                 RaccoonNotification.checkEditorSelectedText(
-                    RaccoonClientManager.currentClientConfig.chatModelConfig.maxInputTokens,
-                    editor,
+                    RaccoonClient.clientConfig.chatModelConfig.maxInputTokens,
+                    editor, project,
                     false
-                )?.letIfNotBlank { code ->
+                )?.let { (code, localKnowledge) ->
                     PromptVariables.markdownCodeTemplate.replaceVariables(
                         mapOf(
                             PromptVariables.LANGUAGE to RaccoonLanguages.getMarkdownLanguageFromPsiFile(
@@ -385,16 +394,20 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
                                     ?.let { PsiManager.getInstance(project).findFile(it) }),
                             PromptVariables.CODE to code
                         )
-                    )
+                    ).let { Pair(it, localKnowledge) }
                 }
             }
-        }.ifNullOrBlankElse("") { "\n$it\n" }
+        }.let { result ->
+            Pair(result?.first.ifNullOrBlankElse("") { "\n$it\n" }, result?.second)
+        }
 
     private fun onSubmitButtonClick(e: ActionEvent?) {
         userPromptTextArea.text?.letIfNotBlank { userInputText ->
+            val (code, localKnowledge) = getSelectedCode()
             UserMessage.createUserMessage(
+                project,
                 promptType = ChatModelConfig.FREE_CHAT,
-                text = userInputText + getSelectedCode()
+                text = userInputText + code
             )
                 ?.let {
                     conversationListPanel.conversationListModel.add(
@@ -404,14 +417,14 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
                         )
                     )
                     userPromptTextArea.text = ""
-                    startGenerate(e)
+                    startGenerate("free chat", e, localKnowledge = localKnowledge)
                 }
         }
     }
 
-    fun newTask(userMessage: UserMessage) {
+    fun newTask(userMessage: UserMessage, localKnowledge: List<LLMCodeChunk>?) {
         conversationListPanel.conversationListModel.add(ChatConversation(userMessage, id = RaccoonUtils.generateUUID()))
-        startGenerate()
+        startGenerate(userMessage.promptType, localKnowledge = localKnowledge)
     }
 
     fun setGenerateState(generateState: AssistantMessage.GenerateState) {
@@ -478,14 +491,14 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
 
         conversationListPanel.lastConversation?.assistant?.takeIf { AssistantMessage.GenerateState.PROMPT == it.generateState }
             ?.let {
-                if (it.hasData()) {
-                    setGenerateState(AssistantMessage.GenerateState.STOPPED)
-                } else {
-                    appendAssistantTextAndSetGenerateState(
-                        RaccoonBundle.message("toolwindow.content.chat.assistant.empty.stopped"),
-                        AssistantMessage.GenerateState.STOPPED
-                    )
-                }
+//                if (it.hasData()) {
+                setGenerateState(AssistantMessage.GenerateState.STOPPED)
+//                } else {
+//                    appendAssistantTextAndSetGenerateState(
+//                        RaccoonBundle.message("toolwindow.content.chat.assistant.empty.stopped"),
+//                        AssistantMessage.GenerateState.STOPPED
+//                    )
+//                }
             }
     }
 
@@ -518,7 +531,7 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
     }
 
     fun stopSensitiveFilter(sensitiveConversations: Map<String, RaccoonSensitiveListener.SensitiveConversation>) {
-        invokeOnUIThreadLater {
+        invokeOnEdtLater {
             runSensitiveFilter(sensitiveConversations)
             loadingLabel.isVisible = false
             buttonJPanel.isVisible = true
@@ -543,7 +556,7 @@ class ChatContentPanel(project: Project?, eventListener: EventListener? = null) 
     }
 
     override fun onNewSensitiveConversations(sensitiveConversations: Map<String, RaccoonSensitiveListener.SensitiveConversation>) {
-        invokeOnUIThreadLater {
+        invokeOnEdtLater {
             runSensitiveFilter(sensitiveConversations)
         }
     }

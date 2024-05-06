@@ -1,5 +1,7 @@
 package com.sensetime.sensecode.jetbrains.raccoon.persistent.settings
 
+import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMMessage
+import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMSystemMessage
 import com.sensetime.sensecode.jetbrains.raccoon.llm.prompts.DisplayTextTemplate
 import com.sensetime.sensecode.jetbrains.raccoon.llm.prompts.replaceVariables
 import kotlinx.serialization.SerialName
@@ -10,20 +12,13 @@ import kotlin.math.min
 
 
 @Serializable
-abstract class ModelConfig {
-    enum class Role(val defaultName: String) {
-        USER("user"),
-        ASSISTANT("assistant"),
-        SYSTEM("system"),
-        TOOL("tool")
-    }
-
+internal abstract class ModelConfig {
     abstract val name: String
     abstract val temperature: Float
     abstract val stop: List<String>
     abstract val maxInputTokens: Int
     abstract val tokenLimit: Int
-    protected abstract val roleMap: Map<Role, String>?
+    protected abstract val roleMap: Map<LLMMessage.Role, String>?
     protected abstract val systemPrompt: String?
     abstract val customRequestArgs: JsonObject?
 
@@ -33,12 +28,12 @@ abstract class ModelConfig {
     protected open fun getDefaultMaxNewTokens(): Int = getNewTokenLimit()
     fun getMaxNewTokens(): Int = min((_maxNewTokens?.takeIf { it > 0 } ?: getDefaultMaxNewTokens()), getNewTokenLimit())
 
-    fun getRoleString(role: Role): String = (roleMap?.get(role)) ?: role.defaultName
-//    fun getLLMSystemMessage(): LLMSystemMessage? = systemPrompt?.let { LLMSystemMessage(it) }
+    fun getRoleString(role: LLMMessage.Role): String = (roleMap?.get(role)) ?: role.defaultName
+    fun getLLMSystemMessage(): LLMSystemMessage? = systemPrompt?.let { LLMSystemMessage(it) }
 }
 
 @Serializable
-abstract class CompletionModelConfig : ModelConfig() {
+internal abstract class CompletionModelConfig : ModelConfig() {
     enum class CompletionPreference(val key: String) {
         SPEED_PRIORITY("settings.CompletionPreference.SingleLine"),
         BALANCED("settings.CompletionPreference.Balanced"),
@@ -55,7 +50,7 @@ abstract class CompletionModelConfig : ModelConfig() {
 }
 
 @Serializable
-abstract class ChatModelConfig : ModelConfig() {
+internal abstract class ChatModelConfig : ModelConfig() {
     protected abstract val promptTemplates: Map<String, DisplayTextTemplate>
     fun getPromptTemplate(type: String): DisplayTextTemplate? = promptTemplates[type]
 
@@ -65,6 +60,6 @@ abstract class ChatModelConfig : ModelConfig() {
 }
 
 @Serializable
-abstract class AgentModelConfig : ModelConfig() {
+internal abstract class AgentModelConfig : ModelConfig() {
     abstract val tools: JsonArray
 }

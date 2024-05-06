@@ -1,3 +1,3 @@
 package com.sensetime.sensecode.jetbrains.raccoon.completions.actions
 
-interface InlineCompletionAction
+internal interface InlineCompletionAction

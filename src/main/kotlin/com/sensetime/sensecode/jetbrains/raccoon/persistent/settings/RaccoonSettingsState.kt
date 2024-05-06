@@ -8,11 +8,12 @@ import com.intellij.util.xmlb.XmlSerializerUtil
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
 import kotlin.math.max
 
+
 @State(
     name = "com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState",
     storages = [Storage("RaccoonJetBrainsSettings.xml")]
 )
-data class RaccoonSettingsState(
+internal data class RaccoonSettingsState(
     var version: String = ""
 ) : PersistentStateComponent<RaccoonSettingsState> {
     // settings
@@ -31,13 +32,15 @@ data class RaccoonSettingsState(
     var inlineCompletionPreference: CompletionModelConfig.CompletionPreference =
         CompletionModelConfig.CompletionPreference.BEST_EFFORT
 
+    var isLocalKnowledgeBaseEnabled: Boolean = true
+    var isCloudKnowledgeBaseEnabled: Boolean = true
 
     fun restore() {
-        loadState(RaccoonSettingsState(RaccoonPlugin.version))
+        loadState(RaccoonSettingsState(RaccoonPlugin.getVersion()))
     }
 
     override fun getState(): RaccoonSettingsState {
-        version = RaccoonPlugin.version
+        version = RaccoonPlugin.getVersion()
         return this
     }
 

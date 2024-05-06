@@ -15,7 +15,7 @@ import javax.swing.JPanel
 import javax.swing.event.ListDataEvent
 import javax.swing.event.ListDataListener
 
-class ConversationListPanel(
+internal class ConversationListPanel(
     parent: Disposable,
     private val project: Project?,
     conversations: List<ChatConversation>,

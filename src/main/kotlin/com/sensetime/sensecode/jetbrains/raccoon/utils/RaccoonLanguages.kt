@@ -16,7 +16,7 @@ private val RaccoonLanguagesJson = Json {
     ignoreUnknownKeys = true
 }
 
-object RaccoonLanguages {
+internal object RaccoonLanguages {
     @Serializable
     data class Language(
         val type: String? = null,
@@ -131,5 +131,5 @@ object RaccoonLanguages {
     private fun toExtensionNotIncludingDot(extension: String): String = extension.trim().trimStart('.')
 }
 
-fun RaccoonLanguages.Language?.getFileTypeOrDefault(defaultFileType: FileType = RaccoonLanguages.DEFAULT_FILE_TYPE): FileType =
+internal fun RaccoonLanguages.Language?.getFileTypeOrDefault(defaultFileType: FileType = RaccoonLanguages.DEFAULT_FILE_TYPE): FileType =
     (this?.fileType) ?: defaultFileType

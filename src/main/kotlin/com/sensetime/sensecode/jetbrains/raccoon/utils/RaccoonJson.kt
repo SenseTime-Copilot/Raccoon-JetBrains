@@ -1,8 +1,9 @@
-package com.sensetime.sensecode.jetbrains.raccoon.clients
+package com.sensetime.sensecode.jetbrains.raccoon.utils
 
 import kotlinx.serialization.json.Json
 
-val RaccoonClientJson = Json {
+
+internal val RaccoonBaseJson = Json {
     encodeDefaults = true
     coerceInputValues = true
     ignoreUnknownKeys = true

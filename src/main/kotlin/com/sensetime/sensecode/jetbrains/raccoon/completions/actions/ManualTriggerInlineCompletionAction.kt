@@ -17,23 +17,23 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.refactoring.suggested.endOffset
-import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
-import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.CodeRequest
-import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.CodeStreamResponse
+import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClient
+import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientManager
+import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClient
+import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMCompletionRequest
+import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.LLMCompletionChoice
+import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.LLMResponse
 import com.sensetime.sensecode.jetbrains.raccoon.completions.preview.CompletionPreview
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.CompletionModelConfig
-import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.tasks.CodeTaskActionBase
-import com.sensetime.sensecode.jetbrains.raccoon.ui.common.RaccoonUIUtils
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonLanguages
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
-import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.min
 
-class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Disposable, InlineCompletionAction {
+
+internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Disposable, InlineCompletionAction {
     private var inlineCompletionJob: Job? = null
         set(value) {
             field?.cancel()
@@ -48,7 +48,7 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
         token?.let { if (isSingleLine) it.trimEnd('\r', '\n') else it } ?: ""
 
     private var lastCaretOffset: Int = -1
-    private fun inlineCompletion(editor: Editor, psiFile: PsiFile?) {
+    private fun inlineCompletion(project: Project, editor: Editor, psiFile: PsiFile?) {
         var caretOffset = editor.caretModel.offset
         if ((lastCaretOffset == caretOffset) && !isKeyboardShortcutAction) {
             return
@@ -74,87 +74,54 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
                         CompletionPreview.createInstance(editor, caretOffset, language)
 
                     val settings = RaccoonSettingsState.instance
-                    val n = settings.candidates
-                    val (client, clientConfig) = RaccoonClientManager.clientAndConfigPair
-                    val modelConfig = clientConfig.completionModelConfig
-                    val isSingleLine: Boolean =
+                    val modelConfig = RaccoonClient.clientConfig.completionModelConfig
+                    val isSingleLine =
                         (settings.inlineCompletionPreference == CompletionModelConfig.CompletionPreference.SPEED_PRIORITY)
-                    val codeRequest = CodeRequest(
-                        null,
-                        modelConfig.name,
-                        getUserContent(
-                            psiElement,
-                            caretOffset - psiElement.textOffset,
-                            modelConfig.maxInputTokens
-                        ).getMessages(language, modelConfig),
-                        modelConfig.temperature,
-                        n,
-                        if (isSingleLine) "\n" else modelConfig.stop.first(),
-                        modelConfig.getMaxNewTokens(),
-                        clientConfig.completionApiConfig.path
-                    )
-                    RaccoonClientManager.launchClientJob {
-                        try {
-                            if (n <= 1) {
-                                // stream
-                                client.requestStream(codeRequest) { streamResponse ->
-                                    RaccoonUIUtils.invokeOnUIThreadLater {
-                                        when (streamResponse) {
-                                            CodeStreamResponse.Done -> completionPreview.done = true
-                                            is CodeStreamResponse.Error -> completionPreview.showError(streamResponse.error)
-                                            is CodeStreamResponse.TokenChoices -> {
-                                                if (null == completionPreview.appendCompletions(
-                                                        listOf(
-                                                            getToken(
-                                                                streamResponse.choices.firstOrNull()?.token,
-                                                                isSingleLine
-                                                            )
-                                                        )
-                                                    )
-                                                ) {
-                                                    cancel()
-                                                }
-                                            }
-
-                                            else -> {}
-                                        }
-                                    }
-                                }
-                            } else {
-                                client.request(codeRequest).run {
-                                    RaccoonUIUtils.invokeOnUIThreadLater {
-                                        error?.takeIf { it.hasError() }?.let {
-                                            completionPreview.showError(it.getShowError())
-                                        } ?: choices?.let { choices ->
-                                            completionPreview.appendCompletions(choices.map {
-                                                getToken(
-                                                    it.token,
-                                                    isSingleLine
-                                                )
+                    LLMClientManager.getInstance(project)
+                        .launchLLMCompletionJob(!RaccoonSettingsState.instance.isAutoCompleteMode,
+                            editor.component,
+                            LLMCompletionRequest(
+                                settings.candidates,
+                                prompt = getUserContent(
+                                    psiElement,
+                                    caretOffset - psiElement.textOffset,
+                                    modelConfig.maxInputTokens
+                                ).getMessages(language, modelConfig)
+                            ), object : LLMClientManager.LLMJobListener<LLMCompletionChoice, String?>,
+                                LLMClient.LLMUsagesResponseListener<LLMCompletionChoice>() {
+                                override fun onResponseInsideEdtAndCatching(llmResponse: LLMResponse<LLMCompletionChoice>) {
+                                    llmResponse.throwIfError()
+                                    llmResponse.choices?.let { choicesList ->
+                                        if (null == completionPreview.appendCompletions(choicesList.map {
+                                                getToken(it.token, isSingleLine)
                                             })
+                                        ) {
+                                            inlineCompletionJob = null
                                         }
                                     }
+                                    super.onResponseInsideEdtAndCatching(llmResponse)
                                 }
-                            }
-                        } catch (t: Throwable) {
-                            if (t !is CancellationException) {
-                                RaccoonUIUtils.invokeOnUIThreadLater {
+
+                                override fun onDoneInsideEdtAndCatching(): String? {
+                                    completionPreview.done = true
+                                    return super.onDoneInsideEdtAndCatching()
+                                }
+
+                                override fun onFailureWithoutCancellationInsideEdt(t: Throwable) {
                                     completionPreview.showError(t.localizedMessage)
                                 }
-                            }
-                        } finally {
-                            RaccoonUIUtils.invokeOnUIThreadLater {
-                                completionPreview.done = true
-                            }
-                        }
-                    }
+
+                                override fun onFinallyInsideEdt() {
+                                    completionPreview.done = true
+                                }
+                            })
                 }
     }
 
     private fun popupCodeTaskActionsGroup(editor: Editor) {
         ApplicationManager.getApplication().invokeLater {
             JBPopupFactory.getInstance().createActionGroupPopup(
-                RaccoonPlugin.NAME,
+                RaccoonPlugin.name,
                 (ActionManager.getInstance().getAction(CodeTaskActionBase.TASK_ACTIONS_GROUP_ID) as ActionGroup),
                 DataManager.getInstance().getDataContext(editor.component),
                 JBPopupFactory.ActionSelectionAid.SPEEDSEARCH,
@@ -170,13 +137,13 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
     }
 
     override fun getHandler(): CodeInsightActionHandler {
-        return CodeInsightActionHandler { _: Project?, editor: Editor, psiFile: PsiFile? ->
+        return CodeInsightActionHandler { project: Project, editor: Editor, psiFile: PsiFile? ->
             if (!RaccoonSettingsState.instance.isAutoCompleteMode || ((null == CompletionPreview.getInstance(editor)) && (editor.contentComponent.isFocusOwner))) {
                 EditorUtil.disposeWithEditor(editor, this)
 
                 val selectedText = editor.selectionModel.selectedText
                 if (selectedText.isNullOrBlank()) {
-                    inlineCompletion(editor, psiFile)
+                    inlineCompletion(project, editor, psiFile)
                 } else if (isKeyboardShortcutAction) {
                     popupCodeTaskActionsGroup(editor)
                 }
@@ -257,30 +224,27 @@ class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false), Dispos
             fun getMessages(
                 language: String,
                 modelConfig: CompletionModelConfig
-            ): List<CodeRequest.Message> = listOf(CodeRequest.Message(
-                modelConfig.getRoleString(ModelConfig.Role.USER),
-                modelConfig.getPrompt(
-                    if (text.length > offset) {
-                        val suffix = text.substring(offset)
-                        var suffixLines = ""
-                        var suffixCursor = suffix.trimEnd('\r', '\n')
-                        suffix.indexOf('\n').takeIf { it >= 0 }?.let {
-                            suffixLines = suffix.substring(it + 1)
-                            suffixCursor = suffix.substring(0, it).trimEnd('\r', '\n')
-                        }
-                        mapOf(
-                            "language" to language,
-                            "suffixLines" to suffixLines,
-                            "suffixCursor" to suffixCursor,
-                            "suffix" to suffix
-                        ) + getPrefixArgs(text.substring(0, offset))
-                    } else {
-                        mapOf("language" to language, "suffixLines" to "", "suffixCursor" to "") + getPrefixArgs(
-                            text
-                        )
+            ): String = modelConfig.getPrompt(
+                if (text.length > offset) {
+                    val suffix = text.substring(offset)
+                    var suffixLines = ""
+                    var suffixCursor = suffix.trimEnd('\r', '\n')
+                    suffix.indexOf('\n').takeIf { it >= 0 }?.let {
+                        suffixLines = suffix.substring(it + 1)
+                        suffixCursor = suffix.substring(0, it).trimEnd('\r', '\n')
                     }
-                )
-            ))
+                    mapOf(
+                        "language" to language,
+                        "suffixLines" to suffixLines,
+                        "suffixCursor" to suffixCursor,
+                        "suffix" to suffix
+                    ) + getPrefixArgs(text.substring(0, offset))
+                } else {
+                    mapOf("language" to language, "suffixLines" to "", "suffixCursor" to "") + getPrefixArgs(
+                        text
+                    )
+                }
+            )
         }
 
         @JvmStatic

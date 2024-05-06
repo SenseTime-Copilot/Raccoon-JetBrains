@@ -1,11 +1,13 @@
 package com.sensetime.sensecode.jetbrains.raccoon.ui.common
 
+import com.intellij.credentialStore.Credentials
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.ColorUtil
 import com.intellij.ui.DocumentAdapter
+import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.RightGap
@@ -13,8 +15,13 @@ import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.dsl.gridLayout.HorizontalAlign
 import com.intellij.util.Urls.newFromEncoded
 import com.intellij.util.ui.UIUtil
-import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
+import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientManager
+import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClient
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.RaccoonCredentialsManager
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonConfig
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.takeIfNotEmpty
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
+import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonExceptions
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
 import com.sensetime.sensecode.jetbrains.raccoon.utils.ifNullOrBlankElse
 import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
@@ -25,17 +32,19 @@ import java.util.*
 import javax.swing.JComponent
 import javax.swing.JEditorPane
 import javax.swing.event.DocumentEvent
-import kotlin.coroutines.cancellation.CancellationException
 
-class LoginDialog(
-    project: Project?, parent: Component?
+
+internal class LoginDialog(
+    private val project: Project?, parent: Component?,
+    private val webLoginUrl: String?, private val webForgotPasswordUrl: String?
 ) : DialogWrapper(
     project, parent, false, IdeModalityType.PROJECT
 ) {
-    private var phoneNationCodeComboBox: ComboBox<String>? = null
     private var emailField: JBTextField? = null
     private var phoneField: JBTextField? = null
     private var passwordField: JBPasswordField? = null
+    private var phoneNationCodeComboBox: ComboBox<String>? = null
+    private var savePasswordCheckBox: JBCheckBox? = null
 
     private var loginErrorEditorPane: JEditorPane? = null
     private var loginErrorText: String?
@@ -81,44 +90,37 @@ class LoginDialog(
         }
         startLoading()
 
-        loginJob = RaccoonClientManager.launchClientJob {
-            kotlin.runCatching {
-                passwordField!!.password.let { pwd ->
-                    if (IS_TOB) {
-                        it.login(emailField!!.text, pwd)
-                    } else {
-                        it.login(
-                            (phoneNationCodeComboBox!!.selectedItem as String).trimStart('+'),
-                            phoneField!!.text,
-                            pwd
-                        )
-                    }
-                    Arrays.fill(pwd, '0')
+        loginJob = LLMClientManager.launchClientJob { llmClient ->
+            RaccoonExceptions.resultOf {
+                val raccoonClient = llmClient as RaccoonClient
+                val pwd = passwordField!!.password
+                val user = if (RaccoonConfig.config.isToB()) emailField!!.text else phoneField!!.text
+                RaccoonCredentialsManager.setLoginInfo(
+                    LLMClientManager.currentLLMClient.name,
+                    if (true == savePasswordCheckBox?.isSelected) Credentials(user, pwd) else null
+                )
+                if (RaccoonConfig.config.isToB()) {
+                    raccoonClient.loginWithEmail(project, contentPanel, emailField!!.text, pwd)
+                } else {
+                    raccoonClient.loginWithPhone(
+                        project, contentPanel,
+                        (phoneNationCodeComboBox!!.selectedItem as String).trimStart('+'),
+                        phoneField!!.text,
+                        pwd
+                    )
                 }
-            }.let { result ->
-                rootPane.invokeOnUIThreadLater {
-                    result.onSuccess {
-                        close(OK_EXIT_CODE, true)
-                    }.onFailure { e ->
-                        if (e is CancellationException) {
-                            close(CANCEL_EXIT_CODE, false)
-                            throw e
-                        } else {
-                            stopLoading(e.localizedMessage)
-                        }
-                    }
-                }
-            }
+                Arrays.fill(pwd, '0')
+            }.onSuccess { close(OK_EXIT_CODE, true) }.onFailure { e -> stopLoading(e.localizedMessage) }
         }
     }
 
     override fun createCenterPanel(): JComponent = panel {
-        if (IS_TOB) {
+        val loginInfo = RaccoonCredentialsManager.getLoginInfo(LLMClientManager.currentLLMClient.name)?.takeIfNotEmpty()
+        if (RaccoonConfig.config.isToB()) {
             row(RaccoonBundle.message("login.dialog.label.email")) {
                 emailField = textField().validationOnApply {
                     val atIndex = it.text.indexOf('@')
-                    val dotIndex = it.text.indexOf('.')
-                    if ((atIndex < 1) || (dotIndex <= (atIndex + 1)) || (dotIndex >= it.text.lastIndex)) {
+                    if (atIndex !in 1..<it.text.lastIndex) {
                         error(
                             RaccoonBundle.message(
                                 "login.dialog.input.validation.invalid",
@@ -129,6 +131,9 @@ class LoginDialog(
                         null
                     }
                 }.horizontalAlign(HorizontalAlign.FILL).component.apply {
+                    loginInfo?.let {
+                        text = it.userName
+                    }
                     document.addDocumentListener(object : DocumentAdapter() {
                         override fun textChanged(e: DocumentEvent) {
                             loginErrorText = null
@@ -160,6 +165,9 @@ class LoginDialog(
                         null
                     }
                 }.horizontalAlign(HorizontalAlign.FILL).component.apply {
+                    loginInfo?.let {
+                        text = it.userName
+                    }
                     document.addDocumentListener(object : DocumentAdapter() {
                         override fun textChanged(e: DocumentEvent) {
                             loginErrorText = null
@@ -195,6 +203,9 @@ class LoginDialog(
                     null
                 }
             }.horizontalAlign(HorizontalAlign.FILL).component.apply {
+                loginInfo?.let {
+                    text = it.getPasswordAsString()
+                }
                 document.addDocumentListener(object : DocumentAdapter() {
                     override fun textChanged(e: DocumentEvent) {
                         loginErrorText = null
@@ -202,7 +213,13 @@ class LoginDialog(
                 })
             }
         }
-        if (IS_TOB) {
+        row {
+            savePasswordCheckBox =
+                checkBox(RaccoonBundle.message("login.dialog.checkbox.savePassword")).component.apply {
+                    isSelected = (null != loginInfo)
+                }
+        }
+        if (RaccoonConfig.config.isToB()) {
             row {
                 comment(
                     RaccoonBundle.message("login.dialog.text.forgotPassword.toB")
@@ -210,30 +227,28 @@ class LoginDialog(
             }
         } else {
             row {
-                val loginBaseUrl = "${RaccoonClientManager.currentCodeClient.webBaseUrl!!}/login"
                 val loginBaseParameters: Map<String, String> =
                     mapOf("utm_source" to "JetBrains ${RaccoonPlugin.ideName}")
                 // trick for lang in <a> url will parse to %E2%8C%A9
                 val loginUrlLang: String =
                     RaccoonBundle.message("login.dialog.link.web.lang").ifNullOrBlankElse("") { "&amp;lang=$it" }
-                comment(
-                    RaccoonBundle.message(
-                        "login.dialog.text.signup",
-                        newFromEncoded(loginBaseUrl).addParameters(loginBaseParameters).toExternalForm() + loginUrlLang
-                    )
-                )
-                comment(
-                    RaccoonBundle.message(
-                        "login.dialog.text.forgotPassword",
-                        newFromEncoded(loginBaseUrl).addParameters(
-                            loginBaseParameters + Pair(
-                                "step",
-                                "forgot-password"
-                            )
+
+                webLoginUrl?.letIfNotBlank {
+                    comment(
+                        RaccoonBundle.message(
+                            "login.dialog.text.signup",
+                            newFromEncoded(it).addParameters(loginBaseParameters).toExternalForm() + loginUrlLang
                         )
-                            .toExternalForm() + loginUrlLang
                     )
-                ).horizontalAlign(HorizontalAlign.RIGHT)
+                }
+                webForgotPasswordUrl?.letIfNotBlank {
+                    comment(
+                        RaccoonBundle.message(
+                            "login.dialog.text.forgotPassword",
+                            newFromEncoded(it).addParameters(loginBaseParameters).toExternalForm() + loginUrlLang
+                        )
+                    ).horizontalAlign(HorizontalAlign.RIGHT)
+                }
             }
         }
         row {
@@ -242,7 +257,6 @@ class LoginDialog(
     }
 
     companion object {
-        private const val IS_TOB = false
         private const val MIN_PASSWORD_LENGTH = 8
         private const val MAX_PASSWORD_LENGTH = 1024
         private const val MIN_PHONE_NUMBER_LENGTH = 6

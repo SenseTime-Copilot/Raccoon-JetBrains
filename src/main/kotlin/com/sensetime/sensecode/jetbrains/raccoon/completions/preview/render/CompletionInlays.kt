@@ -7,7 +7,7 @@ import com.intellij.openapi.util.Disposer
 import java.awt.Point
 import java.awt.Rectangle
 
-class CompletionInlays(parent: Disposable) : Disposable {
+internal class CompletionInlays(parent: Disposable) : Disposable {
     private var inlineInlay: Inlay<*>? = null
     private var blockInlay: Inlay<*>? = null
 

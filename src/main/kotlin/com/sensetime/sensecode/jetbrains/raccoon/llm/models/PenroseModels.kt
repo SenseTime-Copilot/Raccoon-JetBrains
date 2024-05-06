@@ -1,18 +1,21 @@
 package com.sensetime.sensecode.jetbrains.raccoon.llm.models
 
+import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMMessage
 import com.sensetime.sensecode.jetbrains.raccoon.llm.prompts.DisplayTextTemplate
 import com.sensetime.sensecode.jetbrains.raccoon.llm.prompts.PromptVariables
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.AgentModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ChatModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.CompletionModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.tasks.*
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlin.math.min
 
 
 @Serializable
-data class PenroseCompletionModelConfig(
+internal data class PenroseCompletionModelConfig(
     override val name: String = "SenseChat-CodeCompletion-Lite",
     override val temperature: Float = 0.4f,
     override val stop: List<String> = listOf("<EOT>"),
@@ -24,7 +27,7 @@ data class PenroseCompletionModelConfig(
         CompletionPreference.BALANCED to 256,
         CompletionPreference.BEST_EFFORT to min(1024, (tokenLimit - maxInputTokens))
     ),
-    override val roleMap: Map<Role, String>? = null,
+    override val roleMap: Map<LLMMessage.Role, String>? = null,
     override val systemPrompt: String? = null,
     override val customRequestArgs: JsonObject? = null
 ) : CompletionModelConfig() {
@@ -36,14 +39,14 @@ data class PenroseCompletionModelConfig(
 }
 
 @Serializable
-data class PenroseChatModelConfig(
+internal data class PenroseChatModelConfig(
     override val name: String = "SenseChat-Code",
     override val temperature: Float = 0.4f,
     override val stop: List<String> = listOf("<|endofmessage|>"),
     override val maxInputTokens: Int = 6144,
     override val tokenLimit: Int = 8192,
     override val promptTemplates: Map<String, DisplayTextTemplate> = DEFAULT_PROMPT_TEMPLATES,
-    override val roleMap: Map<Role, String>? = null,
+    override val roleMap: Map<LLMMessage.Role, String>? = null,
     override val systemPrompt: String? = null,
     override val customRequestArgs: JsonObject? = null
 ) : ChatModelConfig() {
@@ -82,3 +85,16 @@ data class PenroseChatModelConfig(
             }
     }
 }
+
+@Serializable
+internal data class PenroseAgentModelConfig(
+    override val name: String = "SenseChat-Code",
+    override val temperature: Float = 0.4f,
+    override val stop: List<String> = listOf("<|endofmessage|>"),
+    override val maxInputTokens: Int = 6144,
+    override val tokenLimit: Int = 8192,
+    override val tools: JsonArray = JsonArray(emptyList()),
+    override val roleMap: Map<LLMMessage.Role, String>? = null,
+    override val systemPrompt: String? = null,
+    override val customRequestArgs: JsonObject? = null
+) : AgentModelConfig()

@@ -1,8 +1,6 @@
 {
   "apiBaseUrl": "https://raccoon-api.sensetime.com",
   "completionApiConfig": {
-    "path": "/api/plugin/nova/v1/proxy/v1/llm/completions",
-    "selectedModelIndex": 0,
     "models": [
       {
         "maxNewTokens": null,
@@ -23,8 +21,6 @@
     ]
   },
   "chatApiConfig": {
-    "path": "/api/plugin/nova/v1/proxy/v1/llm/chat-completions",
-    "selectedModelIndex": 0,
     "models": [
       {
         "maxNewTokens": null,

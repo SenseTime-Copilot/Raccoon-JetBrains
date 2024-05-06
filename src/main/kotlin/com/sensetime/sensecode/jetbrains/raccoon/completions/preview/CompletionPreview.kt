@@ -14,11 +14,11 @@ import com.intellij.util.messages.SimpleMessageBusConnection
 import com.sensetime.sensecode.jetbrains.raccoon.completions.preview.render.CompletionInlays
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_STATISTICS_TOPIC
-import com.sensetime.sensecode.jetbrains.raccoon.topics.SENSE_CODE_EDITOR_CHANGED_TOPIC
+import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_EDITOR_CHANGED_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonEditorChangedListener
 import com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonNotification
 
-class CompletionPreview private constructor(
+internal class CompletionPreview private constructor(
     tmpEditor: Editor,
     private val offset: Int,
     private val language: String
@@ -78,9 +78,10 @@ class CompletionPreview private constructor(
         (tmpEditor as? EditorEx)?.addFocusListener(EditorFocusChangeListener(), this)
         tmpEditor.putUserData(COMPLETION_PREVIEW, this)
 
-        editorChangedMessageBusConnection = ApplicationManager.getApplication().messageBus.connect().also {
-            it.subscribe(SENSE_CODE_EDITOR_CHANGED_TOPIC, this)
-        }
+        editorChangedMessageBusConnection =
+            (tmpEditor.project ?: ApplicationManager.getApplication()).messageBus.connect().also {
+                it.subscribe(RACCOON_EDITOR_CHANGED_TOPIC, this)
+            }
     }
 
     override fun dispose() {

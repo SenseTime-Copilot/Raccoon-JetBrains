@@ -9,7 +9,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindow.codes.actions.Cop
 import com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindow.codes.actions.InsertedAtCursorAction
 import com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindow.codes.actions.ToggleSoftWrapAction
 
-class CodeActionsToolbarBuilder {
+internal class CodeActionsToolbarBuilder {
     fun build(editor: EditorEx, language: String): ActionToolbar = DefaultCompactActionGroup().apply {
         add(ToggleSoftWrapAction(editor))
         add(CopyToClipboardAction(editor, language))

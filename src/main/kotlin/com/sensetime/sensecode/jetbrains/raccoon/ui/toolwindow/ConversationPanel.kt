@@ -40,7 +40,7 @@ import javax.swing.text.StyleConstants
 //    updateStyle(styleAttrs)
 //}
 
-class ConversationPanel(
+internal class ConversationPanel(
     parent: Disposable,
     project: Project?,
     conversation: ChatConversation,

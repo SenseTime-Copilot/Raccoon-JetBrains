@@ -6,7 +6,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.actionSystem.EditorActionHandler
 import com.sensetime.sensecode.jetbrains.raccoon.completions.preview.CompletionPreview
 
-class EscapeEditorActionHandler(private val myOriginalHandler: EditorActionHandler) : EditorActionHandler() {
+internal class EscapeEditorActionHandler(private val myOriginalHandler: EditorActionHandler) : EditorActionHandler() {
     override fun doExecute(editor: Editor, caret: Caret?, dataContext: DataContext) {
         CompletionPreview.getInstance(editor)?.cancel()
         if (myOriginalHandler.isEnabled(editor, caret, dataContext)) {

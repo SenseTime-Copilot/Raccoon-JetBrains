@@ -10,7 +10,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_STATISTICS_TOPIC
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 
-class CopyToClipboardAction(private val editor: Editor, private val language: String) : AnAction(
+internal class CopyToClipboardAction(private val editor: Editor, private val language: String) : AnAction(
     RaccoonBundle.message("codes.actions.copy.name"),
     RaccoonBundle.message("codes.actions.copy.description"),
     AllIcons.Actions.Copy

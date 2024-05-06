@@ -2,40 +2,31 @@ package com.sensetime.sensecode.jetbrains.raccoon.ui
 
 import com.intellij.notification.*
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.project.DumbService
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
+import com.intellij.psi.util.PsiUtilBase
+import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClient
+import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMCodeChunk
+import com.sensetime.sensecode.jetbrains.raccoon.llm.knowledgebases.CodeLocalContextFinder
+import com.sensetime.sensecode.jetbrains.raccoon.llm.tokens.RaccoonTokenUtils
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
-import com.sensetime.sensecode.jetbrains.raccoon.ui.common.LoginDialog
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.RaccoonUIUtils
 import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
 
-object RaccoonNotification {
+
+internal object RaccoonNotification {
     const val GROUP_ID: String = "Raccoon Notification Group"
 
     @JvmStatic
-    private val notificationGroup: NotificationGroup
+    val notificationGroup: NotificationGroup
         get() = NotificationGroupManager.getInstance().getNotificationGroup(GROUP_ID)
 
     @JvmStatic
     fun notifySettingsAction(notification: Notification, actionName: String) {
         notification.addAction(NotificationAction.createSimple(actionName) {
             RaccoonUIUtils.showRaccoonSettings()
-        }).notify(null)
-    }
-
-    private var isNotifiedGotoLogin: Boolean = false
-
-    @JvmStatic
-    fun notifyGotoLogin(once: Boolean) {
-        if (once && isNotifiedGotoLogin) {
-            return
-        }
-        isNotifiedGotoLogin = true
-        notificationGroup.createNotification(
-            RaccoonBundle.message("notification.settings.login.notloggedin"),
-            "",
-            NotificationType.WARNING
-        ).addAction(NotificationAction.createSimple(RaccoonBundle.message("notification.settings.goto.login")) {
-            LoginDialog(null, null).showAndGet()
         }).notify(null)
     }
 
@@ -59,18 +50,40 @@ object RaccoonNotification {
     }
 
     @JvmStatic
-    fun checkEditorSelectedText(maxInputTokens: Int, editor: Editor?, diffOnly: Boolean): String? =
+    fun checkEditorSelectedText(
+        maxInputTokens: Int,
+        editor: Editor?, project: Project,
+        diffOnly: Boolean
+    ): Pair<String, List<LLMCodeChunk>?>? =
         editor?.let {
-            it.selectionModel.selectedText?.letIfNotBlank { text ->
-                if (text.length / 4 > maxInputTokens) {
-                    popupMessageInBestPositionForEditor(
-                        RaccoonBundle.message("notification.editor.selectedText.tooLong"),
-                        editor,
-                        diffOnly
-                    )
-                    null
-                } else {
-                    text
+            editor.selectionModel.let { selectionModel ->
+                selectionModel.selectedText?.letIfNotBlank { selectedText ->
+                    val curTokens = RaccoonTokenUtils.estimateTokensNumber(selectedText)
+                    if (curTokens > maxInputTokens) {
+                        popupMessageInBestPositionForEditor(
+                            RaccoonBundle.message("notification.editor.selectedText.tooLong"),
+                            editor,
+                            diffOnly
+                        )
+                        null
+                    } else {
+                        Pair(
+                            selectedText,
+                            project.takeUnless { DumbService.isDumb(it) }?.let { notDumbProject ->
+                                PsiUtilBase.getPsiFileInEditor(editor, notDumbProject)
+                                    ?.takeIf { RaccoonClient.getIsKnowledgeBaseAllowed() && RaccoonSettingsState.instance.isLocalKnowledgeBaseEnabled }
+                                    ?.let { psiFile ->
+                                        CodeLocalContextFinder.findAllContextsLocally(
+                                            psiFile,
+                                            ((maxInputTokens - curTokens) * 0.75).toInt(),
+                                            selectionModel.selectionStart,
+                                            selectionModel.selectionEnd
+                                        ).map { context ->
+                                            LLMCodeChunk(context.first, context.second)
+                                        }
+                                    }
+                            })
+                    }
                 }
             }
         }

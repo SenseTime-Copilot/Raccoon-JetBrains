@@ -1,18 +1,18 @@
 package com.sensetime.sensecode.jetbrains.raccoon.persistent.histories
 
-import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
+import com.intellij.openapi.project.Project
+import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClient
 import com.sensetime.sensecode.jetbrains.raccoon.llm.prompts.PromptVariables
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.others.RaccoonUserInformation
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ChatModelConfig
-import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
-import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
-import com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonNotification
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-interface DisplayMessage {
+
+internal interface DisplayMessage {
     val name: String
     val displayText: String
     val timestampMs: Long
@@ -21,7 +21,7 @@ interface DisplayMessage {
 }
 
 @Serializable
-data class UserMessage(
+internal data class UserMessage(
     override val name: String,
     @SerialName("type")
     val promptType: String,
@@ -32,8 +32,7 @@ data class UserMessage(
         modelConfig.getPromptTemplate(promptType)!!.getRawText(args)
 
     override val displayText: String
-        get() = RaccoonClientManager.currentClientConfig.chatModelConfig.getPromptTemplate(promptType)!!
-            .getDisplayText(args)
+        get() = RaccoonClient.clientConfig.chatModelConfig.getPromptTemplate(promptType)!!.getDisplayText(args)
 
     private val text: String?
         get() = args[PromptVariables.TEXT]
@@ -44,15 +43,16 @@ data class UserMessage(
 
     companion object {
         fun createUserMessage(
-            name: String? = RaccoonClientManager.userName,
+            project: Project?,
+            name: String? = RaccoonUserInformation.getInstance().getDisplayUserName(),
             promptType: String,
             text: String? = null,
             code: String? = null,
             language: String? = null,
             args: Map<String, String>? = null,
-            timestampMs: Long = RaccoonUtils.getSystemTimestampMs()
+            timestampMs: Long = RaccoonUtils.getDateTimestampMs()
         ): UserMessage? = if (name.isNullOrBlank()) {
-            RaccoonNotification.notifyGotoLogin(false)
+            RaccoonClient.notifyGotoLogin(project!!, null)
             null
         } else {
             UserMessage(name, promptType, timestampMs, buildMap {
@@ -70,7 +70,7 @@ data class AssistantMessage(
     var content: String = "",
     @SerialName("state")
     var generateState: GenerateState = GenerateState.PROMPT,
-    override val timestampMs: Long = RaccoonUtils.getSystemTimestampMs()
+    override val timestampMs: Long = RaccoonUtils.getDateTimestampMs()
 ) : DisplayMessage {
     enum class GenerateState(val code: String) {
         PROMPT("prompt"),
@@ -95,7 +95,7 @@ data class AssistantMessage(
     }
 
     override val name: String
-        get() = RaccoonPlugin.NAME
+        get() = RaccoonPlugin.name
     override val displayText: String
         get() = content
 

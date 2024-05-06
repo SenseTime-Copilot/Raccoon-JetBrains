@@ -8,13 +8,13 @@ import com.intellij.openapi.diagnostic.debug
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.diagnostic.trace
 import com.intellij.util.messages.MessageBusConnection
-import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClientManager
-import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.BehaviorMetrics
-import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.CodeCompletionAcceptUsage
-import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.DialogCodeAcceptUsage
+import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientManager
+import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.RaccoonClientBehaviorMetrics
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonConfig
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_SENSITIVE_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_STATISTICS_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonStatisticsListener
+import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonExceptions
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils
 import com.sensetime.sensecode.jetbrains.raccoon.utils.getOrPutDefault
 import kotlinx.coroutines.*
@@ -27,9 +27,10 @@ private val LOG = logger<RaccoonStatisticsServer>()
 @Service(Service.Level.APP)
 class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
     private var cachedStatisticsCount: Int = 0
+    private val maxIntervalMs = RaccoonConfig.config.raccoonStatisticsMaxIntervalMs
     private var lastUploadTimeMs: Long = RaccoonUtils.getSteadyTimestampMs()
-    private var lastBehaviorMetrics: BehaviorMetrics = BehaviorMetrics()
-    private val metricsChannel = Channel<BehaviorMetrics>(Channel.UNLIMITED)
+    private var lastBehaviorMetrics: RaccoonClientBehaviorMetrics = RaccoonClientBehaviorMetrics()
+    private val metricsChannel = Channel<RaccoonClientBehaviorMetrics>(Channel.UNLIMITED)
     private var statisticsMessageBusConnection: MessageBusConnection? = null
 
     private var timerJob: Job? = null
@@ -39,9 +40,6 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
         CoroutineScope(SupervisorJob() + Dispatchers.IO + CoroutineName("RaccoonStatisticsServer"))
 
     companion object {
-        private const val MAX_CACHE_COUNT: Int = 100
-        private const val MAX_INTERVAL_MS: Long = 600L * 1000L
-
         @JvmStatic
         fun getInstance(): RaccoonStatisticsServer = service()
 
@@ -74,44 +72,37 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
 
         timerJob = statisticsCoroutineScope.launch {
             while (true) {
-                delay((MAX_INTERVAL_MS * Random.nextDouble(0.8, 1.2)).toLong())
+                delay((maxIntervalMs * Random.nextDouble(0.8, 1.2)).toLong())
                 updateBehaviorMetrics()
             }
         }
 
         uploadJob = statisticsCoroutineScope.launch {
             for (metrics in metricsChannel) {
-                kotlin.runCatching {
+                RaccoonExceptions.resultOf {
                     while (true) {
                         LOG.debug { "start uploadBehaviorMetrics" }
-                        if (RaccoonClientManager.currentCodeClient.uploadBehaviorMetrics(metrics)) {
+                        if (LLMClientManager.currentLLMClient.uploadBehaviorMetrics(metrics)) {
                             LOG.debug { "run uploadBehaviorMetrics ok" }
                             break
                         }
                         LOG.debug { "run uploadBehaviorMetrics failed" }
-                        delay((MAX_INTERVAL_MS * Random.nextDouble(0.8, 1.2)).toLong())
+                        delay((maxIntervalMs * Random.nextDouble(0.8, 1.2)).toLong())
                     }
                     LOG.debug { "run uploadBehaviorMetrics finished" }
-                }.onFailure { e ->
-                    if (e is CancellationException) {
-                        LOG.debug(e)
-                        throw e
-                    } else {
-                        LOG.warn(e)
-                    }
                 }
             }
             LOG.debug { "uploadJob finished" }
         }
 
         sensitiveJob = statisticsCoroutineScope.launch {
-            var lastUpdateTime: Long = RaccoonUtils.getSystemTimestampMs()
+            var lastUpdateTime: Long = RaccoonUtils.getDateTimestampMs()
             while (true) {
-                kotlin.runCatching {
+                RaccoonExceptions.resultOf {
                     delay((Random.nextDouble(1.5, 2.5) * 3600 * 1000).toLong())
-                    val tmpTime = RaccoonUtils.getSystemTimestampMs()
+                    val tmpTime = RaccoonUtils.getDateTimestampMs()
                     val sensitives =
-                        RaccoonClientManager.currentCodeClient.getSensitiveConversations(
+                        LLMClientManager.currentLLMClient.getSensitiveConversations(
                             lastUpdateTime.toString(),
                             action = "timer"
                         )
@@ -119,10 +110,6 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
                     if (sensitives.isNotEmpty()) {
                         ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_SENSITIVE_TOPIC)
                             .onNewSensitiveConversations(sensitives)
-                    }
-                }.onFailure { e ->
-                    if (e is CancellationException) {
-                        throw e
                     }
                 }
             }
@@ -151,7 +138,7 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
     private fun sendCurrentMetrics() {
         if (cachedStatisticsCount > 0) {
             metricsChannel.trySend(lastBehaviorMetrics)
-            lastBehaviorMetrics = BehaviorMetrics()
+            lastBehaviorMetrics = RaccoonClientBehaviorMetrics()
         }
         cachedStatisticsCount = 0
         lastUploadTimeMs = RaccoonUtils.getSteadyTimestampMs()
@@ -159,14 +146,14 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
 
     private fun updateBehaviorMetrics(
         forceUpload: Boolean = false,
-        updateOnUIThread: ((BehaviorMetrics) -> Unit)? = null
+        updateOnUIThread: ((RaccoonClientBehaviorMetrics) -> Unit)? = null
     ) {
         ApplicationManager.getApplication().invokeLater {
             updateOnUIThread?.let {
                 it.invoke(lastBehaviorMetrics)
                 cachedStatisticsCount += 1
             }
-            if (forceUpload || (cachedStatisticsCount >= MAX_CACHE_COUNT) || ((RaccoonUtils.getSteadyTimestampMs() - lastUploadTimeMs) >= MAX_INTERVAL_MS)) {
+            if (forceUpload || (cachedStatisticsCount >= RaccoonConfig.config.raccoonStatisticsMaxCacheCount) || ((RaccoonUtils.getSteadyTimestampMs() - lastUploadTimeMs) >= maxIntervalMs)) {
                 sendCurrentMetrics()
             }
         }
@@ -174,24 +161,24 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
 
     override fun onGenerateGitCommitMessageFinished() {
         updateBehaviorMetrics {
-            it.commitMessageMetric.commitMessage.usageNumber += 1
+            it.commitMessageMetric.commitMessageUsages.usageNumber += 1
         }
     }
 
     override fun onInlineCompletionFinished(language: String, candidates: Int) {
         updateBehaviorMetrics {
-            it.codeCompletionMetric.codeCompletionUsages.acceptUsagesMap.metricsMap.getOrPutDefault(
+            it.codeCompletionMetric.codeCompletionUsages.acceptLanguageUsages.languageUsagesMap.getOrPutDefault(
                 cvtLanguage(language),
-                CodeCompletionAcceptUsage()
+                RaccoonClientBehaviorMetrics.CodeCompletionAcceptUsages()
             ).generateNumber += candidates
         }
     }
 
     override fun onInlineCompletionAccepted(language: String) {
         updateBehaviorMetrics {
-            it.codeCompletionMetric.codeCompletionUsages.acceptUsagesMap.metricsMap.getOrPutDefault(
+            it.codeCompletionMetric.codeCompletionUsages.acceptLanguageUsages.languageUsagesMap.getOrPutDefault(
                 cvtLanguage(language),
-                CodeCompletionAcceptUsage()
+                RaccoonClientBehaviorMetrics.CodeCompletionAcceptUsages()
             ).acceptNumber += 1
         }
     }
@@ -223,9 +210,9 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
     override fun onToolWindowCodeGenerated(languages: List<String>) {
         updateBehaviorMetrics {
             for (language in languages) {
-                it.dialogMetric.dialogUsages.acceptUsagesMap.metricsMap.getOrPutDefault(
+                it.dialogMetric.dialogUsages.acceptLanguageUsages.languageUsagesMap.getOrPutDefault(
                     cvtLanguage(language),
-                    DialogCodeAcceptUsage()
+                    RaccoonClientBehaviorMetrics.DialogCodeAcceptUsages()
                 ).generateNumber += 1
             }
         }
@@ -233,18 +220,18 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
 
     override fun onToolWindowCodeCopied(language: String) {
         updateBehaviorMetrics {
-            it.dialogMetric.dialogUsages.acceptUsagesMap.metricsMap.getOrPutDefault(
+            it.dialogMetric.dialogUsages.acceptLanguageUsages.languageUsagesMap.getOrPutDefault(
                 cvtLanguage(language),
-                DialogCodeAcceptUsage()
+                RaccoonClientBehaviorMetrics.DialogCodeAcceptUsages()
             ).copyNumber += 1
         }
     }
 
     override fun onToolWindowCodeInserted(language: String) {
         updateBehaviorMetrics {
-            it.dialogMetric.dialogUsages.acceptUsagesMap.metricsMap.getOrPutDefault(
+            it.dialogMetric.dialogUsages.acceptLanguageUsages.languageUsagesMap.getOrPutDefault(
                 cvtLanguage(language),
-                DialogCodeAcceptUsage()
+                RaccoonClientBehaviorMetrics.DialogCodeAcceptUsages()
             ).insertNumber += 1
         }
     }

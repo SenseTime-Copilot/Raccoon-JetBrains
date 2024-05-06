@@ -3,9 +3,9 @@ package com.sensetime.sensecode.jetbrains.raccoon.topics
 import com.intellij.util.messages.Topic
 
 @Topic.AppLevel
-val RACCOON_STATISTICS_TOPIC = Topic.create("RaccoonStatisticsTopic", RaccoonStatisticsListener::class.java)
+internal val RACCOON_STATISTICS_TOPIC = Topic.create("RaccoonStatisticsTopic", RaccoonStatisticsListener::class.java)
 
-interface RaccoonStatisticsListener {
+internal interface RaccoonStatisticsListener {
     fun onGenerateGitCommitMessageFinished()
 
     fun onInlineCompletionFinished(language: String, candidates: Int)
