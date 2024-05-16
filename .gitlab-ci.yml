@@ -1,0 +1,15 @@
+stages:          # List of stages for jobs, and their order of execution
+  - build
+
+build_job:
+  stage: build
+  script:
+    - ./gradlew buildPlugin
+  artifacts:
+    paths:
+      - build/distributions
+    expire_in: 1 week
+  only:
+    - dev/ci-test
+  tags:
+    - copilot-nv-tag
