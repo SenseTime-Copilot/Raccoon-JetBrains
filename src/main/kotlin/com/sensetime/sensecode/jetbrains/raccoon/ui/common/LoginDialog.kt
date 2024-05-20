@@ -145,7 +145,7 @@ internal class LoginDialog(
             }
         } else {
             row(RaccoonBundle.message("login.dialog.label.phone")) {
-                phoneNationCodeComboBox = comboBox(listOf("+86", "+852", "+853")).gap(RightGap.SMALL).component
+                phoneNationCodeComboBox = comboBox(listOf("+86", "+852", "+853", "+81")).gap(RightGap.SMALL).component
                 phoneField = textField().validationOnApply {
                     if (it.text.length !in MIN_PHONE_NUMBER_LENGTH..MAX_PHONE_NUMBER_LENGTH) {
                         error(
