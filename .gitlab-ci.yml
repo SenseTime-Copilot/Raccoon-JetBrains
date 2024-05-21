@@ -1,13 +1,23 @@
-stages:          # List of stages for jobs, and their order of execution
+stages:
   - build
 
-build_job:
+variables:
+  PACKAGE_ID:
+    description: "The package ID for shipping package, such as 'raccoon' or 'raccoon-enterprise'. default is 'raccoon'"
+  PACKAGE_NAME:
+    description: "The package name for shipping package, such as 'Raccoon' or 'Raccoon-Enterprise'. default is 'Raccoon'"
+  PACKAGE_TYPE:
+    description: "The package type for shipping package, only 'Standard' or 'Enterprise'. default is 'Standard'"
+  API_BASEURL:
+    description: "The API base URL path of backend, default is 'https://raccoon-api.sensetime.com'"
+
+build_plugin:
   stage: build
   script:
     - ./gradlew buildPlugin
   artifacts:
     paths:
-      - build/distributions
+      - build/distributions/*.zip
     expire_in: 1 week
   only:
     - dev/ci-test
