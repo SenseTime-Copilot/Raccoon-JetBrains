@@ -1,8 +1,16 @@
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.markdownToHTML
+import java.nio.charset.Charset
 
 fun properties(key: String) = providers.gradleProperty(key)
 fun environment(key: String) = providers.environmentVariable(key)
+
+fun getDefaultPackageId() = properties("defaultPackageId")
+fun getDefaultPackageName() = properties("defaultPackageName")
 
 plugins {
     id("java") // Java support
@@ -43,7 +51,7 @@ kotlin {
 
 // Configure Gradle IntelliJ Plugin - read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
 intellij {
-    pluginName = properties("pluginName")
+    pluginName = getDefaultPackageId().get() + "-plugin"
     version = properties("platformVersion")
     type = properties("platformType")
 
@@ -108,6 +116,95 @@ tasks {
                     Changelog.OutputType.HTML,
                 )
             }
+        }
+
+        // Must save environment provider to task val at configuration time
+        // See https://docs.gradle.org/8.4/userguide/configuration_cache.html#config_cache:requirements:reading_sys_props_and_env_vars
+        val packageIdKey = "PACKAGE_ID"
+        val packageNameKey = "PACKAGE_NAME"
+        val packageId = environment(packageIdKey)
+        val packageName = environment(packageNameKey)
+        val defaultPackageId = getDefaultPackageId()
+        val defaultPackageName = getDefaultPackageName()
+
+        fun Provider<String>.getIfNotNullOrBlankOrElse(default: String) =
+            getOrNull()?.takeIf { it.isNotBlank() } ?: default
+
+        fun replacePackageVariables(src: String, variables: Map<String, String>): String =
+            Regex("""\{([\w ]*)\}""").replace(src.also {
+                logger.debug("before replace: \"$it\"")
+            }) { matchResult ->
+                variables.getValue(matchResult.groupValues[1].trim()).also {
+                    logger.info("replace variable: \"${matchResult.groupValues[0]}\" -> \"$it\"")
+                }
+            }.also { logger.debug("after replace: \"$it\"") }
+
+        // replace plugin.xml in destinationDir with packageVariables, after patchPluginXml(copy plugin.xml to destinationDir)
+        doLast {
+            val charset: Charset = Charsets.UTF_8
+            val pluginXmlFilename = "plugin.xml"
+            val packageVariables = mapOf(
+                packageIdKey to packageId.getIfNotNullOrBlankOrElse(defaultPackageId.get()),
+                packageNameKey to packageName.getIfNotNullOrBlankOrElse(defaultPackageName.get())
+            )
+            logger.info("Start Replace \"$pluginXmlFilename\"")
+            destinationDir.file(pluginXmlFilename).get().asFile.apply {
+                logger.info("Replace \"$path\" with packageVariables: $packageVariables")
+                writeText(replacePackageVariables(readText(charset), packageVariables), charset)
+            }
+            logger.info("End Replace \"$pluginXmlFilename\"")
+        }
+    }
+
+    processResources {
+        // Must save environment provider to task val at configuration time
+        // See https://docs.gradle.org/8.4/userguide/configuration_cache.html#config_cache:requirements:reading_sys_props_and_env_vars
+        val packageId = environment("PACKAGE_ID")
+        val packageType = environment("PACKAGE_TYPE")
+        val apiBaseUrl = environment("API_BASEURL")
+        val defaultPackageId = getDefaultPackageId()
+        val raccoonConfigJson = Json {
+            encodeDefaults = true
+            prettyPrint = true
+        }
+
+        fun MutableMap<String, JsonElement>.putIfNotNullOrBlank(key: String, value: String?) {
+            value?.takeIf { it.isNotBlank() }?.let { put(key, JsonPrimitive(it)) }
+        }
+
+        fun File.asJsonFileAndPlus(json: Json, newConfigs: Map<String, JsonElement>) {
+            val charset: Charset = Charsets.UTF_8
+            logger.info("Start update configs to file \"$path\", $newConfigs")
+            writeText(
+                json.encodeToString(
+                    JsonObject.serializer(),
+                    JsonObject(json.decodeFromString(JsonObject.serializer(), readText(charset).also {
+                        logger.debug("before update: \"$it\"")
+                    }) + newConfigs)
+                ).also { logger.debug("after update: \"$it\"") }, charset
+            )
+            logger.info("End update configs to file \"$name\"")
+        }
+
+        // update config json files in destinationDir if packageVariables are present, after processResources(copy resources to destinationDir)
+        doLast {
+            // update config.json
+            buildMap {
+                put(
+                    "packageId",
+                    JsonPrimitive(packageId.getOrNull()?.takeIf { it.isNotBlank() } ?: defaultPackageId.get()))
+                putIfNotNullOrBlank("variant", packageType.getOrNull())
+            }.let { packageVariables ->
+                destinationDir.resolve("configs/config.json").asJsonFileAndPlus(raccoonConfigJson, packageVariables)
+            }
+
+            // update RaccoonClient.json
+            buildMap {
+                putIfNotNullOrBlank("apiBaseUrl", apiBaseUrl.getOrNull())
+            }.takeIf { it.isNotEmpty() }?.let { packageVariables ->
+                destinationDir.resolve("configs/RaccoonClient.json")
+                    .asJsonFileAndPlus(raccoonConfigJson, packageVariables)
+            } ?: logger.info("Skip update RaccoonClient.json because of packageVariables is empty")
         }
     }
 

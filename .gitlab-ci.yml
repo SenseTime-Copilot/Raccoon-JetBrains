@@ -3,18 +3,22 @@ stages:
 
 variables:
   PACKAGE_ID:
-    description: "The package ID for shipping package, such as 'raccoon' or 'raccoon-enterprise'. default is 'raccoon'"
+    description: "The package ID for shipping package, such as 'raccoon' or 'raccoon-enterprise'. default is 'defaultPackageId' in gradle.properties"
   PACKAGE_NAME:
-    description: "The package name for shipping package, such as 'Raccoon' or 'Raccoon-Enterprise'. default is 'Raccoon'"
+    description: "The package name for shipping package, such as 'Raccoon' or 'Raccoon-Enterprise'. default is 'defaultPackageName' in gradle.properties"
   PACKAGE_TYPE:
     description: "The package type for shipping package, only 'Standard' or 'Enterprise'. default is 'Standard'"
+    value: "Standard"
+    options:
+      - "Standard"
+      - "Enterprise"
   API_BASEURL:
-    description: "The API base URL path of backend, default is 'https://raccoon-api.sensetime.com'"
+    description: "The API base URL path of backend. default is use configs/RaccoonClient.json"
 
 build_plugin:
   stage: build
   script:
-    - ./gradlew buildPlugin
+    - ./gradlew --info buildPlugin
   artifacts:
     paths:
       - build/distributions/*.zip
