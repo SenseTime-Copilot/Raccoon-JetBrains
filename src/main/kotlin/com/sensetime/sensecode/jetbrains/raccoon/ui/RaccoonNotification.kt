@@ -13,11 +13,12 @@ import com.sensetime.sensecode.jetbrains.raccoon.llm.tokens.RaccoonTokenUtils
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.ui.common.RaccoonUIUtils
+import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
 import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
 
 
 internal object RaccoonNotification {
-    const val GROUP_ID: String = "Raccoon Notification Group"
+    val GROUP_ID: String = "${RaccoonPlugin.name} Notification Group"
 
     @JvmStatic
     val notificationGroup: NotificationGroup
