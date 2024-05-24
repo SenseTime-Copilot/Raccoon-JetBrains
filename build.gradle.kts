@@ -53,7 +53,7 @@ kotlin {
 intellij {
     pluginName =
         (environment("PACKAGE_ID").getOrNull()?.takeIf { it.isNotBlank() } ?: getDefaultPackageId().get()) + "-plugin"
-    logger.info("IntelliJ pluginName = $pluginName")
+    logger.info("IntelliJ pluginName = ${pluginName.get()}")
 
     version = properties("platformVersion")
     type = properties("platformType")
