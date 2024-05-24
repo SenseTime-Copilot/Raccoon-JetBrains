@@ -8,8 +8,8 @@ import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.dsl.gridLayout.VerticalAlign
 import com.intellij.util.ui.JBFont
-import com.intellij.util.ui.JBUI
 import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.RaccoonClientOrgInfo
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonConfig
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonIcons
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_CLIENT_AUTHORIZATION_TOPIC
@@ -118,9 +118,11 @@ internal class UserAuthorizationPanel(
                     add(Box.createHorizontalBox().apply {
                         add(currentOrgNameLabel)
                         add(Box.createHorizontalGlue())
-                        add(organizationsSelectorButton.apply {
-                            border = BorderFactory.createEmptyBorder()
-                        })
+                        if (!RaccoonConfig.config.isToB()) {
+                            add(organizationsSelectorButton.apply {
+                                border = BorderFactory.createEmptyBorder()
+                            })
+                        }
                         alignmentX = Component.LEFT_ALIGNMENT
                         border = BorderFactory.createEmptyBorder()
                     })

@@ -233,22 +233,23 @@ internal class RaccoonClient : LLMClient() {
             requireNotNull(knowledgeBasesResponse.data) { "not found data field in ${knowledgeBasesResponse::class::simpleName}" }
         }
 
-    private suspend fun ClientJobRunner.updateTokensResponseBodyInsideCatching(body: String): String =
-        LLMClientJson.decodeFromString(RaccoonClientTokensResponse.serializer(), body).let { tokensResponse ->
-            tokensResponse.throwIfError()
-            requireNotNull(tokensResponse.data) { "not found data field in ${tokensResponse::class::simpleName}" }.let { tokensResponseData ->
-                requestUserInfoInsideCatching(tokensResponseData.accessToken).let { userInfo ->
-                    RaccoonUserInformation.getInstance().updateAuthorizationTokens(
-                        tokensResponseData.accessToken,
-                        tokensResponseData.refreshToken,
-                        userInfo
-                    )
-                }
-                RaccoonUserInformation.getInstance().knowledgeBases =
-                    requestKnowledgeBasesInsideCatching(tokensResponseData.accessToken)
-                tokensResponseData.accessToken
+    private suspend fun ClientJobRunner.updateTokensResponseBodyInsideCatching(
+        body: String, isCheckOrg: Boolean
+    ): String = LLMClientJson.decodeFromString(RaccoonClientTokensResponse.serializer(), body).let { tokensResponse ->
+        tokensResponse.throwIfError()
+        requireNotNull(tokensResponse.data) { "not found data field in ${tokensResponse::class::simpleName}" }.let { tokensResponseData ->
+            requestUserInfoInsideCatching(tokensResponseData.accessToken).let { userInfo ->
+                RaccoonUserInformation.getInstance().updateAuthorizationTokens(
+                    tokensResponseData.accessToken,
+                    tokensResponseData.refreshToken,
+                    userInfo, isCheckOrg
+                )
             }
+            RaccoonUserInformation.getInstance().knowledgeBases =
+                requestKnowledgeBasesInsideCatching(tokensResponseData.accessToken)
+            tokensResponseData.accessToken
         }
+    }
 
     private suspend fun ClientJobRunner.getAccessTokenWithRefreshInsideCatching(): String =
         RaccoonUserInformation.getInstance().getAuthorizationTokens().let { (accessToken, refreshTokenIfExpired) ->
@@ -266,7 +267,7 @@ internal class RaccoonClient : LLMClient() {
                                     RaccoonClientRefreshTokenRequest(refreshToken)
                                 ).toRequestBody()
                             ).build()
-                        )
+                        ), false
                     )
                 }
             }.getOrNull() ?: accessToken
@@ -300,7 +301,7 @@ internal class RaccoonClient : LLMClient() {
             project,
             uiComponentForEdt
         ) { tokensResponseBody ->
-            updateTokensResponseBodyInsideCatching(tokensResponseBody)
+            updateTokensResponseBodyInsideCatching(tokensResponseBody, true)
         }
 
     suspend fun loginWithEmail(
@@ -317,7 +318,7 @@ internal class RaccoonClient : LLMClient() {
             project,
             uiComponentForEdt
         ) { tokensResponseBody ->
-            updateTokensResponseBodyInsideCatching(tokensResponseBody)
+            updateTokensResponseBodyInsideCatching(tokensResponseBody, true)
         }
 
     private suspend fun logout(project: Project?) {
@@ -387,8 +388,8 @@ internal class RaccoonClient : LLMClient() {
             }
             headers.values("x-raccoon-know-status").firstOrNull()
                 ?.takeIf { it.equals("expired", true) || it.equals("invalid", true) }?.let {
-                requestUserInfo(false, true, null, null)
-            }
+                    requestUserInfo(false, true, null, null)
+                }
         }
     }
 
