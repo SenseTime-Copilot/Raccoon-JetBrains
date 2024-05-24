@@ -51,7 +51,10 @@ kotlin {
 
 // Configure Gradle IntelliJ Plugin - read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
 intellij {
-    pluginName = getDefaultPackageId().get() + "-plugin"
+    pluginName =
+        (environment("PACKAGE_ID").getOrNull()?.takeIf { it.isNotBlank() } ?: getDefaultPackageId().get()) + "-plugin"
+    logger.info("IntelliJ pluginName = $pluginName")
+
     version = properties("platformVersion")
     type = properties("platformType")
 
