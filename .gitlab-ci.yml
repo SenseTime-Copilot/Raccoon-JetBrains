@@ -13,7 +13,7 @@ variables:
       - "Standard"
       - "Enterprise"
   API_BASEURL:
-    description: "The API base URL path of backend. default is use configs/RaccoonClient.json"
+    description: "The API base URL path of backend, only url(unlike vscode, not including plugin path). default is use configs/RaccoonClient.json"
 
 build_plugin:
   stage: build
