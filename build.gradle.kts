@@ -154,6 +154,9 @@ tasks {
             }
             logger.info("End Replace \"$pluginXmlFilename\"")
         }
+
+        // always run patchPluginXml task
+        outputs.upToDateWhen { false }
     }
 
     processResources {
@@ -206,6 +209,9 @@ tasks {
                     .asJsonFileAndPlus(raccoonConfigJson, packageVariables)
             } ?: logger.info("Skip update RaccoonClient.json because of packageVariables is empty")
         }
+
+        // always run processResources task
+        outputs.upToDateWhen { false }
     }
 
     // Configure UI tests plugin
