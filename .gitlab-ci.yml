@@ -1,0 +1,31 @@
+stages:
+  - build
+
+variables:
+  PACKAGE_ID:
+    description: "The package ID for shipping package, such as 'raccoon' or 'raccoon-enterprise'. default is 'defaultPackageId' in gradle.properties"
+  PACKAGE_NAME:
+    description: "The package name for shipping package, such as 'Raccoon' or 'Raccoon-Enterprise'. default is 'defaultPackageName' in gradle.properties"
+  PACKAGE_TYPE:
+    description: "The package type for shipping package, only 'Standard' or 'Enterprise'. default is 'Standard'"
+    value: "Standard"
+    options:
+      - "Standard"
+      - "Enterprise"
+  API_BASEURL:
+    description: "The API base URL path of backend, only url(unlike vscode, not including plugin path). default is use configs/RaccoonClient.json"
+
+build_plugin:
+  stage: build
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^st-/
+    - when: manual
+  script:
+    - ./gradlew --info help
+    - ./gradlew --info buildPlugin
+  artifacts:
+    paths:
+      - build/distributions/*.zip
+    expire_in: 1 week
+  tags:
+    - copilot-nv-tag

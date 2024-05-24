@@ -13,18 +13,19 @@ internal val RaccoonConfigJson = RaccoonBaseJson
 
 @Serializable
 internal data class RaccoonConfig(
+    val packageId: String,
     @SerialName("raccoonStatisticsMaxCacheCount")
     private val _raccoonStatisticsMaxCacheCount: Int = RACCOON_STATISTICS_MAX_CACHE_COUNT,
     @SerialName("raccoonStatisticsMaxIntervalMs")
     private val _raccoonStatisticsMaxIntervalMs: Int = RACCOON_STATISTICS_MAX_INTERVAL_MS
 ) {
-    enum class Variant {
-        TOC, TOB
+    private enum class Variant {
+        Standard, Enterprise
     }
 
-    private val variant: Variant = Variant.TOC
-    fun isToC(): Boolean = (variant == Variant.TOC)
-    fun isToB(): Boolean = (variant == Variant.TOB)
+    private val variant: Variant = Variant.Standard
+    fun isToC(): Boolean = (variant == Variant.Standard)
+    fun isToB(): Boolean = (variant == Variant.Enterprise)
 
     val raccoonStatisticsMaxCacheCount: Int
         get() = _raccoonStatisticsMaxCacheCount.coerceIn(1, RACCOON_STATISTICS_MAX_CACHE_COUNT)

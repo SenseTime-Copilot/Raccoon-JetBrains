@@ -1,7 +1,7 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-    <id>com.sensetime.sensecode.jetbrains.raccoon</id>
-    <name>Raccoon</name>
+    <id>com.sensetime.sensecode.jetbrains.{PACKAGE_ID}</id>
+    <name>{PACKAGE_NAME}</name>
     <vendor>SenseTime</vendor>
 
     <depends>com.intellij.modules.platform</depends>
@@ -16,20 +16,20 @@
                 serviceImplementation="com.sensetime.sensecode.jetbrains.raccoon.persistent.histories.RaccoonChatHistoriesState"/>
 
         <!--        UI-->
-        <notificationGroup displayType="BALLOON" id="Raccoon Notification Group"/>
+        <notificationGroup displayType="BALLOON" id="{PACKAGE_NAME} Notification Group"/>
 
-        <toolWindow id="Raccoon" anchor="right"
+        <toolWindow id="{PACKAGE_NAME}" anchor="right"
                     factoryClass="com.sensetime.sensecode.jetbrains.raccoon.ui.toolwindow.RaccoonToolWindowFactory"
                     icon="com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonIcons.TOOLWINDOW_RACCOON">
         </toolWindow>
 
-        <statusBarWidgetFactory id="Raccoon" order="last"
+        <statusBarWidgetFactory id="{PACKAGE_NAME}" order="last"
                                 implementation="com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonStatusBarWidgetFactory"/>
 
         <applicationConfigurable
                 instance="com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonConfigurable"
                 id="com.sensetime.sensecode.jetbrains.raccoon.ui.RaccoonConfigurable"
-                displayName="Raccoon"/>
+                displayName="{PACKAGE_NAME}"/>
 
         <!--        Inline Completion-->
         <postStartupActivity
@@ -51,7 +51,7 @@
 
     <actions>
         <!--        Code Task-->
-        <group id="com.sensetime.sensecode.jetbrains.raccoon.tasks.CodeTaskActionsGroup" text="Raccoon" popup="true">
+        <group id="com.sensetime.sensecode.jetbrains.raccoon.tasks.CodeTaskActionsGroup" text="{PACKAGE_NAME}" popup="true">
             <!--            Add actions to the tools menu-->
             <add-to-group
                     group-id="ToolsMenu"

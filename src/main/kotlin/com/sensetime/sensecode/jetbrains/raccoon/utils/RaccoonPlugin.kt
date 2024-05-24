@@ -5,10 +5,11 @@ import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.util.SystemInfo
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonConfig
 
 
 internal object RaccoonPlugin {
-    private const val PLUGIN_ID: String = "com.sensetime.sensecode.jetbrains.raccoon"
+    private val PLUGIN_ID: String = "com.sensetime.sensecode.jetbrains.${RaccoonConfig.config.packageId}"
     private fun getPlugin(): IdeaPluginDescriptor =
         requireNotNull(PluginManagerCore.getPlugin(PluginId.getId(PLUGIN_ID))) { "Not found $PLUGIN_ID!" }
 

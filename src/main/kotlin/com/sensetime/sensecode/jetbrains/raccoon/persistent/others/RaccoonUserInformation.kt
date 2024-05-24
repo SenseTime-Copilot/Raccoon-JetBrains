@@ -2,11 +2,14 @@ package com.sensetime.sensecode.jetbrains.raccoon.persistent.others
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.*
+import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientMessageException
 import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.RaccoonClientKnowledgeBases
 import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.RaccoonClientOrgInfo
 import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.RaccoonClientUserInfo
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.RaccoonPersistentJson
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.RaccoonPersistentStateComponent
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonConfig
+import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_CLIENT_AUTHORIZATION_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonExceptions
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonUtils.EMPTY_JSON_OBJECT_STRING
@@ -94,8 +97,17 @@ internal class RaccoonUserInformation : RaccoonPersistentStateComponent<RaccoonU
     fun updateAuthorizationTokens(
         accessToken: String,
         refreshToken: String?,
-        newUserInfo: RaccoonClientUserInfo?
+        newUserInfo: RaccoonClientUserInfo?,
+        isCheckOrg: Boolean
     ) {
+        var tmpOrgCode: String? = null
+        if (isCheckOrg && RaccoonConfig.config.isToB()) {
+            tmpOrgCode = newUserInfo?.getFirstAvailableOrgInfoOrNull()?.code
+            if (tmpOrgCode.isNullOrBlank()) {
+                throw LLMClientMessageException(RaccoonBundle.message("authorization.panel.organizations.list.empty"))
+            }
+        }
+
         state.accessToken = accessToken
         state.refreshToken = refreshToken
         RaccoonExceptions.resultOf {
@@ -108,7 +120,9 @@ internal class RaccoonUserInformation : RaccoonPersistentStateComponent<RaccoonU
             state.userNameInAccessToken = it.name
         }
         updateUserInfo(newUserInfo)
-        if (null == newUserInfo?.getOrgInfoByCodeOrNull(currentOrgCode)) {
+        if (null != tmpOrgCode) {
+            currentOrgCode = tmpOrgCode
+        } else if (null == newUserInfo?.getOrgInfoByCodeOrNull(currentOrgCode)) {
             currentOrgCode = ""
         }
     }
