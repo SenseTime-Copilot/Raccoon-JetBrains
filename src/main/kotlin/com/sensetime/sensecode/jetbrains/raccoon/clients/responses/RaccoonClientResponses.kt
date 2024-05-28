@@ -7,6 +7,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonSensitiveListener
 import com.sensetime.sensecode.jetbrains.raccoon.utils.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import java.util.*
 
 
 @Serializable
@@ -40,6 +41,8 @@ internal abstract class RaccoonClientStatus(
                 USER_VERIFY_EXCEEDED_LIMIT_CODE -> RaccoonBundle.message("client.sensecode.response.error.tryLoginLimit")
                 EMAIL_VERIFY_EXCEEDED_LIMIT_CODE -> RaccoonBundle.message("client.sensecode.response.error.tryLoginLimit.email")
                 ORG_PLUGIN_CODE_EXPIRED_CODE -> RaccoonBundle.message("client.authorization.organization.error.OrgExpired")
+                INVALID_CAPTCHA -> RaccoonBundle.message("login.dialog.error.invalidCaptcha")
+                INVALID_SMS_CODE -> RaccoonBundle.message("login.dialog.error.invalidSMSCode")
                 else -> null
             }?.let { throw LLMClientMessageException(it, getDetailsInfo()) }
         }
@@ -67,6 +70,8 @@ internal abstract class RaccoonClientStatus(
         private const val USER_VERIFY_EXCEEDED_LIMIT_CODE = 200101
         private const val EMAIL_VERIFY_EXCEEDED_LIMIT_CODE = 200105
         private const val ORG_PLUGIN_CODE_EXPIRED_CODE = 200023
+        private const val INVALID_CAPTCHA = 100006
+        private const val INVALID_SMS_CODE = 100007
 
         private val paramNamesMap: Map<String, String> = mapOf(
             "phone" to RaccoonBundle.message("login.dialog.label.phone"),
@@ -201,4 +206,34 @@ internal fun List<RaccoonClientSensitiveConversation>.toSensitiveConversationMap
 @Serializable
 internal data class RaccoonClientSensitivesResponse(
     val data: RaccoonClientSensitives? = null
+) : RaccoonClientStatus()
+
+@Serializable
+internal data class RaccoonClientCaptcha(
+    @SerialName("captcha_uuid")
+    val uuid: String,
+    @SerialName("captcha_image")
+    val base64Image: String
+) {
+    fun parseImage(): Pair<String, ByteArray> = base64Image.split(';').let {
+        Pair(it[0].split(':')[1].trim(), Base64.getDecoder().decode(it[1].split(',').last().trim()))
+    }
+}
+
+@Serializable
+internal data class RaccoonClientCaptchaResponse(
+    val data: RaccoonClientCaptcha
+) : RaccoonClientStatus()
+
+@Serializable
+internal data class RaccoonClientSendSMS(
+    @SerialName("captcha_result")
+    val captcha: Boolean,
+    @SerialName("sms_result")
+    val sms: Boolean
+)
+
+@Serializable
+internal data class RaccoonClientSendSMSResponse(
+    val data: RaccoonClientSendSMS
 ) : RaccoonClientStatus()

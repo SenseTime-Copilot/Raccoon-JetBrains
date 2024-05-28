@@ -9,6 +9,8 @@ import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.CompletionM
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.utils.plusIfNotNull
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
@@ -59,6 +61,7 @@ private fun List<LLMAgentMessage>.toNovaAgentMessage(modelConfig: ModelConfig): 
 
 
 @Serializable
+@OptIn(ExperimentalSerializationApi::class)
 internal data class NovaClientCommonParameters(
     val model: String,
     val temperature: Float,
@@ -66,7 +69,8 @@ internal data class NovaClientCommonParameters(
     val stream: Boolean,
     val stop: String,
     @SerialName("max_new_tokens")
-    val maxTokens: Int
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val maxTokens: Int? = null
 ) {
     constructor(modelConfig: ModelConfig, llmRequest: LLMRequest) : this(
         modelConfig.name,

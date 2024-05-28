@@ -304,6 +304,24 @@ internal class RaccoonClient : LLMClient() {
             updateTokensResponseBodyInsideCatching(tokensResponseBody, true)
         }
 
+    suspend fun loginWithSMS(
+        project: Project?, uiComponentForEdt: Component?,
+        nationCode: String, rawPhoneNumber: String, smsCode: String
+    ): String = createRequestBuilderWithCommonHeader(raccoonClientConfig.getLoginWithSMSApiEndpoint(), false).post(
+        LLMClientJson.encodeToString(
+            RaccoonClientLoginWithSMSBody.serializer(),
+            RaccoonClientLoginWithSMSBody(nationCode, rawPhoneNumber, smsCode, true)
+        ).toRequestBody()
+    ).build()
+        .runRequestJob(
+            isEnableNotify = false,
+            isEnableDebugLog = false,
+            project,
+            uiComponentForEdt
+        ) { tokensResponseBody ->
+            updateTokensResponseBodyInsideCatching(tokensResponseBody, true)
+        }
+
     suspend fun loginWithEmail(
         project: Project?, uiComponentForEdt: Component?, email: String, rawPassword: CharArray
     ): String = createRequestBuilderWithCommonHeader(raccoonClientConfig.getLoginWithEmailApiEndpoint(), false).post(
@@ -348,6 +366,38 @@ internal class RaccoonClient : LLMClient() {
         }
     }
 
+    suspend fun requestCaptcha(
+        uiComponentForEdt: Component?
+    ): RaccoonClientCaptcha =
+        createRequestBuilderWithCommonHeader(raccoonClientConfig.getCaptchaApiEndpoint(), false).get().build()
+            .runRequestJob(false, false, null, uiComponentForEdt) { captchaResponseBody ->
+                LLMClientJson.decodeFromString(RaccoonClientCaptchaResponse.serializer(), captchaResponseBody)
+                    .let { captchaResponse ->
+                        captchaResponse.throwIfError()
+                        requireNotNull(captchaResponse.data) { "not found data field in ${captchaResponse::class::simpleName}" }
+                    }
+            }
+
+    suspend fun requestSendSMS(
+        captchaString: String,
+        captchaUUID: String,
+        nationCode: String,
+        rawPhoneNumber: String,
+        uiComponentForEdt: Component?
+    ): RaccoonClientSendSMS =
+        createRequestBuilderWithCommonHeader(raccoonClientConfig.getSendSMSApiEndpoint(), false).post(
+            LLMClientJson.encodeToString(
+                RaccoonClientSendSMSRequest.serializer(),
+                RaccoonClientSendSMSRequest(captchaString, captchaUUID, nationCode, rawPhoneNumber, true)
+            ).toRequestBody()
+        ).build()
+            .runRequestJob(false, false, null, uiComponentForEdt) { sendSMSResponseBody ->
+                LLMClientJson.decodeFromString(RaccoonClientSendSMSResponse.serializer(), sendSMSResponseBody)
+                    .let { sendSMSResponse ->
+                        sendSMSResponse.throwIfError()
+                        requireNotNull(sendSMSResponse.data) { "not found data field in ${sendSMSResponse::class::simpleName}" }
+                    }
+            }
 
     // behaviorMetrics
     suspend fun uploadBehaviorMetrics(behaviorMetrics: RaccoonClientBehaviorMetrics): Boolean =
@@ -450,6 +500,9 @@ internal class RaccoonClient : LLMClient() {
         private val loginWithPhonePath: String = getPluginApiPath("/auth/v1/login_with_password")
         fun getLoginWithPhoneApiEndpoint(): String = getApiEndpoint(loginWithPhonePath)
 
+        private val loginWithSMSPath: String = getPluginApiPath("/auth/v1/login_with_sms")
+        fun getLoginWithSMSApiEndpoint(): String = getApiEndpoint(loginWithSMSPath)
+
         private val loginWithEmailPath: String = getPluginApiPath("/auth/v1/login_with_email_password")
         fun getLoginWithEmailApiEndpoint(): String = getApiEndpoint(loginWithEmailPath)
 
@@ -470,6 +523,12 @@ internal class RaccoonClient : LLMClient() {
 
         private val sensitivePath: String = getPluginApiPath("/sensetive/v1/sensetives")
         fun getSensitiveApiEndpoint(): String = getApiEndpoint(sensitivePath)
+
+        private val captchaPath: String = getPluginApiPath("/auth/v1/captcha")
+        fun getCaptchaApiEndpoint(): String = getApiEndpoint(captchaPath)
+
+        private val sendSMSPath: String = getPluginApiPath("/auth/v1/send_sms")
+        fun getSendSMSApiEndpoint(): String = getApiEndpoint(sendSMSPath)
 
         companion object {
             private const val PLUGIN_API_BASE_PATH: String = "/api/plugin"
