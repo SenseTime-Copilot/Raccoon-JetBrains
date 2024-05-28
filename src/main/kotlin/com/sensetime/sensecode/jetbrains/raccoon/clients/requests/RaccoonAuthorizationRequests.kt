@@ -36,6 +36,20 @@ internal data class RaccoonClientLoginWithPhoneBody(
 }
 
 @Serializable
+internal data class RaccoonClientLoginWithSMSBody(
+    @SerialName("nation_code")
+    val nationCode: String,
+    @SerialName("phone")
+    val encryptedPhone: String,
+    @SerialName("sms_code")
+    val smsCode: String
+) {
+    constructor(nationCode: String, phoneNumber: String, smsCode: String, isRaw: Boolean) : this(
+        nationCode, if (isRaw) encryptRawPhoneNumber(phoneNumber) else phoneNumber, smsCode
+    )
+}
+
+@Serializable
 internal data class RaccoonClientLoginWithEmailBody(
     val email: String,
     @SerialName("password")
@@ -49,3 +63,25 @@ internal data class RaccoonClientRefreshTokenRequest(
     @SerialName("refresh_token")
     private val refreshToken: String
 )
+
+@Serializable
+internal data class RaccoonClientSendSMSRequest(
+    @SerialName("captcha_result")
+    private val captchaString: String,
+    @SerialName("captcha_uuid")
+    private val captchaUUID: String,
+    @SerialName("nation_code")
+    val nationCode: String,
+    @SerialName("phone")
+    val encryptedPhone: String
+) {
+    constructor(
+        captchaString: String,
+        captchaUUID: String,
+        nationCode: String,
+        phoneNumber: String,
+        isRaw: Boolean
+    ) : this(
+        captchaString, captchaUUID, nationCode, if (isRaw) encryptRawPhoneNumber(phoneNumber) else phoneNumber
+    )
+}
