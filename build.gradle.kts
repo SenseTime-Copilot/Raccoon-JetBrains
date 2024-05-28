@@ -51,8 +51,7 @@ kotlin {
 
 // Configure Gradle IntelliJ Plugin - read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
 intellij {
-    pluginName =
-        (environment("PACKAGE_ID").getOrNull()?.takeIf { it.isNotBlank() } ?: getDefaultPackageId().get()) + "-plugin"
+    pluginName = "raccoon-plugin"
     logger.info("IntelliJ pluginName = ${pluginName.get()}")
 
     version = properties("platformVersion")
