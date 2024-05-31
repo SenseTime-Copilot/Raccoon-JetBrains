@@ -8,6 +8,7 @@ import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.dsl.gridLayout.VerticalAlign
 import com.intellij.util.ui.JBFont
+import com.sensetime.intellij.plugins.sensecode.services.authentication.SenseChatAuthService
 import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.RaccoonClientOrgInfo
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonConfig
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle

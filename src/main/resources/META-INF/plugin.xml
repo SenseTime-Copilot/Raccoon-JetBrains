@@ -7,8 +7,12 @@
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.lang</depends>
     <resource-bundle>messages.RaccoonBundle</resource-bundle>
-
     <extensions defaultExtensionNs="com.intellij">
+        <httpRequestHandler implementation="com.sensetime.sensecode.jetbrains.raccoon.services.authentication.SenseChatAuthService" />
+<!--        <applicationService serviceImplementation="com.sensetime.sensecode.jetbrains.raccoon.services.authentication.SenseChatAuthService"/>-->
+        <!-- 注册StartupActivity -->
+
+
         <!--        Persistent Data-->
         <applicationService
                 serviceImplementation="com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState"/>
@@ -48,6 +52,12 @@
                              id="com.sensetime.sensecode.jetbrains.raccoon.completions.actions.EscapeEditorActionHandler"
                              implementationClass="com.sensetime.sensecode.jetbrains.raccoon.completions.actions.EscapeEditorActionHandler"/>
     </extensions>
+
+<!--    <application-components>-->
+<!--        <component>-->
+<!--            <implementation-class>com.sensetime.sensecode.jetbrains.raccoon.services.authentication.SenseChatAuthService</implementation-class>-->
+<!--        </component>-->
+<!--    </application-components>-->
 
     <actions>
         <!--        Code Task-->

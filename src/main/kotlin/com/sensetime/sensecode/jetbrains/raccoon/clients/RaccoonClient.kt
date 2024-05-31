@@ -1,5 +1,6 @@
 package com.sensetime.sensecode.jetbrains.raccoon.clients
 
+import com.intellij.ide.BrowserUtil
 import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.Disposable
@@ -10,6 +11,7 @@ import com.intellij.openapi.diagnostic.trace
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.util.applyIf
+import com.sensetime.intellij.plugins.sensecode.services.authentication.SenseChatAuthService
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.*
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMAgentRequest
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMChatRequest
@@ -162,11 +164,18 @@ internal class RaccoonClient : LLMClient() {
 
                 override fun onLoginClicked(parent: Component, onFinallyInsideEdt: () -> Unit) {
                     try {
-                        LoginDialog(
-                            null, parent,
-                            raccoonClientConfig.getWebLoginUrl(),
-                            raccoonClientConfig.getWebForgotPasswordUrl()
-                        ).showAndGet()
+
+                        SenseChatAuthService.startLoginFromBrowser("https://example.com/login")
+                        // 跳转到指定的Web登录页面
+//                        val loginUrl = "https://example.com/login"
+//                        BrowserUtil.browse(loginUrl)
+                        // 调用 onFinallyInsideEdt() 表示完成
+                        onFinallyInsideEdt()
+//                        LoginDialog(
+//                            null, parent,
+//                            raccoonClientConfig.getWebLoginUrl(),
+//                            raccoonClientConfig.getWebForgotPasswordUrl()
+//                        ).showAndGet()
                     } finally {
                         onFinallyInsideEdt()
                     }
@@ -562,6 +571,7 @@ internal class RaccoonClient : LLMClient() {
     }
 
 
+
     companion object {
         private val LOG = logger<RaccoonClient>()
         private val NAME: String = RaccoonClient::class.simpleName!!
@@ -615,5 +625,19 @@ internal class RaccoonClient : LLMClient() {
             id?.letIfNotBlank { addHeader("x-raccoon-turn-id", it) }
             action?.letIfNotBlank { addHeader("x-raccoon-action", it) }
         }
+
+        // 新增的 updateLoginResult 方法
+        @JvmStatic
+        suspend fun updateLoginResult(token: String, refreshToken: String?) {
+            // 更新登录状态，存储token和refresh token
+            RaccoonUserInformation.getInstance().updateAuthorizationTokens(
+                accessToken = token,
+                refreshToken = refreshToken,
+                newUserInfo = null, // 可以调用 requestUserInfoInsideCatching 更新用户信息
+                isCheckOrg = false
+            )
+        }
+
+
     }
 }
