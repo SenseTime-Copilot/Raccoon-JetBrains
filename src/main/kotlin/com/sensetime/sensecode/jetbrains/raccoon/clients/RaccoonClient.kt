@@ -336,7 +336,7 @@ internal class RaccoonClient : LLMClient() {
             project,
             uiComponentForEdt
         ) { tokensResponseBody ->
-            updateTokensResponseBodyInsideCatching(tokensResponseBody, true)
+            updateTokensResponseBodyInsideCatching(tokensResponseBody, false)
         }
 
     private suspend fun logout(project: Project?) {
