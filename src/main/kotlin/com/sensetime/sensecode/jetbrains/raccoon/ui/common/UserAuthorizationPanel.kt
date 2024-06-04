@@ -8,7 +8,6 @@ import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.dsl.gridLayout.VerticalAlign
 import com.intellij.util.ui.JBFont
-import com.sensetime.intellij.plugins.sensecode.services.authentication.SenseChatAuthService
 import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.RaccoonClientOrgInfo
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonConfig
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
@@ -28,6 +27,7 @@ internal class UserAuthorizationPanel(
     currentOrgName: String?, isAvailable: Boolean,
     private val eventListener: EventListener
 ) : JPanel(BorderLayout()), RaccoonClientAuthorizationListener {
+    // 内部接口，具体的onLoginClicked 实现是由接口的实现类实现的，RaccoonClient
     interface EventListener {
         fun onLoginClicked(parent: Component, onFinallyInsideEdt: () -> Unit)
         fun onLogoutClicked(onFinallyInsideEdt: () -> Unit)

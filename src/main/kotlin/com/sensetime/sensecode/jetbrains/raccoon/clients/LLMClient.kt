@@ -264,6 +264,7 @@ internal abstract class LLMClient {
         result
     }
 
+    // 当前类的 runClientJob，接受参数后再调用 ClientJobRunner 类的 runClientJob 方法
     protected suspend fun <R> runClientJob(
         isEnableNotify: Boolean,
         isEnableDebugLog: Boolean,
