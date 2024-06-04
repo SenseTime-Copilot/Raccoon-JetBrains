@@ -162,13 +162,16 @@ internal class RaccoonClient : LLMClient() {
 
                 override fun onLoginClicked(parent: Component, onFinallyInsideEdt: () -> Unit) {
                     try {
-                        SenseChatAuthService.startLoginFromBrowser("https://example.com/login")
-                        onFinallyInsideEdt()
-//                        LoginDialog(
-//                            null, parent,
-//                            raccoonClientConfig.getWebLoginUrl(),
-//                            raccoonClientConfig.getWebForgotPasswordUrl()
-//                        ).showAndGet()
+                        if (RaccoonConfig.config.isToB()){
+                            LoginDialog(
+                            null, parent,
+                                raccoonClientConfig.getWebLoginUrl(),
+                                raccoonClientConfig.getWebForgotPasswordUrl()
+                            ).showAndGet()
+                        } else {
+                            SenseChatAuthService.startLoginFromBrowser("https://example.com/login")
+                            onFinallyInsideEdt()
+                        }
                     } finally {
                         onFinallyInsideEdt()
                     }
