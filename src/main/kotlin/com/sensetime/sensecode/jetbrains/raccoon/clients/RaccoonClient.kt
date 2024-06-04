@@ -245,8 +245,12 @@ internal class RaccoonClient : LLMClient() {
                     userInfo, isCheckOrg
                 )
             }
+//            RaccoonExceptions.resultOf {
+//                RaccoonUserInformation.getInstance().knowledgeBases =
+//                    requestKnowledgeBasesInsideCatching(tokensResponseData.accessToken)
+//            }
             RaccoonUserInformation.getInstance().knowledgeBases =
-                requestKnowledgeBasesInsideCatching(tokensResponseData.accessToken)
+                    requestKnowledgeBasesInsideCatching(tokensResponseData.accessToken)
             tokensResponseData.accessToken
         }
     }
@@ -336,7 +340,7 @@ internal class RaccoonClient : LLMClient() {
             project,
             uiComponentForEdt
         ) { tokensResponseBody ->
-            updateTokensResponseBodyInsideCatching(tokensResponseBody, false)
+            updateTokensResponseBodyInsideCatching(tokensResponseBody, true)
         }
 
     private suspend fun logout(project: Project?) {
@@ -463,7 +467,7 @@ internal class RaccoonClient : LLMClient() {
 
     // configs
 
-
+//    "${if (RaccoonConfig.config.isToB()) "/org" else ""}/llm/v1/completions"
     @Serializable
     private data class RaccoonCompletionApiConfig(
         override val path: String = RaccoonClientConfig.getPluginApiPath("${if (RaccoonConfig.config.isToB()) "/org" else ""}/llm/v1/completions"),
