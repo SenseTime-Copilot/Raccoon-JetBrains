@@ -99,7 +99,7 @@ internal class RaccoonConfigurable() : Configurable, Disposable {
                 cell(inlineCompletionColorPanel)
             }
         }
-        if(RaccoonConfig.config.isToB()) {
+        if(!RaccoonConfig.config.isToB()) {
             val isKnowledgeBaseAllowed = RaccoonClient.getIsKnowledgeBaseAllowed()
             group(RaccoonBundle.message("settings.group.knowledgeBase.label.title")) {
                 row {
