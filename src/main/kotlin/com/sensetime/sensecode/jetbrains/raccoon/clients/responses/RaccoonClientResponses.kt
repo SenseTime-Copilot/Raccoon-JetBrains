@@ -2,6 +2,7 @@ package com.sensetime.sensecode.jetbrains.raccoon.clients.responses
 
 import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientMessageException
 import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientUnauthorizedException
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonConfig
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RaccoonSensitiveListener
 import com.sensetime.sensecode.jetbrains.raccoon.utils.*
@@ -138,7 +139,7 @@ internal data class RaccoonClientOrgInfo(
     val proCodeExpiredTime: String? = null
 ) {
     fun isNormal(): Boolean = ("normal" == userStatus)
-    fun isAvailable(): Boolean = proCodeEnabled && isNormal()
+    fun isAvailable(): Boolean = if (RaccoonConfig.config.isToB() ) isNormal() else  proCodeEnabled && isNormal()
 
     fun getDisplayOrgName(): String = name.ifNullOrBlank(code)
     override fun toString(): String = getDisplayOrgName()

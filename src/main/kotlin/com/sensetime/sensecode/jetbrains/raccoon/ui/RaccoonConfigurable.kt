@@ -15,6 +15,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClient
 import com.sensetime.sensecode.jetbrains.raccoon.completions.actions.ManualTriggerInlineCompletionAction
 import com.sensetime.sensecode.jetbrains.raccoon.completions.preview.render.GraphicsUtils
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.CompletionModelConfig
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonPromptSettings
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
@@ -98,17 +99,19 @@ internal class RaccoonConfigurable() : Configurable, Disposable {
                 cell(inlineCompletionColorPanel)
             }
         }
-        val isKnowledgeBaseAllowed = RaccoonClient.getIsKnowledgeBaseAllowed()
-        group(RaccoonBundle.message("settings.group.knowledgeBase.label.title")) {
-            row {
-                checkBox(RaccoonBundle.message("settings.group.knowledgeBase.checkBox.enableLocal")).bindSelected(
-                    RaccoonSettingsState.instance::isLocalKnowledgeBaseEnabled
-                ).enabled(isKnowledgeBaseAllowed)
-            }
-            row {
-                checkBox(RaccoonBundle.message("settings.group.knowledgeBase.checkBox.enableCloud")).bindSelected(
-                    RaccoonSettingsState.instance::isCloudKnowledgeBaseEnabled
-                ).enabled(isKnowledgeBaseAllowed)
+        if(!RaccoonConfig.config.isToB()) {
+            val isKnowledgeBaseAllowed = RaccoonClient.getIsKnowledgeBaseAllowed()
+            group(RaccoonBundle.message("settings.group.knowledgeBase.label.title")) {
+                row {
+                    checkBox(RaccoonBundle.message("settings.group.knowledgeBase.checkBox.enableLocal")).bindSelected(
+                        RaccoonSettingsState.instance::isLocalKnowledgeBaseEnabled
+                    ).enabled(isKnowledgeBaseAllowed)
+                }
+                row {
+                    checkBox(RaccoonBundle.message("settings.group.knowledgeBase.checkBox.enableCloud")).bindSelected(
+                        RaccoonSettingsState.instance::isCloudKnowledgeBaseEnabled
+                    ).enabled(isKnowledgeBaseAllowed)
+                }
             }
         }
         group(RaccoonBundle.message("settings.group.prompt.label.title")) {

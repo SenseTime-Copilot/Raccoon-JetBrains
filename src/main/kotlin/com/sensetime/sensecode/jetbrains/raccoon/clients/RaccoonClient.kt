@@ -245,8 +245,12 @@ internal class RaccoonClient : LLMClient() {
                     userInfo, isCheckOrg
                 )
             }
+//            RaccoonExceptions.resultOf {
+//                RaccoonUserInformation.getInstance().knowledgeBases =
+//                    requestKnowledgeBasesInsideCatching(tokensResponseData.accessToken)
+//            }
             RaccoonUserInformation.getInstance().knowledgeBases =
-                requestKnowledgeBasesInsideCatching(tokensResponseData.accessToken)
+                    requestKnowledgeBasesInsideCatching(tokensResponseData.accessToken)
             tokensResponseData.accessToken
         }
     }
