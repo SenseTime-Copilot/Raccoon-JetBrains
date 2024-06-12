@@ -31,6 +31,7 @@ internal class MessagePanel(
     private val messageBox: Box = Box.createVerticalBox()
     private var lastRawText: String = ""
     private var lastTextPane: JTextPane? = null
+    private var cacheBuffer: StringBuilder = StringBuilder()
     var isAutoScrolling: Boolean = true
         set(value) {
             if (field != value) {
@@ -70,12 +71,20 @@ internal class MessagePanel(
             return
         }
 
-        val currentCodeIndex = deltaMarkdownText.findMarkdownCodeIndex()
+        // 兼容代码块 接口没有完整返回 ``` 时，等一波
+        cacheBuffer.append(deltaMarkdownText)
+        if ((deltaMarkdownText == "`" || deltaMarkdownText == "``") && cacheBuffer.toString() != "```") {
+            return;
+        }
+        val cachedText = cacheBuffer.toString()
+        cacheBuffer.setLength(0)
+
+        val currentCodeIndex = cachedText.findMarkdownCodeIndex()
         if (currentCodeIndex < 0) {
-            appendToLastTextPane(deltaMarkdownText)
+            appendToLastTextPane(cachedText)
             return
         }
-        val currentCodeEndIndex = deltaMarkdownText.indexOfFirstNonAsciiWhitespace(currentCodeIndex + 3)
+        val currentCodeEndIndex = cachedText.indexOfFirstNonAsciiWhitespace(currentCodeIndex + 3)
         lastTextPane?.let { textPane ->
             lastRawText.findMarkdownCodeIndex().takeIf { it >= 0 }?.let { prevCodeIndex ->
                 textPane.text = lastRawText.substring(0, prevCodeIndex).let {
@@ -89,16 +98,16 @@ internal class MessagePanel(
                     messageBox.remove(textPane)
                 }
                 addCodeEditorPane(
-                    lastRawText.substring(prevCodeIndex + 3) + deltaMarkdownText.substring(
+                    lastRawText.substring(prevCodeIndex + 3) + cachedText.substring(
                         0,
                         currentCodeIndex
                     )
                 )
             }
-        } ?: deltaMarkdownText.run {
+        } ?: cachedText.run {
             appendToLastTextPane(substring(0, currentCodeEndIndex))
         }
-        appendMarkdownText(deltaMarkdownText.substring(currentCodeEndIndex))
+        appendMarkdownText(cachedText.substring(currentCodeEndIndex))
     }
 
     private fun addCodeEditorPane(codeBlockText: String) {
