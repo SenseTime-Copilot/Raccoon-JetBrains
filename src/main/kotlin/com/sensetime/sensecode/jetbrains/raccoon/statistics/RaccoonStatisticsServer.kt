@@ -165,21 +165,29 @@ class RaccoonStatisticsServer : RaccoonStatisticsListener, Disposable {
         }
     }
 
-    override fun onInlineCompletionFinished(language: String, candidates: Int) {
+    override fun onInlineCompletionFinished(language: String, candidates: Int, line: Int) {
         updateBehaviorMetrics {
             it.codeCompletionMetric.codeCompletionUsages.acceptLanguageUsages.languageUsagesMap.getOrPutDefault(
                 cvtLanguage(language),
                 RaccoonClientBehaviorMetrics.CodeCompletionAcceptUsages()
             ).generateNumber += candidates
+            it.codeCompletionMetric.codeCompletionUsages.acceptLanguageUsages.languageUsagesMap.getOrPutDefault(
+                cvtLanguage(language),
+                RaccoonClientBehaviorMetrics.CodeCompletionAcceptUsages()
+            ).generateLineNumber += line
         }
     }
 
-    override fun onInlineCompletionAccepted(language: String) {
+    override fun onInlineCompletionAccepted(language: String, line: Int) {
         updateBehaviorMetrics {
             it.codeCompletionMetric.codeCompletionUsages.acceptLanguageUsages.languageUsagesMap.getOrPutDefault(
                 cvtLanguage(language),
                 RaccoonClientBehaviorMetrics.CodeCompletionAcceptUsages()
             ).acceptNumber += 1
+            it.codeCompletionMetric.codeCompletionUsages.acceptLanguageUsages.languageUsagesMap.getOrPutDefault(
+                cvtLanguage(language),
+                RaccoonClientBehaviorMetrics.CodeCompletionAcceptUsages()
+            ).acceptLineNumber += line
         }
     }
 

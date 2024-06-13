@@ -59,6 +59,12 @@ internal data class RaccoonClientLoginWithEmailBody(
 }
 
 @Serializable
+internal data class RaccoonClientAuthorizationCodeBody(
+    @SerialName("authorization_code")
+    private val authorizationCode: String
+)
+
+@Serializable
 internal data class RaccoonClientRefreshTokenRequest(
     @SerialName("refresh_token")
     private val refreshToken: String

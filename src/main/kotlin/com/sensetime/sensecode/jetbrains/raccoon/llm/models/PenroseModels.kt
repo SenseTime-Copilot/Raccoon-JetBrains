@@ -6,11 +6,13 @@ import com.sensetime.sensecode.jetbrains.raccoon.llm.prompts.PromptVariables
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.AgentModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ChatModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.CompletionModelConfig
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonConfig
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.tasks.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import java.util.*
 import kotlin.math.min
 
 
@@ -51,7 +53,8 @@ internal data class PenroseChatModelConfig(
     override val customRequestArgs: JsonObject? = null
 ) : ChatModelConfig() {
     companion object {
-        private val DEFAULT_PROMPT_TEMPLATES = mapOf(
+        private val lang = RaccoonConfig.config.lang
+        private val DEFAULT_PROMPT_TEMPLATES = if (lang == "AUTO" || lang.isEmpty()) mapOf(
             FREE_CHAT to DisplayTextTemplate(PromptVariables.textExpression),
             CodeTaskActionBase.getActionKey(Generation::class) to createCodeTaskPromptTemplate(
                 RaccoonBundle.message("action.com.sensetime.sensecode.jetbrains.raccoon.tasks.Generation.text"),
@@ -75,6 +78,31 @@ internal data class PenroseChatModelConfig(
             CodeTaskActionBase.getActionKey(Refactoring::class) to createCodeTaskPromptTemplate(
                 RaccoonBundle.message("action.com.sensetime.sensecode.jetbrains.raccoon.tasks.Refactoring.text"),
                 RaccoonBundle.message("completions.task.prompt.penrose.Refactoring")
+            )
+        ) else mapOf(
+            FREE_CHAT to DisplayTextTemplate(PromptVariables.textExpression),
+            CodeTaskActionBase.getActionKey(Generation::class) to createCodeTaskPromptTemplate(
+                RaccoonBundle.message("action.com.sensetime.sensecode.jetbrains.raccoon.tasks.Generation.text",locale = Locale(lang)),
+                RaccoonBundle.message("completions.task.prompt.penrose.Generation",locale = Locale(lang))
+            ),
+            CodeTaskActionBase.getActionKey(AddTest::class) to createCodeTaskPromptTemplate(
+                RaccoonBundle.message("action.com.sensetime.sensecode.jetbrains.raccoon.tasks.AddTest.text",locale = Locale(lang)),
+                RaccoonBundle.message("completions.task.prompt.penrose.AddTest",locale = Locale(lang))
+            ),
+            CodeTaskActionBase.getActionKey(CodeConversion::class) to createCodeTaskPromptTemplate(
+                RaccoonBundle.message("action.com.sensetime.sensecode.jetbrains.raccoon.tasks.CodeConversion.text",locale = Locale(lang)),
+                RaccoonBundle.message(
+                    "completions.task.prompt.penrose.CodeConversion",
+                    CodeConversion.dstLanguageExpression
+                )
+            ),
+            CodeTaskActionBase.getActionKey(CodeCorrection::class) to createCodeTaskPromptTemplate(
+                RaccoonBundle.message("action.com.sensetime.sensecode.jetbrains.raccoon.tasks.CodeCorrection.text",locale = Locale(lang)),
+                RaccoonBundle.message("completions.task.prompt.penrose.CodeCorrection",locale = Locale(lang))
+            ),
+            CodeTaskActionBase.getActionKey(Refactoring::class) to createCodeTaskPromptTemplate(
+                RaccoonBundle.message("action.com.sensetime.sensecode.jetbrains.raccoon.tasks.Refactoring.text",locale = Locale(lang)),
+                RaccoonBundle.message("completions.task.prompt.penrose.Refactoring",locale = Locale(lang))
             )
         )
 

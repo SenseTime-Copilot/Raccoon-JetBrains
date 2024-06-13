@@ -1,4 +1,4 @@
-package com.sensetime.intellij.plugins.sensecode.services.authentication
+package com.sensetime.sensecode.jetbrains.raccoon.services.authentication
 
 import com.intellij.util.Url
 

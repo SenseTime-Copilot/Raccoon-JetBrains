@@ -167,6 +167,7 @@ tasks {
         val packageId = environment("PACKAGE_ID")
         val packageType = environment("PACKAGE_TYPE")
         val apiBaseUrl = environment("API_BASEURL")
+        val lang = environment("AUTO_PROMPT_LANG")
         val defaultPackageId = getDefaultPackageId()
         val raccoonConfigJson = Json {
             encodeDefaults = true
@@ -199,6 +200,10 @@ tasks {
                     "packageId",
                     JsonPrimitive(packageId.getOrNull()?.takeIf { it.isNotBlank() } ?: defaultPackageId.get()))
                 putIfNotNullOrBlank("variant", packageType.getOrNull())
+                put(
+                    "lang",
+                    JsonPrimitive(lang.getOrNull()?.takeIf { it.isNotBlank() } ?: defaultPackageId.get()))
+
             }.let { packageVariables ->
                 destinationDir.resolve("configs/config.json").asJsonFileAndPlus(raccoonConfigJson, packageVariables)
             }

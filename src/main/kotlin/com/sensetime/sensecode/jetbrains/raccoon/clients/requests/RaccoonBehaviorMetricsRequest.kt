@@ -46,7 +46,9 @@ internal data class RaccoonClientBehaviorMetrics(
     @Serializable
     data class CodeCompletionAcceptUsages(
         @SerialName("code_accept_num") var acceptNumber: Int = 0,
-        @SerialName("code_generate_num") var generateNumber: Int = 0
+        @SerialName("code_generate_num") var generateNumber: Int = 0,
+        @SerialName("code_accept_line_num") var acceptLineNumber: Int = 0,
+        @SerialName("code_generate_line_num") var generateLineNumber: Int = 0
     )
 
     @Serializable

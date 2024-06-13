@@ -1,63 +1,82 @@
 package com.sensetime.sensecode.jetbrains.raccoon.services.authentication
-
 import com.intellij.ide.BrowserUtil
-import com.intellij.openapi.components.Service
 import com.intellij.util.Url
 import com.intellij.util.Urls
-import com.sensetime.intellij.plugins.sensecode.services.authentication.CodeAuthServiceBase
 import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClient
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.http.FullHttpRequest
+import io.netty.handler.codec.http.HttpRequest
 import io.netty.handler.codec.http.HttpResponseStatus
 import io.netty.handler.codec.http.QueryStringDecoder
 import org.jetbrains.ide.BuiltInServerManager
 import org.jetbrains.ide.RestService
-import kotlinx.coroutines.runBlocking
+import org.slf4j.LoggerFactory
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 class SenseChatAuthService : RestService() {
-    // TODO 改个唯一的名字 小浣熊的
-    override fun getServiceName(): String = "raccoon"
-    val SERVICE_NAME: String = "raccoon"
+
+    private val logger = LoggerFactory.getLogger(SenseChatAuthService::class.java)
+
+    override fun getServiceName(): String = SERVICE_NAME
+
+    override fun isHostTrusted(request: FullHttpRequest, urlDecoder: QueryStringDecoder): Boolean {
+        return true
+    }
+
+    override fun isOriginAllowed(request: HttpRequest): OriginCheckResult {
+        return OriginCheckResult.ALLOW
+    }
 
     override fun execute(
         urlDecoder: QueryStringDecoder,
         request: FullHttpRequest,
         context: ChannelHandlerContext
     ): String? {
-        updateLoginResult(urlDecoder)
-        sendStatus(HttpResponseStatus.OK, false, context.channel())
-        activateLastFocusedFrame()
+        println("Received request:${request.uri()}")
+
+        try {
+            updateLoginResult(urlDecoder)
+            sendStatus(HttpResponseStatus.OK, false, context.channel())
+            activateLastFocusedFrame()
+        } catch (e: Exception) {
+            logger.error("Failed to process request: ${request.uri()}", e)
+            sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR, false, context.channel())
+        }
         return null
     }
 
+
     private fun updateLoginResult(urlDecoder: QueryStringDecoder) {
         val parameters = urlDecoder.parameters()
-        var token = parameters["token"]?.firstOrNull()
-        var refreshToken = parameters["refresh"]?.firstOrNull()
+        val authorizationCode = parameters["authorization_code"]?.firstOrNull()
 
-        if (token != null) {
-//            token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTcxNTY2OTAsImlzcyI6IjQ5ZDNhIiwibmFtZSI6IlJhY2Nvb25EYXZpZCIsIm5hdGlvbl9jb2RlIjoiODYiLCJuYmYiOjE3MTcxNDU4ODUsInNpZCI6InBsdWdpbjYxOWJjMmVkOGQ1NDE0OWQzYWFiM2U2YmUzLTg3MzAtNDA2OC05YzU4LWVkYWRjMDI3MzlkOCJ9.2nEB8yLxg47vcT_4dDipS9N07zwZX6j3Vu2cNW7-kwY'
-//            refreshToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTgzNTU0OTAsImlzcyI6IjQ5ZDNhIiwibmFtZSI6IlJhY2Nvb25EYXZpZCIsIm5hdGlvbl9jb2RlIjoiODYiLCJuYmYiOjE3MTcxNDU4ODUsInNpZCI6InBsdWdpbjYxOWJjMmVkOGQzZTI0OWQzYTYwNmI0MDg1LTJjNjYtNGFkMC04MmI4LTlmZmRiM2VlYTQwMyJ9.O-RvrwRIViPp13nU_99b7vcIkhg4HHr5Mh6cmNjAnNw'
-//            runBlocking {
-////                clientJobRunner.updateTokensResponseBodyInsideCatching
-//                RaccoonClient.updateLoginResult('token, refreshToken')
-//            }
-
-            // llmClient 是 LLMClient类型，需要转换成 实现类 RaccoonClient，这样可以调用RaccoonClient 的方法
-            // LLMClientManager.launchClientJob 是类的伴生对象 方法，不需要初始化实例就可以调用
+        if (authorizationCode != null) {
             LLMClientManager.launchClientJob { llmClient ->
                 val raccoonClient = llmClient as? RaccoonClient
-                // 获取url的参数
-                raccoonClient?.updateLoginResult("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTcxNTY2OTAsImlzcyI6IjQ5ZDNhIiwibmFtZSI6IlJhY2Nvb25EYXZpZCIsIm5hdGlvbl9jb2RlIjoiODYiLCJuYmYiOjE3MTcxNDU4ODUsInNpZCI6InBsdWdpbjYxOWJjMmVkOGQ1NDE0OWQzYWFiM2U2YmUzLTg3MzAtNDA2OC05YzU4LWVkYWRjMDI3MzlkOCJ9.2nEB8yLxg47vcT_4dDipS9N07zwZX6j3Vu2cNW7-kwY",
-                    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTgzNTU0OTAsImlzcyI6IjQ5ZDNhIiwibmFtZSI6IlJhY2Nvb25EYXZpZCIsIm5hdGlvbl9jb2RlIjoiODYiLCJuYmYiOjE3MTcxNDU4ODUsInNpZCI6InBsdWdpbjYxOWJjMmVkOGQzZTI0OWQzYTYwNmI0MDg1LTJjNjYtNGFkMC04MmI4LTlmZmRiM2VlYTQwMyJ9.O-RvrwRIViPp13nU_99b7vcIkhg4HHr5Mh6cmNjAnNw")
-
+                raccoonClient?.loginWithAuthorizationCode(project = null,uiComponentForEdt = null,authorizationCode = authorizationCode)
             }
-            println("Token received and processed: $token")
         } else {
-            println("No token received")
+            logger.warn("No token received")
         }
     }
+
+//    private fun updateLoginResult(urlDecoder: QueryStringDecoder) {
+//        val parameters = urlDecoder.parameters()
+//        val token = parameters["access_token"]?.firstOrNull()
+//        val refreshToken = parameters["refresh_token"]?.firstOrNull()
+//
+//        if (token != null) {
+//            LLMClientManager.launchClientJob { llmClient ->
+//                val raccoonClient = llmClient as? RaccoonClient
+//                raccoonClient?.updateLoginResult(token, refreshToken)
+//                logger.info("Token received and processed: $token")
+//            }
+//        } else {
+//            logger.warn("No token received")
+//        }
+//    }
 
     companion object {
         const val SERVICE_NAME = "raccoon"
@@ -68,7 +87,10 @@ class SenseChatAuthService : RestService() {
         }
 
         fun startLoginFromBrowser(loginUrl: String) {
-            BrowserUtil.browse("$loginUrl?redirect_uri=${getServiceUrl().toExternalForm()}")
+            val url = getServiceUrl().toExternalForm()
+            val encodedUrl = URLEncoder.encode(url, StandardCharsets.UTF_8.toString())
+            val appname = URLEncoder.encode("IntelliJ IDEA", StandardCharsets.UTF_8.toString())
+            BrowserUtil.browse("$loginUrl?appname=$appname&redirect=$encodedUrl")
         }
     }
 }

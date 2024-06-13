@@ -169,7 +169,7 @@ internal class RaccoonClient : LLMClient() {
                                 raccoonClientConfig.getWebForgotPasswordUrl()
                             ).showAndGet()
                         } else {
-                            SenseChatAuthService.startLoginFromBrowser("https://example.com/login")
+                            SenseChatAuthService.startLoginFromBrowser(raccoonClientConfig.getWebBrowserLoginUrl())
                             onFinallyInsideEdt()
                         }
                     } finally {
@@ -298,6 +298,24 @@ internal class RaccoonClient : LLMClient() {
         LLMClientJson.encodeToString(
             RaccoonClientLoginWithPhoneBody.serializer(),
             RaccoonClientLoginWithPhoneBody(nationCode, rawPhoneNumber, rawPassword)
+        ).toRequestBody()
+    ).build()
+        .runRequestJob(
+            isEnableNotify = false,
+            isEnableDebugLog = false,
+            project,
+            uiComponentForEdt
+        ) { tokensResponseBody ->
+            updateTokensResponseBodyInsideCatching(tokensResponseBody, true)
+        }
+
+    suspend fun loginWithAuthorizationCode(
+        project: Project?, uiComponentForEdt: Component?,
+        authorizationCode: String
+    ): String = createRequestBuilderWithCommonHeader(raccoonClientConfig.getLoginWithAuthCodeApiEndpoint(), false).post(
+        LLMClientJson.encodeToString(
+            RaccoonClientAuthorizationCodeBody.serializer(),
+            RaccoonClientAuthorizationCodeBody(authorizationCode)
         ).toRequestBody()
     ).build()
         .runRequestJob(
@@ -488,7 +506,7 @@ internal class RaccoonClient : LLMClient() {
 
     @Serializable
     private data class RaccoonClientConfig(
-        override val apiBaseUrl: String = "https://raccoon-api.sensetime.com"
+        override val apiBaseUrl: String = "http://code-test.sensetime.com"
     ) : ClientConfig {
         @Transient
         override val name: String = NAME
@@ -499,11 +517,16 @@ internal class RaccoonClient : LLMClient() {
         private val webBaseUrl: String = Regex("-?api-?").replace(apiBaseUrl, "")
         private val webLoginPath: String = "/login"
         fun getWebLoginUrl(): String = webBaseUrl + webLoginPath
+        fun getWebBrowserLoginUrl(): String = "http://code-test.sensetime.com/login"
+
         private val webForgotPasswordPath = "$webLoginPath?step=forgot-password"
         fun getWebForgotPasswordUrl(): String = webBaseUrl + webForgotPasswordPath
 
         private val loginWithPhonePath: String = getPluginApiPath("/auth/v1/login_with_password")
         fun getLoginWithPhoneApiEndpoint(): String = getApiEndpoint(loginWithPhonePath)
+
+        private val loginWithAuthCodePath: String = getPluginApiPath("/auth/v1/login_with_authorization_code")
+        fun getLoginWithAuthCodeApiEndpoint(): String = getApiEndpoint(loginWithAuthCodePath)
 
         private val loginWithSMSPath: String = getPluginApiPath("/auth/v1/login_with_sms")
         fun getLoginWithSMSApiEndpoint(): String = getApiEndpoint(loginWithSMSPath)
@@ -583,11 +606,16 @@ internal class RaccoonClient : LLMClient() {
             RaccoonNotification.notificationGroup.createNotification(
                 RaccoonBundle.message("notification.settings.login.notloggedin"), "", NotificationType.WARNING
             ).addAction(NotificationAction.createSimple(RaccoonBundle.message("notification.settings.goto.login")) {
-                LoginDialog(
-                    project, parent,
-                    raccoonClientConfig.getWebLoginUrl(),
-                    raccoonClientConfig.getWebForgotPasswordUrl()
-                ).showAndGet()
+                if (RaccoonConfig.config.isToB()){
+                    LoginDialog(
+                        project, parent,
+                        raccoonClientConfig.getWebLoginUrl(),
+                        raccoonClientConfig.getWebForgotPasswordUrl()
+                    ).showAndGet()
+                } else {
+                    SenseChatAuthService.startLoginFromBrowser(raccoonClientConfig.getWebBrowserLoginUrl())
+
+                }
             }).notify(project)
         }
 
