@@ -58,7 +58,7 @@ internal class CompletionPreview private constructor(
                         )
                     }
                 } else {
-                    val newLineCount = countNewLines(completions?.get(0) ?: "") + 1
+                    val newLineCount = completions?.sumOf { countNewLines(it) + 1 } ?: 0
                     ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_STATISTICS_TOPIC)
                         .onInlineCompletionFinished(language, (completions?.size) ?: 1, newLineCount)
                 }
