@@ -202,7 +202,7 @@ tasks {
                 putIfNotNullOrBlank("variant", packageType.getOrNull())
                 put(
                     "lang",
-                    JsonPrimitive(lang.getOrNull()?.takeIf { it.isNotBlank() } ?: defaultPackageId.get()))
+                    JsonPrimitive(lang.getOrNull()?.takeIf { it.isNotBlank() } ?: "Auto"))
 
             }.let { packageVariables ->
                 destinationDir.resolve("configs/config.json").asJsonFileAndPlus(raccoonConfigJson, packageVariables)
