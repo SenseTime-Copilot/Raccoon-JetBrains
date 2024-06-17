@@ -1,5 +1,6 @@
 package com.sensetime.sensecode.jetbrains.raccoon.services.authentication
 import com.intellij.ide.BrowserUtil
+import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.util.Url
 import com.intellij.util.Urls
 import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientManager
@@ -89,8 +90,9 @@ class SenseChatAuthService : RestService() {
         fun startLoginFromBrowser(loginUrl: String) {
             val url = getServiceUrl().toExternalForm()
             val encodedUrl = URLEncoder.encode(url, StandardCharsets.UTF_8.toString())
-            val appname = URLEncoder.encode("IntelliJ IDEA", StandardCharsets.UTF_8.toString())
-            BrowserUtil.browse("$loginUrl?appname=$appname&redirect=$encodedUrl")
+            val appInfo = ApplicationInfo.getInstance()
+            val appname = URLEncoder.encode(appInfo.versionName, StandardCharsets.UTF_8.toString())
+            BrowserUtil.browse("$loginUrl?ide=IDEA&appname=$appname&redirect=$encodedUrl")
         }
     }
 }

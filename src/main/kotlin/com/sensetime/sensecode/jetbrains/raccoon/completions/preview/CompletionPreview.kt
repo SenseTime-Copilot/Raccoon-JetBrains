@@ -44,8 +44,13 @@ internal class CompletionPreview private constructor(
             }
             field = value
         }
-    private val currentCompletion: String?
+    private var currentCompletion: String?
         get() = completions?.getOrNull(currentIndex)
+        set(value) {
+            completions = completions?.toMutableList()?.also {
+                it[currentIndex] = value ?: ""
+            }
+        }
 
     var done: Boolean = false
         set(value) {
@@ -58,6 +63,17 @@ internal class CompletionPreview private constructor(
                         )
                     }
                 } else {
+                    val offset = editor?.caretModel?.offset
+                    val chars = editor?.document?.charsSequence
+                    val charAfterCaret = if (offset != null && chars != null && offset < chars.length) {
+                        chars[offset]
+                    } else {
+                        null
+                    }
+                    if (currentCompletion != null && currentCompletion!!.isNotEmpty() && currentCompletion!!.last() == charAfterCaret) {
+                        currentCompletion = currentCompletion!!.dropLast(1)
+                    }
+                    println(currentCompletion)
                     val newLineCount = completions?.sumOf { countNewLines(it) + 1 } ?: 0
                     ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_STATISTICS_TOPIC)
                         .onInlineCompletionFinished(language, (completions?.size) ?: 1, newLineCount)

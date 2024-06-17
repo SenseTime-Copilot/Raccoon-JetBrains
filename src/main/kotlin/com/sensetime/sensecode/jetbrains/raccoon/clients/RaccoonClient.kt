@@ -162,16 +162,21 @@ internal class RaccoonClient : LLMClient() {
 
                 override fun onLoginClicked(parent: Component, onFinallyInsideEdt: () -> Unit) {
                     try {
-                        if (RaccoonConfig.config.isToB()){
-                            LoginDialog(
+                        LoginDialog(
                             null, parent,
-                                raccoonClientConfig.getWebLoginUrl(),
-                                raccoonClientConfig.getWebForgotPasswordUrl()
-                            ).showAndGet()
-                        } else {
-                            SenseChatAuthService.startLoginFromBrowser(raccoonClientConfig.getWebBrowserLoginUrl())
-                            onFinallyInsideEdt()
-                        }
+                            raccoonClientConfig.getWebLoginUrl(),
+                            raccoonClientConfig.getWebForgotPasswordUrl()
+                        ).showAndGet()
+//                        if (!RaccoonConfig.config.isToB()){
+//                            LoginDialog(
+//                            null, parent,
+//                                raccoonClientConfig.getWebLoginUrl(),
+//                                raccoonClientConfig.getWebForgotPasswordUrl()
+//                            ).showAndGet()
+//                        } else {
+//                            SenseChatAuthService.startLoginFromBrowser(raccoonClientConfig.getWebBrowserLoginUrl())
+//                            onFinallyInsideEdt()
+//                        }
                     } finally {
                         onFinallyInsideEdt()
                     }
@@ -487,25 +492,25 @@ internal class RaccoonClient : LLMClient() {
     // configs
 
     @Serializable
-    private data class RaccoonCompletionApiConfig(
+    data class RaccoonCompletionApiConfig(
         override val path: String = RaccoonClientConfig.getPluginApiPath("/llm/v1/completions"),
         override val models: List<PenroseCompletionModelConfig> = listOf(PenroseCompletionModelConfig())
     ) : ClientConfig.ClientApiConfig<CompletionModelConfig>()
 
     @Serializable
-    private data class RaccoonChatApiConfig(
+    data class RaccoonChatApiConfig(
         override val path: String = RaccoonClientConfig.getPluginApiPath("/llm/v1/chat-completions"),
         override val models: List<PenroseChatModelConfig> = listOf(PenroseChatModelConfig())
     ) : ClientConfig.ClientApiConfig<ChatModelConfig>()
 
     @Serializable
-    private data class RaccoonAgentApiConfig(
+    data class RaccoonAgentApiConfig(
         override val path: String = RaccoonClientConfig.getPluginApiPath("/llm/v1/chat-completions"),
         override val models: List<PenroseAgentModelConfig> = listOf(PenroseAgentModelConfig())
     ) : ClientConfig.ClientApiConfig<AgentModelConfig>()
 
     @Serializable
-    private data class RaccoonClientConfig(
+    data class RaccoonClientConfig(
         override val apiBaseUrl: String = "http://code-test.sensetime.com"
     ) : ClientConfig {
         @Transient
