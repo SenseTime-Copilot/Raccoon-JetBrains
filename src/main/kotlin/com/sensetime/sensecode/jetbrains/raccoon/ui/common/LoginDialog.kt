@@ -155,8 +155,6 @@ internal class LoginDialog(
     private fun Row.addPasswordField(loginInfo: Credentials?): JBPasswordField =
         cell(JBPasswordField()).validationOnApply {
             val length = it.password.let { pwd ->
-                // Zero out the possible password, for security.
-                Arrays.fill(pwd, '0')
                 pwd.size
             }
             if (length < MIN_PASSWORD_LENGTH) {
