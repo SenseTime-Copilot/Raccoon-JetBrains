@@ -99,19 +99,17 @@ internal class RaccoonConfigurable() : Configurable, Disposable {
                 cell(inlineCompletionColorPanel)
             }
         }
-        if(!RaccoonConfig.config.isToB()) {
-            val isKnowledgeBaseAllowed = RaccoonClient.getIsKnowledgeBaseAllowed()
-            group(RaccoonBundle.message("settings.group.knowledgeBase.label.title")) {
-                row {
-                    checkBox(RaccoonBundle.message("settings.group.knowledgeBase.checkBox.enableLocal")).bindSelected(
-                        RaccoonSettingsState.instance::isLocalKnowledgeBaseEnabled
-                    ).enabled(isKnowledgeBaseAllowed)
-                }
-                row {
-                    checkBox(RaccoonBundle.message("settings.group.knowledgeBase.checkBox.enableCloud")).bindSelected(
-                        RaccoonSettingsState.instance::isCloudKnowledgeBaseEnabled
-                    ).enabled(isKnowledgeBaseAllowed)
-                }
+        val isKnowledgeBaseAllowed = RaccoonClient.getIsKnowledgeBaseAllowed()
+        group(RaccoonBundle.message("settings.group.knowledgeBase.label.title")) {
+//            row {
+//                checkBox(RaccoonBundle.message("settings.group.knowledgeBase.checkBox.enableLocal")).bindSelected(
+//                    RaccoonSettingsState.instance::isLocalKnowledgeBaseEnabled
+//                ).enabled(isKnowledgeBaseAllowed)
+//            }
+            row {
+                checkBox(RaccoonBundle.message("settings.group.knowledgeBase.checkBox.enableCloud")).bindSelected(
+                    RaccoonSettingsState.instance::isCloudKnowledgeBaseEnabled
+                ).enabled(isKnowledgeBaseAllowed)
             }
         }
         group(RaccoonBundle.message("settings.group.prompt.label.title")) {
