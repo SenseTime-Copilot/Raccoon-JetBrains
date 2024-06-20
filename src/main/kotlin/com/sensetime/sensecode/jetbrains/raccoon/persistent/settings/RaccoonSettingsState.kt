@@ -32,6 +32,7 @@ internal data class RaccoonSettingsState(
     var inlineCompletionPreference: CompletionModelConfig.CompletionPreference =
         CompletionModelConfig.CompletionPreference.BEST_EFFORT
 
+    var isKnowledgeEnabled: Boolean = false
     var isLocalKnowledgeBaseEnabled: Boolean = true
     var isCloudKnowledgeBaseEnabled: Boolean = true
 

@@ -243,6 +243,30 @@ internal class RaccoonClient : LLMClient() {
             requireNotNull(knowledgeBasesResponse.data) { "not found data field in ${knowledgeBasesResponse::class::simpleName}" }
         }
 
+    private suspend fun ClientJobRunner.requestSettingKnowledgeInsideCatching(accessToken: String): Unit =
+        createRequestBuilderWithCommonHeader(
+            raccoonClientConfig.getRaccoonSettingsApiEndpoint(),
+            false
+        ).addAuthorizationHeaderInsideEdtAndCatching(accessToken).get().build()
+            .runRequestJob(
+                isEnableNotify = false,
+                isEnableDebugLog = false,
+                project = null,
+                uiComponentForEdt = null
+            ) { ResponseBody ->
+                updateSettingsResponseBodyInsideCatching(ResponseBody, true)
+            }
+
+
+    private suspend fun ClientJobRunner.updateSettingsResponseBodyInsideCatching(
+        body: String, isCheckOrg: Boolean
+    ): Unit = LLMClientJson.decodeFromString(RaccoonSettingsResponse.serializer(), body).let { Response ->
+        requireNotNull(Response.data) { "not found data field in ${Response::class::simpleName}" }.let { tokensResponseData ->
+            RaccoonSettingsState.instance.isKnowledgeEnabled = Response.data.settings?.capabilities?.contains("file_search") ?: false
+        }
+    }
+
+
     private suspend fun ClientJobRunner.updateTokensResponseBodyInsideCatching(
         body: String, isCheckOrg: Boolean
     ): String = LLMClientJson.decodeFromString(RaccoonClientTokensResponse.serializer(), body).let { tokensResponse ->
@@ -255,6 +279,7 @@ internal class RaccoonClient : LLMClient() {
                     userInfo, isCheckOrg
                 )
             }
+            requestSettingKnowledgeInsideCatching(tokensResponseData.accessToken)
             RaccoonUserInformation.getInstance().knowledgeBases =
                 requestKnowledgeBasesInsideCatching(tokensResponseData.accessToken)
             tokensResponseData.accessToken
@@ -533,6 +558,11 @@ internal class RaccoonClient : LLMClient() {
         private val loginWithAuthCodePath: String = getPluginApiPath("/auth/v1/login_with_authorization_code")
         fun getLoginWithAuthCodeApiEndpoint(): String = getApiEndpoint(loginWithAuthCodePath)
 
+
+        private val raccoonSettings: String = getPluginApiPath("/setting/v1/settings")
+        fun getRaccoonSettingsApiEndpoint(): String = getApiEndpoint(raccoonSettings)
+
+
         private val loginWithSMSPath: String = getPluginApiPath("/auth/v1/login_with_sms")
         fun getLoginWithSMSApiEndpoint(): String = getApiEndpoint(loginWithSMSPath)
 
@@ -569,7 +599,7 @@ internal class RaccoonClient : LLMClient() {
                 val startIndex = srcPath.indexOf(PLUGIN_API_BASE_PATH)
                 require(startIndex >= 0) { "Not found plugin api path $PLUGIN_API_BASE_PATH in $srcPath" }
                 val endIndex = startIndex + PLUGIN_API_BASE_PATH.length
-                if (srcPath.indexOf("/auth", endIndex) == endIndex) {
+                if (srcPath.indexOf("/auth", endIndex) == endIndex || srcPath.indexOf("/setting/", endIndex) == endIndex) {
                     return srcPath
                 }
                 return srcPath.substring(0, endIndex) + "/org" + srcPath.substring(endIndex)

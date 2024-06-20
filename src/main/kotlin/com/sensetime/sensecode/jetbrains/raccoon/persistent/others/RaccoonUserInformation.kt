@@ -9,6 +9,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.RaccoonClient
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.RaccoonPersistentJson
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.RaccoonPersistentStateComponent
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonConfig
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.topics.RACCOON_CLIENT_AUTHORIZATION_TOPIC
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonExceptions
@@ -138,7 +139,7 @@ internal class RaccoonUserInformation : RaccoonPersistentStateComponent<RaccoonU
     private fun getCurrentOrgInfoOrNull(): RaccoonClientOrgInfo? =
         userInfo?.getOrgInfoByCodeOrNull(currentOrgCode)
 
-    fun IsKnowledgeBaseAllowed(): Boolean = isProCodeEnabled() || currentOrgAvailable()
+    fun IsKnowledgeBaseAllowed(): Boolean = RaccoonSettingsState.instance.isKnowledgeEnabled;
 
     companion object {
         fun getInstance(): RaccoonUserInformation = service()
