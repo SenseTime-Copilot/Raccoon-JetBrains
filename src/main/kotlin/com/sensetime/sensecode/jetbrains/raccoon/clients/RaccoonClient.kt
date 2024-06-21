@@ -281,7 +281,7 @@ internal class RaccoonClient : LLMClient() {
             }
             requestSettingKnowledgeInsideCatching(tokensResponseData.accessToken)
             RaccoonUserInformation.getInstance().knowledgeBases =
-                requestKnowledgeBasesInsideCatching(tokensResponseData.accessToken)
+                    requestKnowledgeBasesInsideCatching(tokensResponseData.accessToken)
             tokensResponseData.accessToken
         }
     }

@@ -15,6 +15,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClient
 import com.sensetime.sensecode.jetbrains.raccoon.completions.actions.ManualTriggerInlineCompletionAction
 import com.sensetime.sensecode.jetbrains.raccoon.completions.preview.render.GraphicsUtils
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.CompletionModelConfig
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonPromptSettings
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
