@@ -4,18 +4,16 @@ import com.intellij.codeInsight.CodeInsightActionHandler
 import com.intellij.codeInsight.actions.BaseCodeInsightAction
 import com.intellij.ide.DataManager
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.actionSystem.ActionGroup
-import com.intellij.openapi.actionSystem.ActionManager
-import com.intellij.openapi.actionSystem.ActionPlaces
-import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.ex.util.EditorUtil
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiWhiteSpace
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.*
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.refactoring.suggested.endOffset
 import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClient
 import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientManager
@@ -30,6 +28,8 @@ import com.sensetime.sensecode.jetbrains.raccoon.tasks.CodeTaskActionBase
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonLanguages
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
 import kotlinx.coroutines.Job
+import org.jetbrains.kotlin.psi.KtCallExpression
+import org.jetbrains.kotlin.psi.KtNamedFunction
 import kotlin.math.min
 
 
@@ -105,7 +105,7 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
 
                                 override fun onDoneInsideEdtAndCatching(): String? {
                                     completionPreview.done = true
-                                    return super.onDoneInsideEdtAndCatching()
+                                        return super.onDoneInsideEdtAndCatching()
                                 }
 
                                 override fun onFailureWithoutCancellationInsideEdt(t: Throwable) {
@@ -175,7 +175,8 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
             return result
         }
 
-        data class UserContent(var text: String, var offset: Int, val maxLength: Int) {
+        data class UserContent(var text: String, var offset: Int, val maxLength: Int, var knowledge: String ="") {
+
             fun cutByMaxLength(preScale: Float = 0.7f): Boolean {
                 if (maxLength >= text.length) {
                     return true
@@ -208,14 +209,14 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                 return true
             }
 
-            private fun getPrefixArgs(prefix: String): Map<String, String> {
+            private fun getPrefixArgs(prefix: String, knowledge: String=""): Map<String, String> {
                 var prefixLines = ""
                 var prefixCursor = prefix
                 prefix.lastIndexOf('\n').takeIf { it >= 0 }?.let {
                     prefixLines = prefix.substring(0, it + 1)
                     prefixCursor = prefix.substring(it + 1)
                 }
-                return mapOf("prefixLines" to prefixLines, "prefixCursor" to prefixCursor, "prefix" to prefix)
+                return mapOf("prefixLines" to knowledge+prefixLines, "prefixCursor" to prefixCursor, "prefix" to prefix)
             }
 
 //            listOfNotNull(
@@ -227,6 +228,8 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                 modelConfig: CompletionModelConfig
             ): String = modelConfig.getPrompt(
                 if (text.length > offset) {
+                    println("getmessage text: $text")
+
                     val suffix = text.substring(offset)
                     var suffixLines = ""
                     var suffixCursor = suffix.trimEnd('\r', '\n')
@@ -239,8 +242,10 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                         "suffixLines" to suffixLines,
                         "suffixCursor" to suffixCursor,
                         "suffix" to suffix
-                    ) + getPrefixArgs(text.substring(0, offset))
+                    ) + getPrefixArgs(text.substring(0, offset), knowledge)
                 } else {
+                    println("getmessage222 text: $text")
+
                     mapOf("language" to language, "suffixLines" to "", "suffixCursor" to "") + getPrefixArgs(
                         text
                     )
@@ -248,15 +253,106 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
             )
         }
 
+        private fun isFunctionCall(element: PsiElement): Boolean {
+            // 检查元素是否为函数调用，可以根据具体的语言解析器进行扩展
+            return when (element) {
+                is PsiMethodCallExpression -> true
+                else -> element.node.elementType.toString().contains("CALL") || element.node.elementType.toString().contains("REFERENCE_EXPRESSION")
+            }
+        }
+        private fun findFunctionDefinitions(project: Project, functionCalls: List<PsiElement>, fileName: String, foundDefinitions: MutableList<String>, maxLength: Int) {
+            val openFiles = FileEditorManager.getInstance(project).openFiles
+            for (file in openFiles) {
+                if (file.name == fileName) {
+                    continue
+                }
+                ApplicationManager.getApplication().runReadAction {
+                    val psiFile = PsiManager.getInstance(project).findFile(file) ?: return@runReadAction
+                    val fname = mutableListOf<String>()
+                    for (call in functionCalls) {
+                        val functionName = getFunctionName(call) ?: continue
+                        if (fname.contains(functionName)) {
+                            continue
+                        }
+                        psiFile.accept(object : PsiRecursiveElementWalkingVisitor() {
+                            override fun visitElement(element: PsiElement) {
+                                val definition = isFunctionDefinition(element, functionName)
+                                if (definition != null) {
+                                    // 检查新添加的函数定义是否会使总文本长度超过 maxLength
+                                    if (foundDefinitions.joinToString("\n").length + definition.length < maxLength) {
+                                        foundDefinitions.add(definition)
+                                    }
+                                }
+
+                                super.visitElement(element)
+                            }
+                        })
+                    }
+                }
+            }
+        }
+
+        private fun getFunctionName(call: PsiElement): String? {
+            return when {
+                call.node.elementType.toString().contains("EXPRESSION") -> {
+                    // 寻找可能的子元素名称
+                    call.children.firstOrNull { it.node.elementType.toString().contains("REFERENCE") }?.text?.split('.')?.firstOrNull()
+                }
+                else -> null
+            }
+        }
+
+        private fun isFunctionDefinition(element: PsiElement, functionName: String): String? {
+            // 通用地检查元素是否为函数定义
+            return element.children.mapNotNull {
+                it.node.elementType.toString().let { nodeType ->
+                    if (nodeType.contains("FUN") || nodeType.contains("CLASS") || nodeType.contains("METHOD")) {
+                        it.text.takeIf { it.split("\n").firstOrNull()?.contains(functionName) == true }
+                    } else {
+                        null
+                    }
+                }
+            }.firstOrNull()
+        }
+
+        private fun findFunctionCalls(project: Project, file: VirtualFile, remainValue: Int): String{
+            val foundDefinitions = mutableListOf<String>()
+            ApplicationManager.getApplication().runReadAction {
+                val psiFile = PsiManager.getInstance(project).findFile(file) ?: return@runReadAction
+                // 查找当前文件中的所有函数调用
+                val functionCalls = mutableListOf<PsiElement>()
+                psiFile.accept(object : PsiRecursiveElementWalkingVisitor() {
+                    override fun visitElement(element: PsiElement) {
+                        if (isFunctionCall(element)) {
+                            if (!functionCalls.any { it.text.contains(element.text) }) {
+                                functionCalls.add(element)
+                            }
+                        }
+                        super.visitElement(element)
+                    }
+                })
+                // 在其他打开的文件中查找这些函数调用的定义
+                findFunctionDefinitions(project, functionCalls,file.name,foundDefinitions, remainValue)
+            }
+            return foundDefinitions.joinToString("\n")
+        }
+
+
+
         @JvmStatic
         private fun getUserContent(psiElement: PsiElement, caretOffsetInElement: Int, maxLength: Int): UserContent {
             var userContent = UserContent(psiElement.text, caretOffsetInElement, maxLength)
+            // 如果当前节点的文本长度大于最大长度，递归查找父节点
             if (userContent.cutByMaxLength()) {
                 var curPsiElement = psiElement
+                var nn = 0
                 while (true) {
+                    nn++
+                    // 如果当前是文件，直接跳出
                     if (curPsiElement is PsiFile) {
                         break
                     }
+                    // 如果当前是根节点，或者当前节点的文本长度大于最大长度，直接跳出
                     if ((null == curPsiElement.parent) || (curPsiElement.parent.text.length > maxLength)) {
                         var appendPreOk = true
                         var appendPostOk = true
@@ -288,6 +384,11 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                     curPsiElement = curPsiElement.parent
                 }
             }
+            val remainLengthValue = userContent.maxLength - userContent.text.length
+            val pretext = findFunctionCalls(psiElement.project, psiElement.containingFile.virtualFile, remainLengthValue)
+            println("search text: $pretext")
+            userContent.text = userContent.text
+            userContent.knowledge = "\n" + pretext + "\n"
             return userContent
         }
     }
