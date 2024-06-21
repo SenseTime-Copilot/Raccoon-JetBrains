@@ -8,8 +8,8 @@ internal val RACCOON_STATISTICS_TOPIC = Topic.create("RaccoonStatisticsTopic", R
 internal interface RaccoonStatisticsListener {
     fun onGenerateGitCommitMessageFinished()
 
-    fun onInlineCompletionFinished(language: String, candidates: Int)
-    fun onInlineCompletionAccepted(language: String)
+    fun onInlineCompletionFinished(language: String, candidates: Int, line: Int)
+    fun onInlineCompletionAccepted(language: String, line: Int)
 
     fun onToolWindowNewSession()
     fun onToolWindowQuestionSubmitted()

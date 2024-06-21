@@ -27,6 +27,7 @@ internal class UserAuthorizationPanel(
     currentOrgName: String?, isAvailable: Boolean,
     private val eventListener: EventListener
 ) : JPanel(BorderLayout()), RaccoonClientAuthorizationListener {
+    // 内部接口，具体的onLoginClicked 实现是由接口的实现类实现的，RaccoonClient
     interface EventListener {
         fun onLoginClicked(parent: Component, onFinallyInsideEdt: () -> Unit)
         fun onLogoutClicked(onFinallyInsideEdt: () -> Unit)

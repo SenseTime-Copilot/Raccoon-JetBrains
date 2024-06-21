@@ -100,18 +100,21 @@ internal class RaccoonConfigurable() : Configurable, Disposable {
             }
         }
         val isKnowledgeBaseAllowed = RaccoonClient.getIsKnowledgeBaseAllowed()
-        group(RaccoonBundle.message("settings.group.knowledgeBase.label.title")) {
+        if (RaccoonSettingsState.instance.isKnowledgeEnabled) {
+            group(RaccoonBundle.message("settings.group.knowledgeBase.label.title")) {
 //            row {
 //                checkBox(RaccoonBundle.message("settings.group.knowledgeBase.checkBox.enableLocal")).bindSelected(
 //                    RaccoonSettingsState.instance::isLocalKnowledgeBaseEnabled
-//                ).enabled(isKnowledgeBaseAllowed)
+//                ).enabled(RaccoonSettingsState.instance.isCloudKnowledgeBaseEnabled)
 //            }
-            row {
-                checkBox(RaccoonBundle.message("settings.group.knowledgeBase.checkBox.enableCloud")).bindSelected(
-                    RaccoonSettingsState.instance::isCloudKnowledgeBaseEnabled
-                ).enabled(isKnowledgeBaseAllowed)
+                row {
+                    checkBox(RaccoonBundle.message("settings.group.knowledgeBase.checkBox.enableCloud")).bindSelected(
+                        RaccoonSettingsState.instance::isCloudKnowledgeBaseEnabled
+                    )
+                }
             }
         }
+
         group(RaccoonBundle.message("settings.group.prompt.label.title")) {
             row {
                 label("Git commit:")

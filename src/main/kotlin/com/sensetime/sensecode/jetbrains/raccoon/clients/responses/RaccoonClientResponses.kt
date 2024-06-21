@@ -189,6 +189,22 @@ internal data class RaccoonClientTokensResponse(
 ) : RaccoonClientStatus()
 
 @Serializable
+internal data class Capabilities(
+    @SerialName("capabilities")
+    val capabilities: List<String>? = null
+)
+
+@Serializable
+internal data class RaccoonSettings(
+    @SerialName("settings")
+    val settings: Capabilities? = null
+)
+@Serializable
+internal data class RaccoonSettingsResponse(
+    val data: RaccoonSettings? = null
+) : RaccoonClientStatus()
+
+@Serializable
 internal data class RaccoonClientSensitiveConversation(
     @SerialName("turn_id")
     val id: String = "",

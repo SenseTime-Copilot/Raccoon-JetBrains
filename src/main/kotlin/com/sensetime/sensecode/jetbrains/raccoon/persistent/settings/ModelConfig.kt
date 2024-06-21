@@ -42,7 +42,7 @@ internal abstract class CompletionModelConfig : ModelConfig() {
         BEST_EFFORT("settings.CompletionPreference.BestEffort")
     }
 
-    protected abstract val promptTemplate: String
+    abstract val promptTemplate: String
     protected abstract val completionPreferenceMap: Map<CompletionPreference, Int>
 
     override fun getDefaultMaxNewTokens(): Int =
