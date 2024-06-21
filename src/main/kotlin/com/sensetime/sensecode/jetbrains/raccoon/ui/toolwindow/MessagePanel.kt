@@ -151,7 +151,23 @@ internal class MessagePanel(
         }
         lastTextPane!!.apply {
             lastRawText += deltaMarkdownText
-            text = if (lastRawText.isBlank()) lastRawText else RaccoonMarkdown.convertMarkdownToHtml(lastRawText)
+            val htmlContent = if (lastRawText.isBlank()) lastRawText else RaccoonMarkdown.convertMarkdownToHtml(lastRawText)
+            // 插入样式
+            val styledHtmlContent = """
+            <html>
+                <head>
+                    <style>
+                        body {
+                            font-family:  Arial, sans-serif;
+                        }
+                    </style>
+                </head>
+                <body>
+                    $htmlContent
+                </body>
+            </html>
+        """.trimIndent()
+            text = styledHtmlContent
         }
     }
 
