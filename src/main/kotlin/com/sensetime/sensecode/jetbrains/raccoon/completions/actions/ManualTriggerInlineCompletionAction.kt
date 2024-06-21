@@ -77,18 +77,17 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                     val modelConfig = RaccoonClient.clientConfig.completionModelConfig
                     val isSingleLine =
                         (settings.inlineCompletionPreference == CompletionModelConfig.CompletionPreference.SPEED_PRIORITY)
-                    val promm = getUserContent(
+                    val prompt = getUserContent(
                         psiElement,
                         caretOffset - psiElement.textOffset,
                         modelConfig.maxInputTokens
                     ).getMessages(language, modelConfig)
-                    println("promm: $promm")
                     LLMClientManager.getInstance(project)
                         .launchLLMCompletionJob(!RaccoonSettingsState.instance.isAutoCompleteMode,
                             editor.component,
                             LLMCompletionRequest(
                                 settings.candidates,
-                                prompt = promm
+                                prompt = prompt
                             ), object : LLMClientManager.LLMJobListener<LLMCompletionChoice, String?>,
                                 LLMClient.LLMUsagesResponseListener<LLMCompletionChoice>() {
                                 override fun onResponseInsideEdtAndCatching(llmResponse: LLMResponse<LLMCompletionChoice>) {

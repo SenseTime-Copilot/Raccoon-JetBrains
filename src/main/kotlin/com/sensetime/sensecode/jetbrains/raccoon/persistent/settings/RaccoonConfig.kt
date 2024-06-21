@@ -14,6 +14,7 @@ internal val RaccoonConfigJson = RaccoonBaseJson
 @Serializable
 internal data class RaccoonConfig(
     val packageId: String,
+    val lang: String,
     @SerialName("raccoonStatisticsMaxCacheCount")
     private val _raccoonStatisticsMaxCacheCount: Int = RACCOON_STATISTICS_MAX_CACHE_COUNT,
     @SerialName("raccoonStatisticsMaxIntervalMs")
@@ -37,8 +38,8 @@ internal data class RaccoonConfig(
         private const val NAME = "config"
         private val LOG = logger<RaccoonConfig>()
 
-        private const val RACCOON_STATISTICS_MAX_CACHE_COUNT = 100
-        private const val RACCOON_STATISTICS_MAX_INTERVAL_MS = 600 * 1000
+        private const val RACCOON_STATISTICS_MAX_CACHE_COUNT = 5
+        private const val RACCOON_STATISTICS_MAX_INTERVAL_MS = 300 * 1000
 
         @JvmField
         val config: RaccoonConfig = loadFromResources()

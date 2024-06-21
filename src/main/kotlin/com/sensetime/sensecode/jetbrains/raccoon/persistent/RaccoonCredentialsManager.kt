@@ -29,7 +29,7 @@ internal object RaccoonCredentialsManager {
 
     private fun getPasswordSafe(attributes: CredentialAttributes): Credentials? = PasswordSafe.instance.get(attributes)
     private fun setPasswordSafe(attributes: CredentialAttributes, credentials: Credentials?) {
-        PasswordSafe.instance.set(attributes, credentials?.takeIfNotEmpty())
+        PasswordSafe.instance.set(attributes, credentials?.takeIfNotEmpty(), false)
     }
 
 

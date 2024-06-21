@@ -14,7 +14,15 @@ variables:
       - "Enterprise"
   API_BASEURL:
     description: "The API base URL path of backend, only url(unlike vscode, not including plugin path). default is use configs/RaccoonClient.json"
-
+  AUTO_PROMPT_LANG:
+    description: "Specify the language for right-click code hints, 'ja' or 'zh'. default is 'Auto'"
+    value: "Auto"
+    options:
+      - "ja"
+      - "zh"
+      - "en"
+      - "hant"
+      - "Auto"
 build_plugin:
   stage: build
   rules:

@@ -22,10 +22,12 @@ import com.intellij.util.ui.UIUtil
 import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientMessageException
 import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClient
+import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClient.RaccoonClientConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.RaccoonCredentialsManager
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.takeIfNotEmpty
 import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
+import com.sensetime.sensecode.jetbrains.raccoon.services.authentication.SenseChatAuthService
 import com.sensetime.sensecode.jetbrains.raccoon.utils.*
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonExceptions
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
@@ -50,6 +52,7 @@ internal class LoginDialog(
 ) : DialogWrapper(
     project, parent, false, IdeModalityType.PROJECT
 ) {
+    private var webLoginStatusLabel: JLabel? = null
     private var emailField: JBTextField? = null
     private var phoneField: JBTextField? = null
     private var passwordField: JBPasswordField? = null
@@ -152,8 +155,6 @@ internal class LoginDialog(
     private fun Row.addPasswordField(loginInfo: Credentials?): JBPasswordField =
         cell(JBPasswordField()).validationOnApply {
             val length = it.password.let { pwd ->
-                // Zero out the possible password, for security.
-                Arrays.fill(pwd, '0')
                 pwd.size
             }
             if (length < MIN_PASSWORD_LENGTH) {
@@ -228,30 +229,60 @@ internal class LoginDialog(
                 phoneLoginTabbedPane = tabbedPaneHeader(
                     listOf(
                         RaccoonBundle.message("login.dialog.tab.name.passwordLogin"),
-                        RaccoonBundle.message("login.dialog.tab.name.smsLogin")
+                        RaccoonBundle.message("login.dialog.tab.name.webLogin"),
+//                        RaccoonBundle.message("login.dialog.tab.name.smsLogin")
                     )
                 ).component.apply {
                     addChangeListener {
                         requireNotNull(phoneLoginTabbedPane).apply {
-                            val isSmsLogin = (SMS_LOGIN_INDEX == selectedIndex)
-                            passwordField?.isVisible = !isSmsLogin
-                            savePasswordCheckBox?.isVisible = !isSmsLogin
-                            captchaField?.isVisible = isSmsLogin
-                            captchaLoading?.isVisible = isSmsLogin
-                            verificationCodeField?.isVisible = isSmsLogin
-                            getVerificationCodeLoadingButton?.isVisible = isSmsLogin
-                            if (isSmsLogin) {
-                                captchaField?.text = null
-                                captchaField?.isEnabled = false
-                                verificationCodeField?.text = null
-                                verificationCodeField?.isEnabled = false
-                                getVerificationCodeButton?.isEnabled = false
-                                captchaLabelAndButton?.doClick()
+                            val isWebLogin = (WEB_LOGIN_INDEX == selectedIndex)
+                            if (isWebLogin) {
+                                SenseChatAuthService.startLoginFromBrowser(raccoonClientConfig.getWebBrowserLoginUrl())
+                                close(OK_EXIT_CODE, false)
+                                webLoginStatusLabel?.isVisible = true
+                                phoneNationCodeComboBox?.isVisible = false
+                                phoneField?.isVisible = false
+                                passwordField?.isVisible = false
+                                savePasswordCheckBox?.isVisible = false
+                                captchaField?.isVisible = false
+                                captchaLoading?.isVisible = false
+                                verificationCodeField?.isVisible = false
+                                getVerificationCodeLoadingButton?.isVisible = false
+//                                java.awt.Desktop.getDesktop().browse(java.net.URI("http://your-web-login-url.com"))
+                            } else {
+                                webLoginStatusLabel?.isVisible = false
+                                phoneNationCodeComboBox?.isVisible = true
+                                phoneField?.isVisible = true
+                                passwordField?.isVisible = true
+                                savePasswordCheckBox?.isVisible = true
+                                okAction.isEnabled = true
                             }
-                            okAction.isEnabled = !isSmsLogin
+//                            val isSmsLogin = (SMS_LOGIN_INDEX == selectedIndex)
+//                            passwordField?.isVisible = !isSmsLogin
+//                            savePasswordCheckBox?.isVisible = !isSmsLogin
+//                            captchaField?.isVisible = isSmsLogin
+//                            captchaLoading?.isVisible = isSmsLogin
+//                            verificationCodeField?.isVisible = isSmsLogin
+//                            getVerificationCodeLoadingButton?.isVisible = isSmsLogin
+//                            if (isSmsLogin) {
+//                                captchaField?.text = null
+//                                captchaField?.isEnabled = false
+//                                verificationCodeField?.text = null
+//                                verificationCodeField?.isEnabled = false
+//                                getVerificationCodeButton?.isEnabled = false
+//                                captchaLabelAndButton?.doClick()
+//                            }
+//                            okAction.isEnabled = true
                         }
                     }
                 }
+            }
+            row {
+                webLoginStatusLabel = label(RaccoonBundle.message("login.dialog.tab.name.webLogining")).applyToComponent {
+                    preferredSize = Dimension(preferredSize.width, 100)
+                    alignmentY = Component.CENTER_ALIGNMENT
+                    isVisible = false
+                }.component
             }
             row {
                 phoneNationCodeComboBox = comboBox(listOf("+86", "+852", "+853", "+81")).gap(RightGap.SMALL).component
@@ -443,6 +474,9 @@ internal class LoginDialog(
         private const val MIN_PHONE_NUMBER_LENGTH = 6
         private const val MAX_PHONE_NUMBER_LENGTH = 32
         private const val PASSWORD_LOGIN_INDEX = 0
-        private const val SMS_LOGIN_INDEX = 1
+        private const val WEB_LOGIN_INDEX = 1
+        private const val SMS_LOGIN_INDEX = 2
+        private val raccoonClientConfig: RaccoonClientConfig = RaccoonClientConfig.loadFromResources()
+
     }
 }

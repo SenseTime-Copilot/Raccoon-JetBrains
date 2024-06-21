@@ -9,6 +9,7 @@
     <resource-bundle>messages.RaccoonBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
+        <httpRequestHandler implementation="com.sensetime.sensecode.jetbrains.raccoon.services.authentication.SenseChatAuthService" />
         <!--        Persistent Data-->
         <applicationService
                 serviceImplementation="com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState"/>
