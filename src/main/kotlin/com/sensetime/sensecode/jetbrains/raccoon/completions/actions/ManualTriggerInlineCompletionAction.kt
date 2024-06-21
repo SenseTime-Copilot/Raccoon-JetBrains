@@ -106,7 +106,7 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
 
                                 override fun onDoneInsideEdtAndCatching(): String? {
                                     completionPreview.done = true
-                                    return super.onDoneInsideEdtAndCatching()
+                                        return super.onDoneInsideEdtAndCatching()
                                 }
 
                                 override fun onFailureWithoutCancellationInsideEdt(t: Throwable) {
@@ -258,7 +258,7 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
             // 检查元素是否为函数调用，可以根据具体的语言解析器进行扩展
             return when (element) {
                 is PsiMethodCallExpression -> true
-                else -> element.node.elementType.toString().contains("CALL")
+                else -> element.node.elementType.toString().contains("CALL") || element.node.elementType.toString().contains("REFERENCE_EXPRESSION")
             }
         }
         private fun findFunctionDefinitions(project: Project, functionCalls: List<PsiElement>, fileName: String, foundDefinitions: MutableList<String>, maxLength: Int) {
@@ -269,8 +269,12 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                 }
                 ApplicationManager.getApplication().runReadAction {
                     val psiFile = PsiManager.getInstance(project).findFile(file) ?: return@runReadAction
+                    val fname = mutableListOf<String>()
                     for (call in functionCalls) {
                         val functionName = getFunctionName(call) ?: continue
+                        if (fname.contains(functionName)) {
+                            continue
+                        }
                         psiFile.accept(object : PsiRecursiveElementWalkingVisitor() {
                             override fun visitElement(element: PsiElement) {
                                 val definition = isFunctionDefinition(element, functionName)
@@ -291,9 +295,9 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
 
         private fun getFunctionName(call: PsiElement): String? {
             return when {
-                call.node.elementType.toString().contains("CALL_EXPRESSION") -> {
+                call.node.elementType.toString().contains("EXPRESSION") -> {
                     // 寻找可能的子元素名称
-                    call.children.firstOrNull { it.node.elementType.toString().contains("REFERENCE") }?.text
+                    call.children.firstOrNull { it.node.elementType.toString().contains("REFERENCE") }?.text?.split('.')?.firstOrNull()
                 }
                 else -> null
             }
@@ -301,16 +305,15 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
 
         private fun isFunctionDefinition(element: PsiElement, functionName: String): String? {
             // 通用地检查元素是否为函数定义
-            return when {
-                element.children.isNotEmpty() -> {
-                    element.children.firstOrNull {
-                        val nodeType = it.node.elementType.toString()
-                        nodeType.contains("FUN")
-                    }?.text?.takeIf { it.contains(functionName) }
+            return element.children.mapNotNull {
+                it.node.elementType.toString().let { nodeType ->
+                    if (nodeType.contains("FUN") || nodeType.contains("CLASS") || nodeType.contains("METHOD")) {
+                        it.text.takeIf { it.split("\n").firstOrNull()?.contains(functionName) == true }
+                    } else {
+                        null
+                    }
                 }
-                else -> null
-            }
-
+            }.firstOrNull()
         }
 
         private fun findFunctionCalls(project: Project, file: VirtualFile, remainValue: Int): String{
@@ -322,7 +325,9 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                 psiFile.accept(object : PsiRecursiveElementWalkingVisitor() {
                     override fun visitElement(element: PsiElement) {
                         if (isFunctionCall(element)) {
-                            functionCalls.add(element)
+                            if (!functionCalls.any { it.text.contains(element.text) }) {
+                                functionCalls.add(element)
+                            }
                         }
                         super.visitElement(element)
                     }
