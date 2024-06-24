@@ -28,8 +28,6 @@ import com.sensetime.sensecode.jetbrains.raccoon.tasks.CodeTaskActionBase
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonLanguages
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
 import kotlinx.coroutines.Job
-import org.jetbrains.kotlin.psi.KtCallExpression
-import org.jetbrains.kotlin.psi.KtNamedFunction
 import kotlin.math.min
 
 
@@ -255,10 +253,7 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
 
         private fun isFunctionCall(element: PsiElement): Boolean {
             // 检查元素是否为函数调用，可以根据具体的语言解析器进行扩展
-            return when (element) {
-                is PsiMethodCallExpression -> true
-                else -> element.node.elementType.toString().contains("CALL") || element.node.elementType.toString().contains("REFERENCE_EXPRESSION")
-            }
+            return element.node.elementType.toString().contains("CALL") || element.node.elementType.toString().contains("REFERENCE_EXPRESSION")
         }
         private fun findFunctionDefinitions(project: Project, functionCalls: List<PsiElement>, fileName: String, foundDefinitions: MutableList<String>, maxLength: Int) {
             val openFiles = FileEditorManager.getInstance(project).openFiles
