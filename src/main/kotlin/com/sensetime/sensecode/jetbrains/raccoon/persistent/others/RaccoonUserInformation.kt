@@ -139,7 +139,8 @@ internal class RaccoonUserInformation : RaccoonPersistentStateComponent<RaccoonU
     private fun getCurrentOrgInfoOrNull(): RaccoonClientOrgInfo? =
         userInfo?.getOrgInfoByCodeOrNull(currentOrgCode)
 
-    fun IsKnowledgeBaseAllowed(): Boolean = RaccoonSettingsState.instance.isKnowledgeEnabled;
+    fun IsKnowledgeBaseAllowed(): Boolean = RaccoonSettingsState.instance.isKnowledgeEnabled && (isProCodeEnabled() || currentOrgAvailable())
+
 
     companion object {
         fun getInstance(): RaccoonUserInformation = service()
