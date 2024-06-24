@@ -100,7 +100,7 @@ internal class RaccoonConfigurable() : Configurable, Disposable {
             }
         }
         val isKnowledgeBaseAllowed = RaccoonClient.getIsKnowledgeBaseAllowed()
-        if (RaccoonSettingsState.instance.isKnowledgeEnabled) {
+        if (false) {
             group(RaccoonBundle.message("settings.group.knowledgeBase.label.title")) {
 //            row {
 //                checkBox(RaccoonBundle.message("settings.group.knowledgeBase.checkBox.enableLocal")).bindSelected(
