@@ -3,7 +3,6 @@
     <id>com.sensetime.sensecode.jetbrains.{PACKAGE_ID}</id>
     <name>{PACKAGE_NAME}</name>
     <vendor>SenseTime</vendor>
-    <depends>org.jetbrains.kotlin</depends>
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.lang</depends>
     <resource-bundle>messages.RaccoonBundle</resource-bundle>
