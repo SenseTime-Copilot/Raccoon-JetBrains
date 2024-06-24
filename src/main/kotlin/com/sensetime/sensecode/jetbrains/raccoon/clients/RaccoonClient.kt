@@ -536,7 +536,7 @@ internal class RaccoonClient : LLMClient() {
 
     @Serializable
     data class RaccoonClientConfig(
-        override val apiBaseUrl: String = "http://code-test.sensetime.com"
+        override val apiBaseUrl: String = "https://raccoon-api.sensetime.com"
     ) : ClientConfig {
         @Transient
         override val name: String = NAME
@@ -547,7 +547,7 @@ internal class RaccoonClient : LLMClient() {
         private val webBaseUrl: String = Regex("-?api-?").replace(apiBaseUrl, "")
         private val webLoginPath: String = "/login"
         fun getWebLoginUrl(): String = webBaseUrl + webLoginPath
-        fun getWebBrowserLoginUrl(): String = "http://code-test.sensetime.com/login"
+        fun getWebBrowserLoginUrl(): String = webBaseUrl + webLoginPath
 
         private val webForgotPasswordPath = "$webLoginPath?step=forgot-password"
         fun getWebForgotPasswordUrl(): String = webBaseUrl + webForgotPasswordPath
