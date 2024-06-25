@@ -33,8 +33,8 @@ internal data class RaccoonSettingsState(
         CompletionModelConfig.CompletionPreference.BEST_EFFORT
 
     var isKnowledgeEnabled: Boolean = false
-    var isLocalKnowledgeBaseEnabled: Boolean = false
-    var isCloudKnowledgeBaseEnabled: Boolean = false
+    var isLocalKnowledgeBaseEnabled: Boolean = true
+    var isCloudKnowledgeBaseEnabled: Boolean = true
 
     fun restore() {
         loadState(RaccoonSettingsState(RaccoonPlugin.getVersion()))

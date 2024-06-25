@@ -262,7 +262,7 @@ internal class RaccoonClient : LLMClient() {
         body: String, isCheckOrg: Boolean
     ): Unit = LLMClientJson.decodeFromString(RaccoonSettingsResponse.serializer(), body).let { Response ->
         requireNotNull(Response.data) { "not found data field in ${Response::class::simpleName}" }.let { tokensResponseData ->
-            RaccoonSettingsState.instance.isKnowledgeEnabled = false
+            RaccoonSettingsState.instance.isKnowledgeEnabled = Response.data.settings?.capabilities?.contains("file_search") ?: false
         }
     }
 
@@ -279,7 +279,7 @@ internal class RaccoonClient : LLMClient() {
                     userInfo, isCheckOrg
                 )
             }
-//            requestSettingKnowledgeInsideCatching(tokensResponseData.accessToken)
+            requestSettingKnowledgeInsideCatching(tokensResponseData.accessToken)
             RaccoonUserInformation.getInstance().knowledgeBases =
                     requestKnowledgeBasesInsideCatching(tokensResponseData.accessToken)
             tokensResponseData.accessToken
