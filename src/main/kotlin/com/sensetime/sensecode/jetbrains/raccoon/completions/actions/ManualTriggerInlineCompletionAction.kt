@@ -257,28 +257,31 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
         }
         private fun findFunctionDefinitions(project: Project, functionCalls: List<PsiElement>, fileName: String, foundDefinitions: MutableList<String>, maxLength: Int) {
             val openFiles = FileEditorManager.getInstance(project).openFiles
+            val fname = mutableListOf<String>()
             for (file in openFiles) {
                 if (file.name == fileName) {
                     continue
                 }
                 ApplicationManager.getApplication().runReadAction {
                     val psiFile = PsiManager.getInstance(project).findFile(file) ?: return@runReadAction
-                    val fname = mutableListOf<String>()
                     for (call in functionCalls) {
                         val functionName = getFunctionName(call) ?: continue
+                        println("functionName: $functionName")
                         if (fname.contains(functionName)) {
                             continue
                         }
                         psiFile.accept(object : PsiRecursiveElementWalkingVisitor() {
                             override fun visitElement(element: PsiElement) {
                                 val definition = isFunctionDefinition(element, functionName)
+                                println("definition: $definition")
                                 if (definition != null) {
                                     // 检查新添加的函数定义是否会使总文本长度超过 maxLength
                                     if (foundDefinitions.joinToString("\n").length + definition.length < maxLength) {
                                         foundDefinitions.add(definition)
                                     }
+                                    fname.add(functionName)
+                                    return
                                 }
-
                                 super.visitElement(element)
                             }
                         })
@@ -301,7 +304,20 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
             // 通用地检查元素是否为函数定义
             return element.children.mapNotNull {
                 it.node.elementType.toString().let { nodeType ->
-                    if (nodeType.contains("FUN") || nodeType.contains("CLASS") || nodeType.contains("METHOD")) {
+                    if (nodeType.startsWith("JS:")) {
+                        if (nodeType.contains("FUNCTION_DECLARATION") || nodeType.contains("CLASS")) {
+                            println("nodeType: ${nodeType} + ${it.text}" )
+                            it.text.takeIf { it.split("\n").firstOrNull()?.contains(functionName) == true }
+                        } else {
+                            null
+                        }
+                    } else if (nodeType.startsWith("Py:")) {
+                        if (nodeType.contains("FUNCTION_DECLARATION")) {
+                            it.text.takeIf { it.split("\n").firstOrNull()?.contains(functionName) == true }
+                        } else {
+                            null
+                        }
+                    } else if (nodeType.contains("FUN") || nodeType.contains("CLASS") || nodeType.contains("METHOD")) {
                         it.text.takeIf { it.split("\n").firstOrNull()?.contains(functionName) == true }
                     } else {
                         null
