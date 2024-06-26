@@ -103,7 +103,7 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
 
                                 override fun onDoneInsideEdtAndCatching(): String? {
                                     completionPreview.done = true
-                                        return super.onDoneInsideEdtAndCatching()
+                                    return super.onDoneInsideEdtAndCatching()
                                 }
 
                                 override fun onFailureWithoutCancellationInsideEdt(t: Throwable) {
@@ -173,7 +173,7 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
             return result
         }
 
-        data class UserContent(var text: String, var offset: Int, val maxLength: Int, var knowledge: String ="") {
+        data class UserContent(var text: String, var offset: Int, val maxLength: Int, var knowledge: String = "") {
 
             fun cutByMaxLength(preScale: Float = 0.7f): Boolean {
                 if (maxLength >= text.length) {
@@ -207,14 +207,18 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                 return true
             }
 
-            private fun getPrefixArgs(prefix: String, knowledge: String=""): Map<String, String> {
+            private fun getPrefixArgs(prefix: String, knowledge: String = ""): Map<String, String> {
                 var prefixLines = ""
                 var prefixCursor = prefix
                 prefix.lastIndexOf('\n').takeIf { it >= 0 }?.let {
                     prefixLines = prefix.substring(0, it + 1)
                     prefixCursor = prefix.substring(it + 1)
                 }
-                return mapOf("prefixLines" to knowledge+prefixLines, "prefixCursor" to prefixCursor, "prefix" to prefix)
+                return mapOf(
+                    "prefixLines" to knowledge + prefixLines,
+                    "prefixCursor" to prefixCursor,
+                    "prefix" to prefix
+                )
             }
 
 //            listOfNotNull(
@@ -226,8 +230,6 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                 modelConfig: CompletionModelConfig
             ): String = modelConfig.getPrompt(
                 if (text.length > offset) {
-                    println("getmessage text: $text")
-
                     val suffix = text.substring(offset)
                     var suffixLines = ""
                     var suffixCursor = suffix.trimEnd('\r', '\n')
@@ -242,8 +244,6 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                         "suffix" to suffix
                     ) + getPrefixArgs(text.substring(0, offset), knowledge)
                 } else {
-                    println("getmessage222 text: $text")
-
                     mapOf("language" to language, "suffixLines" to "", "suffixCursor" to "") + getPrefixArgs(
                         text
                     )
@@ -252,10 +252,24 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
         }
 
         private fun isFunctionCall(element: PsiElement): Boolean {
-            // 检查元素是否为函数调用，可以根据具体的语言解析器进行扩展
-            return element.node.elementType.toString().contains("CALL") || element.node.elementType.toString().contains("REFERENCE_EXPRESSION")
+            val nodeType = element.node.elementType.toString()
+            return when {
+                nodeType == "JS:CALL_EXPRESSION" -> true
+                nodeType == "Py:EXPRESSION_STATEMENT" -> true
+                nodeType == "CALL_EXPR" -> true
+                nodeType == "CALL_EXPRESSION" -> true
+                nodeType == "METHOD_CALL_EXPRESSION" -> true
+                else -> false
+            }
         }
-        private fun findFunctionDefinitions(project: Project, functionCalls: List<PsiElement>, fileName: String, foundDefinitions: MutableList<String>, maxLength: Int) {
+
+        private fun findFunctionDefinitions(
+            project: Project,
+            functionCalls: List<PsiElement>,
+            fileName: String,
+            foundDefinitions: MutableList<String>,
+            maxLength: Int
+        ) {
             val openFiles = FileEditorManager.getInstance(project).openFiles
             val fname = mutableListOf<String>()
             for (file in openFiles) {
@@ -266,14 +280,12 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                     val psiFile = PsiManager.getInstance(project).findFile(file) ?: return@runReadAction
                     for (call in functionCalls) {
                         val functionName = getFunctionName(call) ?: continue
-                        println("functionName: $functionName")
                         if (fname.contains(functionName)) {
                             continue
                         }
                         psiFile.accept(object : PsiRecursiveElementWalkingVisitor() {
                             override fun visitElement(element: PsiElement) {
                                 val definition = isFunctionDefinition(element, functionName)
-                                println("definition: $definition")
                                 if (definition != null) {
                                     // 检查新添加的函数定义是否会使总文本长度超过 maxLength
                                     if (foundDefinitions.joinToString("\n").length + definition.length < maxLength) {
@@ -291,42 +303,37 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
         }
 
         private fun getFunctionName(call: PsiElement): String? {
-            return when {
-                call.node.elementType.toString().contains("EXPRESSION") -> {
-                    // 寻找可能的子元素名称
-                    call.children.firstOrNull { it.node.elementType.toString().contains("REFERENCE") }?.text?.split('.')?.firstOrNull()
-                }
-                else -> null
-            }
+            // 获取函数名
+            return call.text.split("(").firstOrNull()?.split(".")?.lastOrNull()
+                ?.let { if (it.isEmpty()) call.text else it }
         }
 
         private fun isFunctionDefinition(element: PsiElement, functionName: String): String? {
-            // 通用地检查元素是否为函数定义
-            return element.children.mapNotNull {
-                it.node.elementType.toString().let { nodeType ->
-                    if (nodeType.startsWith("JS:")) {
-                        if (nodeType.contains("FUNCTION_DECLARATION") || nodeType.contains("CLASS")) {
-                            println("nodeType: ${nodeType} + ${it.text}" )
-                            it.text.takeIf { it.split("\n").firstOrNull()?.contains(functionName) == true }
-                        } else {
-                            null
-                        }
-                    } else if (nodeType.startsWith("Py:")) {
-                        if (nodeType.contains("FUNCTION_DECLARATION")) {
-                            it.text.takeIf { it.split("\n").firstOrNull()?.contains(functionName) == true }
-                        } else {
-                            null
-                        }
-                    } else if (nodeType.contains("FUN") || nodeType.contains("CLASS") || nodeType.contains("METHOD")) {
-                        it.text.takeIf { it.split("\n").firstOrNull()?.contains(functionName) == true }
-                    } else {
-                        null
-                    }
+            return element.children.firstOrNull { child ->
+                val nodeType = child.node.elementType.toString()
+                val isFunction = when {
+                    nodeType.startsWith("JS:") -> nodeType.contains("FUNCTION_DECLARATION") || nodeType.contains("CLASS")
+                    nodeType.startsWith("Py:") -> nodeType.contains("FUNCTION_DECLARATION")
+                    else -> nodeType == "FUNCTION_DECLARATION" || nodeType.contains("FUN") || nodeType.contains("CLASS") || nodeType.contains("METHOD")
                 }
-            }.firstOrNull()
+                isFunction && child.text.split("\n").firstOrNull()?.contains(functionName) == true
+            }?.text
         }
 
-        private fun findFunctionCalls(project: Project, file: VirtualFile, remainValue: Int): String{
+
+//        private fun isFunctionDefinition(element: PsiElement, functionName: String): String? {
+//            return element.children.mapNotNull { child ->
+//                val nodeType = child.node.elementType.toString()
+//                val isFunction = when {
+//                    nodeType.startsWith("JS:") -> nodeType.contains("FUNCTION_DECLARATION") || nodeType.contains("CLASS")
+//                    nodeType.startsWith("Py:") -> nodeType.contains("FUNCTION_DECLARATION")
+//                    else -> nodeType.contains("FUN") || nodeType.contains("CLASS") || nodeType.contains("METHOD")
+//                }
+//                if (isFunction && child.text.split("\n").firstOrNull()?.contains(functionName) == true) child.text else null
+//            }.firstOrNull()
+//        }
+
+        private fun findFunctionCalls(project: Project, file: VirtualFile, remainValue: Int): String {
             val foundDefinitions = mutableListOf<String>()
             ApplicationManager.getApplication().runReadAction {
                 val psiFile = PsiManager.getInstance(project).findFile(file) ?: return@runReadAction
@@ -342,12 +349,12 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                         super.visitElement(element)
                     }
                 })
+                println("functionCalls: $functionCalls")
                 // 在其他打开的文件中查找这些函数调用的定义
-                findFunctionDefinitions(project, functionCalls,file.name,foundDefinitions, remainValue)
+                findFunctionDefinitions(project, functionCalls, file.name, foundDefinitions, remainValue)
             }
             return foundDefinitions.joinToString("\n")
         }
-
 
 
         @JvmStatic
@@ -396,7 +403,8 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                 }
             }
             val remainLengthValue = userContent.maxLength - userContent.text.length
-            val pretext = findFunctionCalls(psiElement.project, psiElement.containingFile.virtualFile, remainLengthValue)
+            val pretext =
+                findFunctionCalls(psiElement.project, psiElement.containingFile.virtualFile, remainLengthValue)
             println("search text: $pretext")
             userContent.text = userContent.text
             userContent.knowledge = "\n" + pretext + "\n"
