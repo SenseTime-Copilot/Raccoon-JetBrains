@@ -105,12 +105,12 @@ internal class RaccoonConfigurable() : Configurable, Disposable {
 //            row {
 //                checkBox(RaccoonBundle.message("settings.group.knowledgeBase.checkBox.enableLocal")).bindSelected(
 //                    RaccoonSettingsState.instance::isLocalKnowledgeBaseEnabled
-//                ).enabled(RaccoonSettingsState.instance.isCloudKnowledgeBaseEnabled)
+//                ).enabled(isKnowledgeBaseAllowed)
 //            }
                 row {
                     checkBox(RaccoonBundle.message("settings.group.knowledgeBase.checkBox.enableCloud")).bindSelected(
                         RaccoonSettingsState.instance::isCloudKnowledgeBaseEnabled
-                    )
+                    ).enabled(isKnowledgeBaseAllowed)
                 }
             }
         }
