@@ -262,11 +262,11 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
 
         fun isFunctionCallRef(reference: PsiReference): Boolean {
             val ref = reference.toString()
-            println("reference: $ref")
             return when {
                 ref.startsWith("KtSimpleNameReferenceDescriptorsImpl") -> true
                 ref.startsWith("KtInvokeFunctionReferenceDescriptorsImpl") -> true
                 ref.startsWith("PsiReferenceExpression:") -> true
+                ref.contains("REFERENCE_EXPRESSION:") -> true
                 ref.contains("JSReferenceExpression:") -> true
                 ref.contains("PyReferenceExpression:") -> true
                 else -> false
@@ -276,18 +276,6 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
         fun isFunctionCall(element: PsiElement): Boolean {
             val nodeType = element.node.elementType.toString()
             val reference = element.reference.toString()
-            println("element: ${element.text}, ${element::class.java}, $nodeType, $reference")
-//            if (nodeType == "CALL_EXPRESSION") {
-//                // Get the next sibling element
-//                val nextElement = element.nextSibling
-//                val nextNodeType = nextElement?.node?.elementType?.toString()
-//                if (nextNodeType == "REFERENCE_EXPRESSION") {
-//                    println("Next element is REFERENCE_EXPRESSION: ${nextElement.text}")
-//                    return true
-//                }
-//            }
-//            return false
-//            return true
             return when {
                 nodeType == "JS:REFERENCE_EXPRESSION" -> true
                 nodeType == "Py:REFERENCE_EXPRESSION" -> {
@@ -297,7 +285,6 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                         false
                     }
                 }
-                nodeType == "CALL_EXPR" -> true
                 nodeType == "REFERENCE_EXPRESSION" -> true
 //                reference.startsWith("KtInvokeFunctionReferenceDescriptorsImpl") -> true
 //                reference.startsWith("KtSimpleNameReferenceDescriptorsImpl") -> true
@@ -315,7 +302,6 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
             maxLength: Int
         ) {
             val openFiles = FileEditorManager.getInstance(project).openFiles
-            val fname = mutableListOf<String>()
             for (file in openFiles) {
                 if (file.name == fileName) {
                     continue
@@ -332,7 +318,6 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                         val isOpen = containingFile?.virtualFile?.let { file.name == it.name } == true
 //                        val definition = resolvedElement?.text?.takeUnless { it.split("\n")[0].contains("class ") }?:""
                         val definition = isFunctionKeyWord(resolvedElement?.text?:"")
-                        println("definition: $definition, resolvedElement?.text: ${resolvedElement?.text}")
                         if (isOpen && definition != ""){
                             if (foundDefinitions.joinToString("\n").length + definition.length < maxLength) {
                                 foundDefinitions.add(definition)
@@ -343,68 +328,9 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                             null
                         }
                     }
-//                    val searchScope = GlobalSearchScope.fileScope(psiFile)
-//                    println("Searching in file: ${psiFile.name}")
-//                    println("Call element: ${call.text}, Type: ${call::class.java}")
-//
-//                    val references = ReferencesSearch.search(call, searchScope).findAll()
-//                    println("Number of references found: ${references.size}")
-//
-//                    references.forEach { reference ->
-//                        val resolvedElement = reference.resolve()
-//                        println("Found reference: ${reference.element.text}")
-//                        if (resolvedElement != null) {
-//                            println("Resolved element text: ${resolvedElement.text}")
-//                        } else {
-//                            println("Resolved element is null")
-//                        }
-//                    }
-//                    call.references.mapNotNull { reference ->
-//                        println("qqqqqq${reference.toString()}, ${reference.resolve()?.text}, ${reference.element}")
-//                    }
 
-//                   call.references?.resolve()?.let {
-//                            if (it.containingFile.name != file.name) {
-//                                println("file name: ${it.containingFile.name}, ${it.text}")
-//                            }
-//                            it.containingFile.name != file.name }
-
-//                        val functionName = getFunctionName(reference.element) ?: return@mapNotNull
-//                        if (fname.contains(functionName)) {
-//                            return@mapNotNull
-//                        }
-//                        fname.add(functionName)
-//                        val definition = isFunctionDefinition(reference.element, functionName)
-//                        if (definition != null) {
-//                            // 检查新添加的函数定义是否会使总文本长度超过 maxLength
-//                            if (foundDefinitions.joinToString("\n").length + definition.length < maxLength) {
-//                                foundDefinitions.add(definition)
-//                            }
-//                        }
                 }
-//                ApplicationManager.getApplication().runReadAction {
-//                    val psiFile = PsiManager.getInstance(project).findFile(file) ?: return@runReadAction
-//                    for (call in functionCalls) {
-//                        val functionName = getFunctionName(call) ?: continue
-//                        if (fname.contains(functionName)) {
-//                            continue
-//                        }
-//                        psiFile.accept(object : PsiRecursiveElementWalkingVisitor() {
-//                            override fun visitElement(element: PsiElement) {
-//                                val definition = isFunctionDefinition(element, functionName)
-//                                if (definition != null) {
-//                                    // 检查新添加的函数定义是否会使总文本长度超过 maxLength
-//                                    if (foundDefinitions.joinToString("\n").length + definition.length < maxLength) {
-//                                        foundDefinitions.add(definition)
-//                                    }
-//                                    fname.add(functionName)
-//                                    return
-//                                }
-//                                super.visitElement(element)
-//                            }
-//                        })
-//                    }
-//                }
+
             }
         }
 
@@ -414,30 +340,6 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                 ?.let { if (it.isEmpty()) call.text else it }
         }
 
-        private fun isFunctionDefinition(element: PsiElement, functionName: String): String? {
-            return element.children.firstOrNull { child ->
-                val nodeType = child.node.elementType.toString()
-                val isFunction = when {
-                    nodeType.startsWith("JS:") -> nodeType.contains("FUNCTION_DECLARATION") || nodeType.contains("CLASS")
-                    nodeType.startsWith("Py:") -> nodeType.contains("FUNCTION_DECLARATION")
-                    else -> nodeType == "FUNCTION_DECLARATION" || nodeType.contains("FUN") || nodeType.contains("CLASS") || nodeType.contains("METHOD")
-                }
-                isFunction && child.text.split("\n").firstOrNull()?.contains(functionName) == true
-            }?.text
-        }
-
-
-//        private fun isFunctionDefinition(element: PsiElement, functionName: String): String? {
-//            return element.children.mapNotNull { child ->
-//                val nodeType = child.node.elementType.toString()
-//                val isFunction = when {
-//                    nodeType.startsWith("JS:") -> nodeType.contains("FUNCTION_DECLARATION") || nodeType.contains("CLASS")
-//                    nodeType.startsWith("Py:") -> nodeType.contains("FUNCTION_DECLARATION")
-//                    else -> nodeType.contains("FUN") || nodeType.contains("CLASS") || nodeType.contains("METHOD")
-//                }
-//                if (isFunction && child.text.split("\n").firstOrNull()?.contains(functionName) == true) child.text else null
-//            }.firstOrNull()
-//        }
 
         private fun findFunctionCalls(project: Project, file: VirtualFile, remainValue: Int): String {
             val foundDefinitions = mutableListOf<String>()
@@ -448,7 +350,6 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                 psiFile.accept(object : PsiRecursiveElementWalkingVisitor() {
                     override fun visitElement(element: PsiElement) {
                         if (isFunctionCall(element)) {
-//                            val next = element.nextSibling
                             if (!functionCalls.any { it.text == element.text }) {
                                 functionCalls.add(element)
                             }
@@ -514,7 +415,7 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                 findFunctionCalls(psiElement.project, psiElement.containingFile.virtualFile, remainLengthValue)
             println("search text: ${pretext} ... ")
             userContent.text = userContent.text
-            userContent.knowledge = "\n" + pretext + "\n"
+            userContent.knowledge = " \n " + pretext + " \n "
             return userContent
         }
     }

@@ -103,6 +103,25 @@ internal object CodeLocalContextFinder {
                 } else null
             } else null
         }
+// zhangxin 版本
+//    private fun PsiElement.getContexts(
+//        psiFile: PsiFile,
+//        totalRange: TextRange,
+//        allPsiElements: ArrayList<PsiElement>
+//    ): List<Pair<String, String>> =
+//        references.mapNotNull { reference ->
+//            reference.takeUnless { it.isSoft }?.resolve()?.takeIfNotDuplicate(allPsiElements)?.let { resolvedElement ->
+//                val range = totalRange.takeIf { resolvedElement.insideFile(psiFile) }
+//                resolvedElement.elementType.run {
+//                    when {
+//                        isClass() -> resolvedElement.getClassSummary(range)
+//                        isFunction() -> resolvedElement.getFunctionSignature(range)
+//                        else -> resolvedElement.takeTextIfNotInsideRange(range)
+//                    }
+//                }?.letIfNotBlank { Pair(resolvedElement.containingFile.name, it) }
+//            }
+//        }
+
 
     private fun List<Pair<String, String>>.estimateTokensNumber(): Int =
         fold(0) { prev, cur -> prev + RaccoonTokenUtils.estimateTokensNumber(cur.first + cur.second) }
@@ -118,7 +137,6 @@ internal object CodeLocalContextFinder {
         while (queue.isNotEmpty()) {
             val cur = queue.poll() ?: break
             val contexts = cur.getContexts(psiFile, totalRange, allPsiElements)
-            println(contexts)
             if (contexts.isNotEmpty()) {
                 val contextsTokens = contexts.estimateTokensNumber()
                 if (curTokens + contextsTokens <= maxTokens) {
