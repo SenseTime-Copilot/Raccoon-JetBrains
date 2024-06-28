@@ -102,11 +102,11 @@ internal class RaccoonConfigurable() : Configurable, Disposable {
         val isKnowledgeBaseAllowed = RaccoonClient.getIsKnowledgeBaseAllowed()
         if (RaccoonSettingsState.instance.isKnowledgeEnabled) {
             group(RaccoonBundle.message("settings.group.knowledgeBase.label.title")) {
-//            row {
-//                checkBox(RaccoonBundle.message("settings.group.knowledgeBase.checkBox.enableLocal")).bindSelected(
-//                    RaccoonSettingsState.instance::isLocalKnowledgeBaseEnabled
-//                ).enabled(isKnowledgeBaseAllowed)
-//            }
+            row {
+                checkBox(RaccoonBundle.message("settings.group.knowledgeBase.checkBox.enableLocal")).bindSelected(
+                    RaccoonSettingsState.instance::isLocalKnowledgeBaseEnabled
+                ).enabled(isKnowledgeBaseAllowed)
+            }
                 row {
                     checkBox(RaccoonBundle.message("settings.group.knowledgeBase.checkBox.enableCloud")).bindSelected(
                         RaccoonSettingsState.instance::isCloudKnowledgeBaseEnabled
