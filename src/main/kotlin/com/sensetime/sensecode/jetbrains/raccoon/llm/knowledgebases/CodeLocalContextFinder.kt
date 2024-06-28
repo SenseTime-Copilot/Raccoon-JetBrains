@@ -1,5 +1,6 @@
 package com.sensetime.sensecode.jetbrains.raccoon.llm.knowledgebases
 
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
@@ -7,6 +8,8 @@ import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
+import com.sensetime.sensecode.jetbrains.raccoon.completions.actions.ManualTriggerInlineCompletionAction.Companion.isFunctionCallRef
+import com.sensetime.sensecode.jetbrains.raccoon.completions.actions.ManualTriggerInlineCompletionAction.Companion.isFunctionKeyWord
 import com.sensetime.sensecode.jetbrains.raccoon.llm.tokens.RaccoonTokenUtils
 import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
 import java.util.LinkedList
@@ -90,16 +93,15 @@ internal object CodeLocalContextFinder {
         allPsiElements: ArrayList<PsiElement>
     ): List<Pair<String, String>> =
         references.mapNotNull { reference ->
-            reference.takeUnless { it.isSoft }?.resolve()?.takeIfNotDuplicate(allPsiElements)?.let { resolvedElement ->
-                val range = totalRange.takeIf { resolvedElement.insideFile(psiFile) }
-                resolvedElement.elementType.run {
-                    when {
-                        isClass() -> resolvedElement.getClassSummary(range)
-                        isFunction() -> resolvedElement.getFunctionSignature(range)
-                        else -> resolvedElement.takeTextIfNotInsideRange(range)
-                    }
-                }?.letIfNotBlank { Pair(resolvedElement.containingFile.name, it) }
-            }
+            if(isFunctionCallRef(reference)) {
+                // TODO token 计算需要再看看
+                val resolve = reference.resolve()
+                val definition = resolve?.let { isFunctionKeyWord(it.text) }
+                val openFiles = FileEditorManager.getInstance(psiFile.project).openFiles.map { it.name }
+                if (definition != null && definition != "" && resolve.containingFile.name != psiFile.name && resolve.containingFile.name in openFiles) {
+                    Pair(resolve.containingFile.name, definition)
+                } else null
+            } else null
         }
 
     private fun List<Pair<String, String>>.estimateTokensNumber(): Int =
@@ -116,6 +118,7 @@ internal object CodeLocalContextFinder {
         while (queue.isNotEmpty()) {
             val cur = queue.poll() ?: break
             val contexts = cur.getContexts(psiFile, totalRange, allPsiElements)
+            println(contexts)
             if (contexts.isNotEmpty()) {
                 val contextsTokens = contexts.estimateTokensNumber()
                 if (curTokens + contextsTokens <= maxTokens) {

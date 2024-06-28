@@ -72,7 +72,7 @@ internal object RaccoonNotification {
                             selectedText,
                             project.takeUnless { DumbService.isDumb(it) }?.let { notDumbProject ->
                                 PsiUtilBase.getPsiFileInEditor(editor, notDumbProject)
-                                    ?.takeIf { RaccoonClient.getIsKnowledgeBaseAllowed() && RaccoonSettingsState.instance.isLocalKnowledgeBaseEnabled }
+                                    ?.takeIf { true }
                                     ?.let { psiFile ->
                                         CodeLocalContextFinder.findAllContextsLocally(
                                             psiFile,

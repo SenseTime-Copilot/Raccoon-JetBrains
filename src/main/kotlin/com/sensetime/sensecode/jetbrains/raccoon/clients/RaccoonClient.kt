@@ -536,7 +536,7 @@ internal class RaccoonClient : LLMClient() {
 
     @Serializable
     data class RaccoonClientConfig(
-        override val apiBaseUrl: String = "https://raccoon-api.sensetime.com"
+        override val apiBaseUrl: String = "http://code-test.sensetime.com"
     ) : ClientConfig {
         @Transient
         override val name: String = NAME
