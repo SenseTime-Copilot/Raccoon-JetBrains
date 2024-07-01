@@ -641,16 +641,21 @@ internal class RaccoonClient : LLMClient() {
             RaccoonNotification.notificationGroup.createNotification(
                 RaccoonBundle.message("notification.settings.login.notloggedin"), "", NotificationType.WARNING
             ).addAction(NotificationAction.createSimple(RaccoonBundle.message("notification.settings.goto.login")) {
-                if (RaccoonConfig.config.isToB()){
-                    LoginDialog(
-                        project, parent,
-                        raccoonClientConfig.getWebLoginUrl(),
-                        raccoonClientConfig.getWebForgotPasswordUrl()
-                    ).showAndGet()
-                } else {
-                    SenseChatAuthService.startLoginFromBrowser(raccoonClientConfig.getWebBrowserLoginUrl())
-
-                }
+//                if (RaccoonConfig.config.isToB()){
+//                    LoginDialog(
+//                        project, parent,
+//                        raccoonClientConfig.getWebLoginUrl(),
+//                        raccoonClientConfig.getWebForgotPasswordUrl()
+//                    ).showAndGet()
+//                } else {
+//                    SenseChatAuthService.startLoginFromBrowser(raccoonClientConfig.getWebBrowserLoginUrl())
+//
+//                }
+                LoginDialog(
+                    project, parent,
+                    raccoonClientConfig.getWebLoginUrl(),
+                    raccoonClientConfig.getWebForgotPasswordUrl()
+                ).showAndGet()
             }).notify(project)
         }
 
