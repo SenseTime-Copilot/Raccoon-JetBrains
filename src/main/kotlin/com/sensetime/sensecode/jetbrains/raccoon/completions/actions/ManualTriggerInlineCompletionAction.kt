@@ -411,11 +411,13 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                 }
             }
             val remainLengthValue = userContent.maxLength - userContent.text.length
-            val pretext =
-                findFunctionCalls(psiElement.project, psiElement.containingFile.virtualFile, remainLengthValue)
-            println("search text: ${pretext} ... ")
+            if(RaccoonSettingsState.instance.isLocalKnowledgeBaseEnabled) {
+                val pretext =
+                    findFunctionCalls(psiElement.project, psiElement.containingFile.virtualFile, remainLengthValue)
+                userContent.knowledge = " \n " + pretext + " \n "
+                println("search text: ${pretext} ... ")
+            }
             userContent.text = userContent.text
-            userContent.knowledge = " \n " + pretext + " \n "
             return userContent
         }
     }
