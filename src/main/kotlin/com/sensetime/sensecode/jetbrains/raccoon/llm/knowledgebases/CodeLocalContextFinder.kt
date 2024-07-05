@@ -95,8 +95,11 @@ internal object CodeLocalContextFinder {
         references.mapNotNull { reference ->
             if(isFunctionCallRef(reference)) {
                 // TODO token 计算需要再看看
-                val resolve = reference.resolve()
-                val definition = resolve?.let { isFunctionKeyWord(it.text) }
+                val resolve = reference.takeUnless { it.isSoft }?.resolve()
+                val definition = resolve?.let {
+                    it.text?.let { text ->
+                        isFunctionKeyWord(text)
+                    } }
                 val openFiles = FileEditorManager.getInstance(psiFile.project).openFiles.map { it.name }
                 if (definition != null && definition != "" && resolve.containingFile.name != psiFile.name && resolve.containingFile.name in openFiles) {
                     Pair(resolve.containingFile.name, definition)
