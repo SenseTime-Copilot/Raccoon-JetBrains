@@ -34,15 +34,14 @@ import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
 import com.sensetime.sensecode.jetbrains.raccoon.utils.ifNullOrBlankElse
 import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
 import kotlinx.coroutines.Job
+import org.bouncycastle.oer.its.ServiceSpecificPermissions.opaque
+import java.awt.Color
 import java.awt.Component
+import java.awt.Cursor
 import java.awt.Dimension
+import java.awt.event.ActionEvent
 import java.util.*
-import javax.swing.BorderFactory
-import javax.swing.ImageIcon
-import javax.swing.JButton
-import javax.swing.JComponent
-import javax.swing.JEditorPane
-import javax.swing.JLabel
+import javax.swing.*
 import javax.swing.event.DocumentEvent
 
 
@@ -186,6 +185,9 @@ internal class LoginDialog(
             })
         }
 
+
+
+
     override fun createCenterPanel(): JComponent = panel {
         val loginInfo = RaccoonCredentialsManager.getLoginInfo(LLMClientManager.currentLLMClient.name)?.takeIfNotEmpty()
         if (RaccoonConfig.config.isToB()) {
@@ -226,56 +228,31 @@ internal class LoginDialog(
             }
         } else {
             row {
-                phoneLoginTabbedPane = tabbedPaneHeader(
-                    listOf(
-                        RaccoonBundle.message("login.dialog.tab.name.passwordLogin"),
-                        RaccoonBundle.message("login.dialog.tab.name.webLogin"),
-//                        RaccoonBundle.message("login.dialog.tab.name.smsLogin")
-                    )
-                ).component.apply {
-                    addChangeListener {
-                        requireNotNull(phoneLoginTabbedPane).apply {
-                            val isWebLogin = (WEB_LOGIN_INDEX == selectedIndex)
-                            if (isWebLogin) {
-                                SenseChatAuthService.startLoginFromBrowser(raccoonClientConfig.getWebBrowserLoginUrl())
-                                close(OK_EXIT_CODE, false)
-                                webLoginStatusLabel?.isVisible = true
-                                phoneNationCodeComboBox?.isVisible = false
-                                phoneField?.isVisible = false
-                                passwordField?.isVisible = false
-                                savePasswordCheckBox?.isVisible = false
-                                captchaField?.isVisible = false
-                                captchaLoading?.isVisible = false
-                                verificationCodeField?.isVisible = false
-                                getVerificationCodeLoadingButton?.isVisible = false
-//                                java.awt.Desktop.getDesktop().browse(java.net.URI("http://your-web-login-url.com"))
-                            } else {
-                                webLoginStatusLabel?.isVisible = false
-                                phoneNationCodeComboBox?.isVisible = true
-                                phoneField?.isVisible = true
-                                passwordField?.isVisible = true
-                                savePasswordCheckBox?.isVisible = true
-                                okAction.isEnabled = true
-                            }
-//                            val isSmsLogin = (SMS_LOGIN_INDEX == selectedIndex)
-//                            passwordField?.isVisible = !isSmsLogin
-//                            savePasswordCheckBox?.isVisible = !isSmsLogin
-//                            captchaField?.isVisible = isSmsLogin
-//                            captchaLoading?.isVisible = isSmsLogin
-//                            verificationCodeField?.isVisible = isSmsLogin
-//                            getVerificationCodeLoadingButton?.isVisible = isSmsLogin
-//                            if (isSmsLogin) {
-//                                captchaField?.text = null
-//                                captchaField?.isEnabled = false
-//                                verificationCodeField?.text = null
-//                                verificationCodeField?.isEnabled = false
-//                                getVerificationCodeButton?.isEnabled = false
-//                                captchaLabelAndButton?.doClick()
-//                            }
-//                            okAction.isEnabled = true
-                        }
-                    }
+                label(RaccoonBundle.message("login.dialog.tab.name.passwordLogin")).applyToComponent {
+                    background = Color.BLACK
+                    foreground = Color.WHITE
+                    cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
                 }
+                label(RaccoonBundle.message("login.dialog.tab.name.webLogin")).applyToComponent {
+                    cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+                    background = java.awt.Color(50, 50, 50)
+                    addMouseListener(object : java.awt.event.MouseAdapter() {
+                        override fun mouseClicked(e: java.awt.event.MouseEvent?) {
+                            SenseChatAuthService.startLoginFromBrowser(raccoonClientConfig.getWebBrowserLoginUrl())
+                            close(OK_EXIT_CODE, false)
+                            webLoginStatusLabel?.isVisible = true
+                            phoneNationCodeComboBox?.isVisible = false
+                            phoneField?.isVisible = false
+                            passwordField?.isVisible = false
+                            savePasswordCheckBox?.isVisible = false
+                            captchaField?.isVisible = false
+                            captchaLoading?.isVisible = false
+                            verificationCodeField?.isVisible = false
+                            getVerificationCodeLoadingButton?.isVisible = false
+                        }
+                    })
+                }
+
             }
             row {
                 webLoginStatusLabel = label(RaccoonBundle.message("login.dialog.tab.name.webLogining")).applyToComponent {
@@ -428,7 +405,7 @@ internal class LoginDialog(
                         }).horizontalAlign(HorizontalAlign.RIGHT).component.apply { isVisible = false }
                 }
             }
-            phoneLoginTabbedPane!!.selectedIndex = PASSWORD_LOGIN_INDEX
+//            phoneLoginTabbedPane!!.selectedIndex = PASSWORD_LOGIN_INDEX
         }
 
         if (RaccoonConfig.config.isToB()) {
