@@ -255,9 +255,71 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
             )
         }
 
-        fun isFunctionKeyWord(str: String): String {
-            println("it text ${str}")
-            return if (!str.contains("class ")) str else ""
+        fun isFunctionOrMethodKeyWord(str: String): String {
+            val classPattern = Regex("""(public\s+)?class\s+(\w+)""")
+            val javaMethodPattern = Regex("""(public|private|protected)?\s+(static\s+)?(void|int|String|char|boolean|double|float|long|short|byte|[A-Za-z_][\w]*)\s+(\w+)\s*\(([^)]*)\)""")
+            val kotlinMethodPattern = Regex("""fun\s+(\w+)\s*\(([^)]*)\)\s*(:\s*[\w<>,\s]*\??)?""")
+            val pythonMethodPattern = Regex("""def\s+(\w+)\s*\(([^)]*)\)\s*->\s*([\w\[\],\s]*)?:?""")
+            val jsMethodPattern = Regex("""function\s+(\w+)\s*\(([^)]*)\)""")
+
+            var classSignature: String? = null
+            val methodSignatures = mutableListOf<String>()
+
+
+            val lines = str.lines()
+            if (lines.isNotEmpty()) {
+                classPattern.find(lines[0])?.let {
+                    classSignature = "class ${it.groupValues[2]}"
+                }
+            }
+            // java 与 kotlin 区分不出来，所以加个判断
+            // Find method signatures (Kotlin)
+            if (str.contains("fun ")) {
+                kotlinMethodPattern.findAll(str).forEach { matchResult ->
+                    val methodName = matchResult.groupValues[1]
+                    val parameters = matchResult.groupValues[2]
+                    val returnType = matchResult.groupValues[3].takeIf { it.isNotEmpty() }?.let { ": ${it.trim()}" } ?: ""
+                    methodSignatures.add("fun $methodName($parameters)$returnType")
+                }
+            } else {
+                // Find method signatures (Java)
+                javaMethodPattern.findAll(str).forEach { matchResult ->
+                    val accessModifier = matchResult.groupValues[1].takeIf { it.isNotEmpty() }?.let { "$it " } ?: ""
+                    val staticModifier = matchResult.groupValues[2].takeIf { it.isNotEmpty() }?.let { "$it " } ?: ""
+                    val returnType = matchResult.groupValues[3]
+                    val methodName = matchResult.groupValues[4]
+                    val parameters = matchResult.groupValues[5]
+
+                    methodSignatures.add("$accessModifier$staticModifier$returnType $methodName($parameters)")
+                }
+            }
+
+
+
+
+
+            // Find method signatures (Python)
+            pythonMethodPattern.findAll(str).forEach { matchResult ->
+                val methodName = matchResult.groupValues[1]
+                val parameters = matchResult.groupValues[2]
+                val returnType = matchResult.groupValues[3].takeIf { it.isNotEmpty() }?.let { " -> ${it.trim()}" } ?: ""
+
+                methodSignatures.add("def $methodName($parameters)$returnType")
+            }
+
+            // Find method signatures (JavaScript)
+            jsMethodPattern.findAll(str).forEach { matchResult ->
+                val methodName = matchResult.groupValues[1]
+                val parameters = matchResult.groupValues[2]
+
+                methodSignatures.add("function $methodName($parameters)")
+            }
+
+            val combinedSignatures = StringBuilder()
+            classSignature?.let { combinedSignatures.append("// $it").append("\n") }
+            methodSignatures.forEach { combinedSignatures.append("// $it").append("\n") }
+
+            return combinedSignatures.toString()
         }
 
         fun isFunctionCallRef(reference: PsiReference): Boolean {
@@ -273,25 +335,46 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
             }
         }
 
+//        fun isFunctionCall(element: PsiElement): Boolean {
+//            val nodeType = element.node.elementType.toString()
+//            val reference = element.reference.toString()
+//
+//            val ignoredTypes = listOf(
+//                "String", "Number", "Integer", "Boolean", "Double", "Float", "Long", "Short", "Byte", "Character",
+//                "StringBuilder", "StringBuffer", "ArrayList", "HashMap", "HashSet", "LinkedList", "Array", "kotlin",
+//                "jvm", "JvmStatic"
+//            )
+//
+//            if (ignoredTypes.any { reference.contains(it) }) return false
+//
+//            return when (nodeType) {
+//                "JS:REFERENCE_EXPRESSION", "REFERENCE_EXPRESSION" -> true
+//                "Py:REFERENCE_EXPRESSION" -> reference.contains("PyReferenceExpression")
+//                "JAVA_CODE_REFERENCE" -> reference.startsWith("PsiJavaCodeReferenceElement:")
+//                else -> false
+//            }
+//        }
+
         fun isFunctionCall(element: PsiElement): Boolean {
             val nodeType = element.node.elementType.toString()
             val reference = element.reference.toString()
-            return when {
-                nodeType == "JS:REFERENCE_EXPRESSION" -> true
-                nodeType == "Py:REFERENCE_EXPRESSION" -> {
-                    if (reference.contains("PyReferenceExpression")) {
-                        true
-                    } else {
-                        false
-                    }
-                }
-                nodeType == "REFERENCE_EXPRESSION" -> true
-//                reference.startsWith("KtInvokeFunctionReferenceDescriptorsImpl") -> true
-//                reference.startsWith("KtSimpleNameReferenceDescriptorsImpl") -> true
-//                reference.startsWith("KtInvokeFunctionReferenceDescriptorsImpl") -> true
-                reference.startsWith("PsiReferenceExpression:") -> true
+            println("nodeType: $nodeType" + " reference: $reference")
+            // 定义需要忽略的基础类型和标准库类
+            val ignoredTypes = listOf(
+                "String", "Number", "Integer", "Boolean", "Double", "Float", "Long", "Short", "Byte", "Character",
+                "StringBuilder", "StringBuffer", "ArrayList", "HashMap", "HashSet", "LinkedList", "Array", "kotlin",
+                "jvm", "JvmStatic"
+            )
+
+            if (ignoredTypes.any { reference.contains(it) }) return false
+            return when (nodeType) {
+                "JS:REFERENCE_EXPRESSION" -> true
+                "Py:REFERENCE_EXPRESSION" -> reference.contains("PyReferenceExpression")
+                "JAVA_CODE_REFERENCE" -> reference.startsWith("PsiJavaCodeReferenceElement:")
+                "REFERENCE_EXPRESSION" -> !reference.contains("PsiReferenceExpression")
                 else -> false
             }
+
         }
 
         private fun findFunctionDefinitions(
@@ -301,38 +384,65 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
             foundDefinitions: MutableList<String>,
             maxLength: Int
         ) {
-            val openFiles = FileEditorManager.getInstance(project).openFiles
-            for (file in openFiles) {
-                if (file.name == fileName) {
-                    continue
-                }
-                val psiFile = PsiManager.getInstance(project).findFile(file)
-                if (psiFile == null) {
-                    continue
-                }
-                for (call in functionCalls){
-                    call.references.mapNotNull { reference ->
-                        val resolvedElement = reference.resolve()
-                        val containingFile = resolvedElement?.containingFile
-                        // 检查引用是否在打开的文件中
-                        val isOpen = containingFile?.virtualFile?.let { file.name == it.name } == true
-//                        val definition = resolvedElement?.text?.takeUnless { it.split("\n")[0].contains("class ") }?:""
-                        val definition = isFunctionKeyWord(resolvedElement?.text?:"")
-                        if (isOpen && definition != ""){
-                            if (foundDefinitions.joinToString("\n").length + definition.length < maxLength) {
+            functionCalls.forEach { call ->
+                call.references.mapNotNull { reference ->
+                    reference.resolve()?.let { resolvedElement ->
+                        resolvedElement.containingFile?.virtualFile?.name.takeIf { it != fileName }?.let {
+                            isFunctionOrMethodKeyWord(resolvedElement.text ?: "").takeIf { definition ->
+                                definition.isNotEmpty() && (foundDefinitions.joinToString("\n").length + definition.length < maxLength)
+                            }?.let { definition ->
                                 foundDefinitions.add(definition)
-                            } else {
-                                null
                             }
-                        } else {
-                            null
                         }
                     }
-
                 }
-
             }
         }
+
+//        private fun findFunctionDefinitions(
+//            project: Project,
+//            functionCalls: List<PsiElement>,
+//            fileName: String,
+//            foundDefinitions: MutableList<String>,
+//            maxLength: Int
+//        ) {
+//            val openFiles = FileEditorManager.getInstance(project).openFiles
+////            for (file in openFiles) {
+////                if (file.name == fileName) {
+////                    continue
+////                }
+////                val psiFile = PsiManager.getInstance(project).findFile(file)
+////                if (psiFile == null) {
+////                    continue
+////                }
+//                for (call in functionCalls){
+//                    call.references.mapNotNull { reference ->
+//                        val resolvedElement = reference.resolve()
+//                        val containingFile = resolvedElement?.containingFile
+//                        if (containingFile?.virtualFile?.name == fileName) {
+//                            return
+//                        }
+//                        println(resolvedElement?.text)
+//                        // 检查引用是否在打开的文件中
+////                        val isOpen = containingFile?.virtualFile?.let { file.name == it.name } == true
+////                        val definition = resolvedElement?.text?.takeUnless { it.split("\n")[0].contains("class ") }?:""
+//                        val definition = isFunctionOrMethodKeyWord(resolvedElement?.text?:"")
+//                        println("definition: $definition")
+//                        if (definition != ""){
+//                            if (foundDefinitions.joinToString("\n").length + definition.length < maxLength) {
+//                                foundDefinitions.add(definition)
+//                            } else {
+//                                null
+//                            }
+//                        } else {
+//                            null
+//                        }
+//                    }
+//
+//                }
+//
+////            }
+//        }
 
         private fun getFunctionName(call: PsiElement): String? {
             // 获取函数名
@@ -413,7 +523,7 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
             val remainLengthValue = userContent.maxLength - userContent.text.length
             if(RaccoonSettingsState.instance.isLocalKnowledgeBaseEnabled) {
                 val pretext =
-                    findFunctionCalls(psiElement.project, psiElement.containingFile.virtualFile, remainLengthValue)
+                    findFunctionCalls(psiElement.project,psiElement.containingFile.virtualFile, remainLengthValue)
                 userContent.knowledge = " \n " + pretext + " \n "
                 println("search text: ${pretext} ... ")
             }

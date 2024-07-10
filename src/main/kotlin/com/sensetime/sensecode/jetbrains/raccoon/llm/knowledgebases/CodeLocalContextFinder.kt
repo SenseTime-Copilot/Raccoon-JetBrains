@@ -9,7 +9,7 @@ import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
 import com.sensetime.sensecode.jetbrains.raccoon.completions.actions.ManualTriggerInlineCompletionAction.Companion.isFunctionCallRef
-import com.sensetime.sensecode.jetbrains.raccoon.completions.actions.ManualTriggerInlineCompletionAction.Companion.isFunctionKeyWord
+import com.sensetime.sensecode.jetbrains.raccoon.completions.actions.ManualTriggerInlineCompletionAction.Companion.isFunctionOrMethodKeyWord
 import com.sensetime.sensecode.jetbrains.raccoon.llm.tokens.RaccoonTokenUtils
 import com.sensetime.sensecode.jetbrains.raccoon.utils.letIfNotBlank
 import java.util.LinkedList
@@ -98,7 +98,7 @@ internal object CodeLocalContextFinder {
                 val resolve = reference.takeUnless { it.isSoft }?.resolve()
                 val definition = resolve?.let {
                     it.text?.let { text ->
-                        isFunctionKeyWord(text)
+                        isFunctionOrMethodKeyWord(text)
                     } }
                 val openFiles = FileEditorManager.getInstance(psiFile.project).openFiles.map { it.name }
                 if (definition != null && definition != "" && resolve.containingFile.name != psiFile.name && resolve.containingFile.name in openFiles) {
