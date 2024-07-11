@@ -358,7 +358,6 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
         fun isFunctionCall(element: PsiElement): Boolean {
             val nodeType = element.node.elementType.toString()
             val reference = element.reference.toString()
-            println("nodeType: $nodeType" + " reference: $reference")
             // 定义需要忽略的基础类型和标准库类
             val ignoredTypes = listOf(
                 "String", "Number", "Integer", "Boolean", "Double", "Float", "Long", "Short", "Byte", "Character",
@@ -523,7 +522,7 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
             val remainLengthValue = userContent.maxLength - userContent.text.length
             if(RaccoonSettingsState.instance.isLocalKnowledgeBaseEnabled) {
                 val pretext =
-                    findFunctionCalls(psiElement.project,psiElement.containingFile.virtualFile, remainLengthValue)
+                    findFunctionCalls(psiElement.project, psiElement.containingFile.virtualFile, remainLengthValue)
                 userContent.knowledge = " \n " + pretext + " \n "
                 println("search text: ${pretext} ... ")
             }
