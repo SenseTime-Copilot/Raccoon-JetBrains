@@ -43,12 +43,29 @@ internal data class LLMAssistantMessage(override val content: String) : LLMAssis
 internal data class LLMFunction(val name: String, val arguments: String)
 
 @Serializable
+data class PromptData(
+    val language_id: String,
+    val prefix: String,
+    val suffix: String
+)
+@Serializable
 internal data class LLMToolCall(
     val id: String,
     val function: LLMFunction
 ) {
     val type: String = "function"
 }
+
+@Serializable
+data class FunctionCallInfo(
+    val file_name: String,
+    val file_chunk: String
+)
+
+@Serializable
+data class LocalKnows(
+    val local_knows: List<FunctionCallInfo>
+)
 
 internal data class LLMToolCallsMessage(
     val toolCalls: List<LLMToolCall>
@@ -85,7 +102,8 @@ internal data class LLMCompletionRequest(
     override val stream: Boolean? = null,
     override val action: String = "inline completion",
     override val maxNewTokens: Int = -1,
-    val prompt: String
+    val prompt: PromptData,
+    val knowledgeJSON: LocalKnows? = null
 ) : LLMRequest()
 
 internal data class LLMChatRequest(

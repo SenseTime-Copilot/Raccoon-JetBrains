@@ -22,7 +22,10 @@ import com.intellij.refactoring.suggested.endOffset
 import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClient
 import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClient
+import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.FunctionCallInfo
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMCompletionRequest
+import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LocalKnows
+import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.PromptData
 import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.LLMCompletionChoice
 import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.LLMResponse
 import com.sensetime.sensecode.jetbrains.raccoon.completions.preview.CompletionPreview
@@ -32,6 +35,8 @@ import com.sensetime.sensecode.jetbrains.raccoon.tasks.CodeTaskActionBase
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonLanguages
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
 import kotlinx.coroutines.Job
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.encodeToJsonElement
 import kotlin.math.min
 
 
@@ -79,17 +84,20 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                     val modelConfig = RaccoonClient.clientConfig.completionModelConfig
                     val isSingleLine =
                         (settings.inlineCompletionPreference == CompletionModelConfig.CompletionPreference.SPEED_PRIORITY)
-                    val prompt = getUserContent(
+                    val userContent = getUserContent(
                         psiElement,
                         caretOffset - psiElement.textOffset,
                         modelConfig.maxInputTokens
-                    ).getMessages(language, modelConfig)
+                    )
+                    val prompt = userContent.getMessages(language, modelConfig)
+                    println("prompt: $prompt")
                     LLMClientManager.getInstance(project)
                         .launchLLMCompletionJob(!RaccoonSettingsState.instance.isAutoCompleteMode,
                             editor.component,
                             LLMCompletionRequest(
                                 settings.candidates,
-                                prompt = prompt
+                                prompt = prompt,
+                                knowledgeJSON = userContent.knowledgeJSON
                             ), object : LLMClientManager.LLMJobListener<LLMCompletionChoice, String?>,
                                 LLMClient.LLMUsagesResponseListener<LLMCompletionChoice>() {
                                 override fun onResponseInsideEdtAndCatching(llmResponse: LLMResponse<LLMCompletionChoice>) {
@@ -177,7 +185,7 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
             return result
         }
 
-        data class UserContent(var text: String, var offset: Int, val maxLength: Int, var knowledge: String = "") {
+        data class UserContent(var text: String, var offset: Int, val maxLength: Int, var knowledge: String = "", var knowledgeJSON: LocalKnows? = null) {
 
             fun cutByMaxLength(preScale: Float = 0.7f): Boolean {
                 if (maxLength >= text.length) {
@@ -232,27 +240,31 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
             fun getMessages(
                 language: String,
                 modelConfig: CompletionModelConfig
-            ): String = modelConfig.getPrompt(
-                if (text.length > offset) {
-                    val suffix = text.substring(offset)
-                    var suffixLines = ""
-                    var suffixCursor = suffix.trimEnd('\r', '\n')
-                    suffix.indexOf('\n').takeIf { it >= 0 }?.let {
-                        suffixLines = suffix.substring(it + 1)
-                        suffixCursor = suffix.substring(0, it).trimEnd('\r', '\n')
-                    }
-                    mapOf(
-                        "language" to language,
-                        "suffixLines" to suffixLines,
-                        "suffixCursor" to suffixCursor,
-                        "suffix" to suffix
-                    ) + getPrefixArgs(text.substring(0, offset), knowledge)
-                } else {
-                    mapOf("language" to language, "suffixLines" to "", "suffixCursor" to "") + getPrefixArgs(
-                        text
-                    )
-                }
-            )
+            ): PromptData {
+                val prefix = knowledge + text.substring(0, offset)
+                val suffix = text.substring(offset)
+                return PromptData(language, prefix, suffix)
+//                if (text.length > offset) {
+//                    val suffix = text.substring(offset)
+//                    var suffixLines = ""
+//                    var suffixCursor = suffix.trimEnd('\r', '\n')
+//                    suffix.indexOf('\n').takeIf { it >= 0 }?.let {
+//                        suffixLines = suffix.substring(it + 1)
+//                        suffixCursor = suffix.substring(0, it).trimEnd('\r', '\n')
+//                    }
+//                    println( "suffixCursor: $suffixCursor suffixLines: $suffixLines suffix: $suffix")
+//                    mapOf(
+//                        "language" to language,
+//                        "suffixLines" to suffixLines,
+//                        "suffixCursor" to suffixCursor,
+//                        "suffix" to suffix
+//                    ) + getPrefixArgs(text.substring(0, offset), knowledge)
+//                } else {
+//                    mapOf("language" to language, "suffixLines" to "", "suffixCursor" to "") + getPrefixArgs(
+//                        text
+//                    )
+//                }
+            }
         }
 
         fun isFunctionOrMethodKeyWord(str: String): String {
@@ -316,8 +328,8 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
             }
 
             val combinedSignatures = StringBuilder()
-            classSignature?.let { combinedSignatures.append("// $it").append("\n") }
-            methodSignatures.forEach { combinedSignatures.append("// $it").append("\n") }
+            classSignature?.let { combinedSignatures.append(it).append("\n ") }
+            methodSignatures.forEach { combinedSignatures.append(it).append("\n ") }
 
             return combinedSignatures.toString()
         }
@@ -380,7 +392,7 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
             project: Project,
             functionCalls: List<PsiElement>,
             fileName: String,
-            foundDefinitions: MutableList<String>,
+            foundDefinitions: MutableList<FunctionCallInfo>,
             maxLength: Int
         ) {
             functionCalls.forEach { call ->
@@ -390,7 +402,7 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                             isFunctionOrMethodKeyWord(resolvedElement.text ?: "").takeIf { definition ->
                                 definition.isNotEmpty() && (foundDefinitions.joinToString("\n").length + definition.length < maxLength)
                             }?.let { definition ->
-                                foundDefinitions.add(definition)
+                                foundDefinitions.add(FunctionCallInfo(it, definition))
                             }
                         }
                     }
@@ -451,7 +463,7 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
 
 
         private fun findFunctionCalls(project: Project, file: VirtualFile, remainValue: Int): String {
-            val foundDefinitions = mutableListOf<String>()
+            val foundDefinitions = mutableListOf<FunctionCallInfo>()
             ApplicationManager.getApplication().runReadAction {
                 val psiFile = PsiManager.getInstance(project).findFile(file) ?: return@runReadAction
                 // 查找当前文件中的所有函数调用
@@ -470,7 +482,17 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                 // 在其他打开的文件中查找这些函数调用的定义
                 findFunctionDefinitions(project, functionCalls, file.name, foundDefinitions, remainValue)
             }
-            return foundDefinitions.joinToString("\n")
+            val promptJson = Json.encodeToJsonElement(mapOf("local_knows" to foundDefinitions))
+            return promptJson.toString()
+//            return foundDefinitions.joinToString("\n")
+        }
+
+
+        fun extractAndJoin(localKnows: LocalKnows): String {
+            return localKnows.local_knows.joinToString(separator = "\n") {
+                // 使用注释形式输出文件名和文件内容
+                "// File: ${it.file_name}\n${it.file_chunk.lines().joinToString(separator = "\n") { line -> "// $line" }}"
+            }
         }
 
 
@@ -523,8 +545,12 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
             if(RaccoonSettingsState.instance.isLocalKnowledgeBaseEnabled) {
                 val pretext =
                     findFunctionCalls(psiElement.project, psiElement.containingFile.virtualFile, remainLengthValue)
-                userContent.knowledge = " \n " + pretext + " \n "
-                println("search text: ${pretext} ... ")
+//                val jsonString = Json.encodeToString(pretext)
+                val localKnows: LocalKnows = Json.decodeFromString(LocalKnows.serializer(), pretext)
+                val resultString = extractAndJoin(localKnows)
+                userContent.knowledge = " \n " + resultString + " \n "
+                userContent.knowledgeJSON = localKnows
+                println("search text: ${resultString} ... ")
             }
             userContent.text = userContent.text
             return userContent

@@ -2,7 +2,9 @@ package com.sensetime.sensecode.jetbrains.raccoon.clients.requests
 
 import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientJson
 import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientJsonObject
+import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClient.Companion.getIsKnowledgeBaseAllowed
 import com.sensetime.sensecode.jetbrains.raccoon.clients.toJsonArray
+import com.sensetime.sensecode.jetbrains.raccoon.persistent.others.RaccoonUserInformation
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.AgentModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ChatModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.CompletionModelConfig
@@ -95,7 +97,15 @@ internal class NovaClientCompletionRequest(
     modelConfig: CompletionModelConfig
 ) : NovaClientRequest(
     buildMap {
-        put("prompt", JsonPrimitive(completionRequest.prompt))
+        val promptJson = Json.encodeToJsonElement(completionRequest.prompt)
+        put("input", promptJson)
+        put("local_knows", Json.encodeToJsonElement(completionRequest.knowledgeJSON?.local_knows))
+        RaccoonUserInformation.getInstance().knowledgeBases?.knowledgeBases?.takeIf { getIsKnowledgeBaseAllowed() && RaccoonSettingsState.instance.isCloudKnowledgeBaseEnabled }
+            ?.let { knowledgeBases ->
+                put("know_ids", JsonArray(knowledgeBases.map { JsonPrimitive(it.code) }))
+            }
+
+//        put("input", JsonPrimitive(completionRequest.prompt))
         if (RaccoonSettingsState.instance.inlineCompletionPreference == CompletionModelConfig.CompletionPreference.SPEED_PRIORITY) {
             put("stop", JsonPrimitive("\n"))
         }
