@@ -73,9 +73,9 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                 })
             }
                 ?.let { psiElement ->
-                    if (!isWhiteSpacePsi(psiElement) && psiElement.text.length <= 16) {
-                        caretOffset = psiElement.endOffset
-                    }
+//                    if (!isWhiteSpacePsi(psiElement) && psiElement.text.length <= 16) {
+//                        caretOffset = psiElement.endOffset
+//                    }
                     val language = RaccoonLanguages.getMarkdownLanguageFromPsiFile(psiFile)
                     val completionPreview =
                         CompletionPreview.createInstance(editor, caretOffset, language)
@@ -90,7 +90,6 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                         modelConfig.maxInputTokens
                     )
                     val prompt = userContent.getMessages(language, modelConfig)
-                    println("prompt: $prompt")
                     LLMClientManager.getInstance(project)
                         .launchLLMCompletionJob(!RaccoonSettingsState.instance.isAutoCompleteMode,
                             editor.component,
@@ -175,7 +174,7 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
 
         @JvmStatic
         private fun findPsiElementAt(psiFile: PsiFile?, caretOffset: Int): PsiElement? {
-            var result = psiFile?.run { findElementAt(min(caretOffset, textLength - 1)) }
+                var result = psiFile?.run { findElementAt(min(caretOffset, textLength - 1)) }
             if (isWhiteSpacePsi(result) && (caretOffset > 0) && ((null == result) || (caretOffset == result.textOffset))) {
                 val prePsiElement = psiFile?.findElementAt(caretOffset - 1)
                 if (!isWhiteSpacePsi(prePsiElement)) {
@@ -271,7 +270,8 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
             val classPattern = Regex("""(public\s+)?class\s+(\w+)""")
             val javaMethodPattern = Regex("""(public|private|protected)?\s+(static\s+)?(void|int|String|char|boolean|double|float|long|short|byte|[A-Za-z_][\w]*)\s+(\w+)\s*\(([^)]*)\)""")
             val kotlinMethodPattern = Regex("""fun\s+(\w+)\s*\(([^)]*)\)\s*(:\s*[\w<>,\s]*\??)?""")
-            val pythonMethodPattern = Regex("""def\s+(\w+)\s*\(([^)]*)\)\s*->\s*([\w\[\],\s]*)?:?""")
+            val pythonMethodPattern = Regex("""def\s+(\w+)\s*\(([^)]*)\)\s*(->\s*([\w\[\],\s]*))?:?\s*""")
+
             val jsMethodPattern = Regex("""function\s+(\w+)\s*\(([^)]*)\)""")
 
             var classSignature: String? = null
@@ -293,7 +293,7 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                     val returnType = matchResult.groupValues[3].takeIf { it.isNotEmpty() }?.let { ": ${it.trim()}" } ?: ""
                     methodSignatures.add("fun $methodName($parameters)$returnType")
                 }
-            } else {
+            } else if (str.contains("class ") || str.contains("public ") || str.contains("private ") || str.contains("protected ")) {
                 // Find method signatures (Java)
                 javaMethodPattern.findAll(str).forEach { matchResult ->
                     val accessModifier = matchResult.groupValues[1].takeIf { it.isNotEmpty() }?.let { "$it " } ?: ""
@@ -305,19 +305,18 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                     methodSignatures.add("$accessModifier$staticModifier$returnType $methodName($parameters)")
                 }
             }
-
-
-
-
-
-            // Find method signatures (Python)
-            pythonMethodPattern.findAll(str).forEach { matchResult ->
-                val methodName = matchResult.groupValues[1]
-                val parameters = matchResult.groupValues[2]
-                val returnType = matchResult.groupValues[3].takeIf { it.isNotEmpty() }?.let { " -> ${it.trim()}" } ?: ""
-
-                methodSignatures.add("def $methodName($parameters)$returnType")
+            else if (str.contains("def ")) {
+                pythonMethodPattern.findAll(str).forEach { matchResult ->
+                    val methodName = matchResult.groupValues[1]
+                    val parameters = matchResult.groupValues[2]
+                    val returnType =
+                        matchResult.groupValues[4].takeIf { it.isNotEmpty() }?.let { " -> ${it.trim()}" } ?: ""
+                    println("def $methodName($parameters)$returnType")
+                    methodSignatures.add("def $methodName($parameters)$returnType")
+                }
             }
+            // Check for JavaScript methods
+            else if (str.contains("function ")) {
 
             // Find method signatures (JavaScript)
             jsMethodPattern.findAll(str).forEach { matchResult ->
@@ -325,12 +324,12 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                 val parameters = matchResult.groupValues[2]
 
                 methodSignatures.add("function $methodName($parameters)")
-            }
+            }}
 
             val combinedSignatures = StringBuilder()
             classSignature?.let { combinedSignatures.append(it).append("\n ") }
             methodSignatures.forEach { combinedSignatures.append(it).append("\n ") }
-
+            println(combinedSignatures.toString())
             return combinedSignatures.toString()
         }
 
@@ -376,11 +375,12 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                 "StringBuilder", "StringBuffer", "ArrayList", "HashMap", "HashSet", "LinkedList", "Array", "kotlin",
                 "jvm", "JvmStatic"
             )
+            println("reference: $reference , nodeType: $nodeType")
 
             if (ignoredTypes.any { reference.contains(it) }) return false
             return when (nodeType) {
                 "JS:REFERENCE_EXPRESSION" -> true
-                "Py:REFERENCE_EXPRESSION" -> reference.contains("PyReferenceExpression")
+                "Py:REFERENCE_EXPRESSION" -> reference.contains("PyFromImportSourceReference")
                 "JAVA_CODE_REFERENCE" -> reference.startsWith("PsiJavaCodeReferenceElement:")
                 "REFERENCE_EXPRESSION" -> !reference.contains("PsiReferenceExpression")
                 else -> false
@@ -402,7 +402,13 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                             isFunctionOrMethodKeyWord(resolvedElement.text ?: "").takeIf { definition ->
                                 definition.isNotEmpty() && (foundDefinitions.joinToString("\n").length + definition.length < maxLength)
                             }?.let { definition ->
-                                foundDefinitions.add(FunctionCallInfo(it, definition))
+                                // 获取definition的第一行
+                                val firstLine = definition.lineSequence().firstOrNull()
+
+                                // 检查foundDefinitions中是否已经存在相同第一行的definition
+                                if (foundDefinitions.none { it.file_chunk.lineSequence().firstOrNull() == firstLine }) {
+                                    foundDefinitions.add(FunctionCallInfo(it, definition))
+                                }
                             }
                         }
                     }
