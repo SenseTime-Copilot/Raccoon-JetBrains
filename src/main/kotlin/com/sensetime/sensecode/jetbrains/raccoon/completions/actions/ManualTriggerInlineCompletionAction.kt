@@ -311,7 +311,6 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                     val parameters = matchResult.groupValues[2]
                     val returnType =
                         matchResult.groupValues[4].takeIf { it.isNotEmpty() }?.let { " -> ${it.trim()}" } ?: ""
-                    println("def $methodName($parameters)$returnType")
                     methodSignatures.add("def $methodName($parameters)$returnType")
                 }
             }
@@ -329,7 +328,6 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
             val combinedSignatures = StringBuilder()
             classSignature?.let { combinedSignatures.append(it).append("\n ") }
             methodSignatures.forEach { combinedSignatures.append(it).append("\n ") }
-            println(combinedSignatures.toString())
             return combinedSignatures.toString()
         }
 
@@ -375,7 +373,6 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                 "StringBuilder", "StringBuffer", "ArrayList", "HashMap", "HashSet", "LinkedList", "Array", "kotlin",
                 "jvm", "JvmStatic"
             )
-            println("reference: $reference , nodeType: $nodeType")
 
             if (ignoredTypes.any { reference.contains(it) }) return false
             return when (nodeType) {

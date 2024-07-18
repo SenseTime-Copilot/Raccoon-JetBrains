@@ -115,6 +115,16 @@ internal object CodeLocalContextFinder {
         references.mapNotNull { reference ->
             reference.takeUnless { it.isSoft }?.resolve()?.takeIfNotDuplicate(allPsiElements)?.let { resolvedElement ->
                 val range = totalRange.takeIf { resolvedElement.insideFile(psiFile) }
+                val ignoredTypes = listOf(
+                    "String", "Number", "Integer", "Boolean", "Double", "Float", "Long", "Short", "Byte", "Character",
+                    "StringBuilder", "StringBuffer", "ArrayList", "HashMap", "HashSet", "LinkedList", "Array", "kotlin",
+                    "jvm", "JvmStatic", "System",
+                )
+
+                if (ignoredTypes.any { reference.toString().contains(it) }) {
+                   // ignore the reference
+                    return@mapNotNull null
+                };
                 resolvedElement.elementType.run {
                     when {
                         isClass() -> resolvedElement.getClassSummary(range)
