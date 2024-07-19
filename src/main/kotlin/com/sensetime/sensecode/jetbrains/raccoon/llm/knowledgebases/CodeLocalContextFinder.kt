@@ -112,28 +112,43 @@ internal object CodeLocalContextFinder {
         totalRange: TextRange,
         allPsiElements: ArrayList<PsiElement>
     ): List<Pair<String, String>> =
-        references.mapNotNull { reference ->
-            reference.takeUnless { it.isSoft }?.resolve()?.takeIfNotDuplicate(allPsiElements)?.let { resolvedElement ->
-                val range = totalRange.takeIf { resolvedElement.insideFile(psiFile) }
-                val ignoredTypes = listOf(
-                    "String", "Number", "Integer", "Boolean", "Double", "Float", "Long", "Short", "Byte", "Character",
-                    "StringBuilder", "StringBuffer", "ArrayList", "HashMap", "HashSet", "LinkedList", "Array", "kotlin",
-                    "jvm", "JvmStatic", "System",
-                )
+    references.mapNotNull { reference ->
+        val project = psiFile.project
+        val openFiles = FileEditorManager.getInstance(project).openFiles.mapNotNull { it.canonicalPath }.toSet()
 
-                if (ignoredTypes.any { reference.toString().contains(it) }) {
-                   // ignore the reference
-                    return@mapNotNull null
-                };
-                resolvedElement.elementType.run {
-                    when {
-                        isClass() -> resolvedElement.getClassSummary(range)
-                        isFunction() -> resolvedElement.getFunctionSignature(range)
-                        else -> resolvedElement.takeTextIfNotInsideRange(range)
-                    }
-                }?.letIfNotBlank { Pair(resolvedElement.containingFile.name, it) }
+        reference.takeUnless { it.isSoft }?.resolve()?.takeIfNotDuplicate(allPsiElements)?.let { resolvedElement ->
+            val containingFile = resolvedElement.containingFile
+            if (containingFile == null || containingFile.virtualFile == null) {
+                return@mapNotNull null
             }
+
+            val virtualFile = containingFile.virtualFile
+            if (virtualFile.canonicalPath !in openFiles || virtualFile == psiFile.virtualFile) {
+                return@mapNotNull null
+            }
+
+            val range = totalRange.takeIf { resolvedElement.insideFile(psiFile) }
+            val ignoredTypes = listOf(
+                "String", "Number", "Integer", "Boolean", "Double", "Float", "Long", "Short", "Byte", "Character",
+                "StringBuilder", "StringBuffer", "ArrayList", "HashMap", "HashSet", "LinkedList", "Array", "kotlin",
+                "jvm", "JvmStatic", "System",
+            )
+
+            if (ignoredTypes.any { reference.toString().contains(it) }) {
+                // ignore the reference
+                return@mapNotNull null
+            }
+
+            resolvedElement.elementType.run {
+                when {
+                    isClass() -> resolvedElement.getClassSummary(range)
+                    isFunction() -> resolvedElement.getFunctionSignature(range)
+                    else -> resolvedElement.takeTextIfNotInsideRange(range)
+                }
+            }?.letIfNotBlank { Pair(containingFile.name, it) }
         }
+    }
+
 
 
     private fun List<Pair<String, String>>.estimateTokensNumber(): Int =
