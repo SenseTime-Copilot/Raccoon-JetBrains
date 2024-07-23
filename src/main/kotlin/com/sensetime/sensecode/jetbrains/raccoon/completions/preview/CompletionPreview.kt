@@ -57,6 +57,7 @@ internal class CompletionPreview private constructor(
             if (!field && value) {
                 if (currentCompletion.isNullOrEmpty()) {
                     if (currentCompletion != null) {
+                        println(currentCompletion)
                         RaccoonNotification.popupNoCompletionSuggestionMessage(
                             editor,
                             RaccoonSettingsState.instance.isAutoCompleteMode
@@ -70,10 +71,15 @@ internal class CompletionPreview private constructor(
                     } else {
                         null
                     }
-                    if (currentCompletion != null && currentCompletion!!.isNotEmpty() && currentCompletion!!.last() == charAfterCaret) {
-                        currentCompletion = currentCompletion!!.dropLast(1)
+
+                    if (currentCompletion != null && currentCompletion!!.isNotEmpty() && currentCompletion!!.takeLast(2).contains(charAfterCaret.toString())) {
+                        // currentCompletion最后两个字符中查找光标后的字符， 如果是第一位则删除最后2位，如果是第二位则删除最后一位
+                        if (currentCompletion!!.takeLast(2).lastIndexOf(charAfterCaret.toString()) == 0) {
+                            currentCompletion = currentCompletion!!.dropLast(2)
+                        } else {
+                            currentCompletion = currentCompletion!!.dropLast(1)
+                        }
                     }
-                    println(currentCompletion)
                     val newLineCount = completions?.sumOf { countNewLines(it) + 1 } ?: 0
                     ApplicationManager.getApplication().messageBus.syncPublisher(RACCOON_STATISTICS_TOPIC)
                         .onInlineCompletionFinished(language, (completions?.size) ?: 1, newLineCount)

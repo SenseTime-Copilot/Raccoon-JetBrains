@@ -22,7 +22,10 @@ import com.intellij.refactoring.suggested.endOffset
 import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClient
 import com.sensetime.sensecode.jetbrains.raccoon.clients.LLMClientManager
 import com.sensetime.sensecode.jetbrains.raccoon.clients.RaccoonClient
+import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.FunctionCallInfo
 import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LLMCompletionRequest
+import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.LocalKnows
+import com.sensetime.sensecode.jetbrains.raccoon.clients.requests.PromptData
 import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.LLMCompletionChoice
 import com.sensetime.sensecode.jetbrains.raccoon.clients.responses.LLMResponse
 import com.sensetime.sensecode.jetbrains.raccoon.completions.preview.CompletionPreview
@@ -32,6 +35,8 @@ import com.sensetime.sensecode.jetbrains.raccoon.tasks.CodeTaskActionBase
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonLanguages
 import com.sensetime.sensecode.jetbrains.raccoon.utils.RaccoonPlugin
 import kotlinx.coroutines.Job
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.encodeToJsonElement
 import kotlin.math.min
 
 
@@ -68,9 +73,9 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                 })
             }
                 ?.let { psiElement ->
-                    if (!isWhiteSpacePsi(psiElement) && psiElement.text.length <= 16) {
-                        caretOffset = psiElement.endOffset
-                    }
+//                    if (!isWhiteSpacePsi(psiElement) && psiElement.text.length <= 16) {
+//                        caretOffset = psiElement.endOffset
+//                    }
                     val language = RaccoonLanguages.getMarkdownLanguageFromPsiFile(psiFile)
                     val completionPreview =
                         CompletionPreview.createInstance(editor, caretOffset, language)
@@ -79,17 +84,19 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                     val modelConfig = RaccoonClient.clientConfig.completionModelConfig
                     val isSingleLine =
                         (settings.inlineCompletionPreference == CompletionModelConfig.CompletionPreference.SPEED_PRIORITY)
-                    val prompt = getUserContent(
+                    val userContent = getUserContent(
                         psiElement,
                         caretOffset - psiElement.textOffset,
                         modelConfig.maxInputTokens
-                    ).getMessages(language, modelConfig)
+                    )
+                    val prompt = userContent.getMessages(language, modelConfig)
                     LLMClientManager.getInstance(project)
                         .launchLLMCompletionJob(!RaccoonSettingsState.instance.isAutoCompleteMode,
                             editor.component,
                             LLMCompletionRequest(
                                 settings.candidates,
-                                prompt = prompt
+                                prompt = prompt,
+                                knowledgeJSON = userContent.knowledgeJSON
                             ), object : LLMClientManager.LLMJobListener<LLMCompletionChoice, String?>,
                                 LLMClient.LLMUsagesResponseListener<LLMCompletionChoice>() {
                                 override fun onResponseInsideEdtAndCatching(llmResponse: LLMResponse<LLMCompletionChoice>) {
@@ -167,7 +174,7 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
 
         @JvmStatic
         private fun findPsiElementAt(psiFile: PsiFile?, caretOffset: Int): PsiElement? {
-            var result = psiFile?.run { findElementAt(min(caretOffset, textLength - 1)) }
+                var result = psiFile?.run { findElementAt(min(caretOffset, textLength - 1)) }
             if (isWhiteSpacePsi(result) && (caretOffset > 0) && ((null == result) || (caretOffset == result.textOffset))) {
                 val prePsiElement = psiFile?.findElementAt(caretOffset - 1)
                 if (!isWhiteSpacePsi(prePsiElement)) {
@@ -177,7 +184,7 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
             return result
         }
 
-        data class UserContent(var text: String, var offset: Int, val maxLength: Int, var knowledge: String = "") {
+        data class UserContent(var text: String, var offset: Int, val maxLength: Int, var knowledge: String = "", var knowledgeJSON: LocalKnows? = null) {
 
             fun cutByMaxLength(preScale: Float = 0.7f): Boolean {
                 if (maxLength >= text.length) {
@@ -232,34 +239,39 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
             fun getMessages(
                 language: String,
                 modelConfig: CompletionModelConfig
-            ): String = modelConfig.getPrompt(
-                if (text.length > offset) {
-                    val suffix = text.substring(offset)
-                    var suffixLines = ""
-                    var suffixCursor = suffix.trimEnd('\r', '\n')
-                    suffix.indexOf('\n').takeIf { it >= 0 }?.let {
-                        suffixLines = suffix.substring(it + 1)
-                        suffixCursor = suffix.substring(0, it).trimEnd('\r', '\n')
-                    }
-                    mapOf(
-                        "language" to language,
-                        "suffixLines" to suffixLines,
-                        "suffixCursor" to suffixCursor,
-                        "suffix" to suffix
-                    ) + getPrefixArgs(text.substring(0, offset), knowledge)
-                } else {
-                    mapOf("language" to language, "suffixLines" to "", "suffixCursor" to "") + getPrefixArgs(
-                        text
-                    )
-                }
-            )
+            ): PromptData {
+                val prefix = knowledge + text.substring(0, offset)
+                val suffix = text.substring(offset)
+                return PromptData(language, prefix, suffix)
+//                if (text.length > offset) {
+//                    val suffix = text.substring(offset)
+//                    var suffixLines = ""
+//                    var suffixCursor = suffix.trimEnd('\r', '\n')
+//                    suffix.indexOf('\n').takeIf { it >= 0 }?.let {
+//                        suffixLines = suffix.substring(it + 1)
+//                        suffixCursor = suffix.substring(0, it).trimEnd('\r', '\n')
+//                    }
+//                    println( "suffixCursor: $suffixCursor suffixLines: $suffixLines suffix: $suffix")
+//                    mapOf(
+//                        "language" to language,
+//                        "suffixLines" to suffixLines,
+//                        "suffixCursor" to suffixCursor,
+//                        "suffix" to suffix
+//                    ) + getPrefixArgs(text.substring(0, offset), knowledge)
+//                } else {
+//                    mapOf("language" to language, "suffixLines" to "", "suffixCursor" to "") + getPrefixArgs(
+//                        text
+//                    )
+//                }
+            }
         }
 
         fun isFunctionOrMethodKeyWord(str: String): String {
             val classPattern = Regex("""(public\s+)?class\s+(\w+)""")
             val javaMethodPattern = Regex("""(public|private|protected)?\s+(static\s+)?(void|int|String|char|boolean|double|float|long|short|byte|[A-Za-z_][\w]*)\s+(\w+)\s*\(([^)]*)\)""")
             val kotlinMethodPattern = Regex("""fun\s+(\w+)\s*\(([^)]*)\)\s*(:\s*[\w<>,\s]*\??)?""")
-            val pythonMethodPattern = Regex("""def\s+(\w+)\s*\(([^)]*)\)\s*->\s*([\w\[\],\s]*)?:?""")
+            val pythonMethodPattern = Regex("""def\s+(\w+)\s*\(([^)]*)\)\s*(->\s*([\w\[\],\s]*))?:?\s*""")
+
             val jsMethodPattern = Regex("""function\s+(\w+)\s*\(([^)]*)\)""")
 
             var classSignature: String? = null
@@ -281,7 +293,7 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                     val returnType = matchResult.groupValues[3].takeIf { it.isNotEmpty() }?.let { ": ${it.trim()}" } ?: ""
                     methodSignatures.add("fun $methodName($parameters)$returnType")
                 }
-            } else {
+            } else if (str.contains("class ") || str.contains("public ") || str.contains("private ") || str.contains("protected ")) {
                 // Find method signatures (Java)
                 javaMethodPattern.findAll(str).forEach { matchResult ->
                     val accessModifier = matchResult.groupValues[1].takeIf { it.isNotEmpty() }?.let { "$it " } ?: ""
@@ -293,19 +305,17 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                     methodSignatures.add("$accessModifier$staticModifier$returnType $methodName($parameters)")
                 }
             }
-
-
-
-
-
-            // Find method signatures (Python)
-            pythonMethodPattern.findAll(str).forEach { matchResult ->
-                val methodName = matchResult.groupValues[1]
-                val parameters = matchResult.groupValues[2]
-                val returnType = matchResult.groupValues[3].takeIf { it.isNotEmpty() }?.let { " -> ${it.trim()}" } ?: ""
-
-                methodSignatures.add("def $methodName($parameters)$returnType")
+            else if (str.contains("def ")) {
+                pythonMethodPattern.findAll(str).forEach { matchResult ->
+                    val methodName = matchResult.groupValues[1]
+                    val parameters = matchResult.groupValues[2]
+                    val returnType =
+                        matchResult.groupValues[4].takeIf { it.isNotEmpty() }?.let { " -> ${it.trim()}" } ?: ""
+                    methodSignatures.add("def $methodName($parameters)$returnType")
+                }
             }
+            // Check for JavaScript methods
+            else if (str.contains("function ")) {
 
             // Find method signatures (JavaScript)
             jsMethodPattern.findAll(str).forEach { matchResult ->
@@ -313,12 +323,11 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                 val parameters = matchResult.groupValues[2]
 
                 methodSignatures.add("function $methodName($parameters)")
-            }
+            }}
 
             val combinedSignatures = StringBuilder()
-            classSignature?.let { combinedSignatures.append("// $it").append("\n") }
-            methodSignatures.forEach { combinedSignatures.append("// $it").append("\n") }
-
+            classSignature?.let { combinedSignatures.append(it).append("\n ") }
+            methodSignatures.forEach { combinedSignatures.append(it).append("\n ") }
             return combinedSignatures.toString()
         }
 
@@ -368,7 +377,7 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
             if (ignoredTypes.any { reference.contains(it) }) return false
             return when (nodeType) {
                 "JS:REFERENCE_EXPRESSION" -> true
-                "Py:REFERENCE_EXPRESSION" -> reference.contains("PyReferenceExpression")
+                "Py:REFERENCE_EXPRESSION" -> reference.contains("PyFromImportSourceReference")
                 "JAVA_CODE_REFERENCE" -> reference.startsWith("PsiJavaCodeReferenceElement:")
                 "REFERENCE_EXPRESSION" -> !reference.contains("PsiReferenceExpression")
                 else -> false
@@ -380,7 +389,7 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
             project: Project,
             functionCalls: List<PsiElement>,
             fileName: String,
-            foundDefinitions: MutableList<String>,
+            foundDefinitions: MutableList<FunctionCallInfo>,
             maxLength: Int
         ) {
             functionCalls.forEach { call ->
@@ -390,7 +399,13 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                             isFunctionOrMethodKeyWord(resolvedElement.text ?: "").takeIf { definition ->
                                 definition.isNotEmpty() && (foundDefinitions.joinToString("\n").length + definition.length < maxLength)
                             }?.let { definition ->
-                                foundDefinitions.add(definition)
+                                // 获取definition的第一行
+                                val firstLine = definition.lineSequence().firstOrNull()
+
+                                // 检查foundDefinitions中是否已经存在相同第一行的definition
+                                if (foundDefinitions.none { it.file_chunk.lineSequence().firstOrNull() == firstLine }) {
+                                    foundDefinitions.add(FunctionCallInfo(it, definition))
+                                }
                             }
                         }
                     }
@@ -451,7 +466,7 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
 
 
         private fun findFunctionCalls(project: Project, file: VirtualFile, remainValue: Int): String {
-            val foundDefinitions = mutableListOf<String>()
+            val foundDefinitions = mutableListOf<FunctionCallInfo>()
             ApplicationManager.getApplication().runReadAction {
                 val psiFile = PsiManager.getInstance(project).findFile(file) ?: return@runReadAction
                 // 查找当前文件中的所有函数调用
@@ -470,7 +485,17 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
                 // 在其他打开的文件中查找这些函数调用的定义
                 findFunctionDefinitions(project, functionCalls, file.name, foundDefinitions, remainValue)
             }
-            return foundDefinitions.joinToString("\n")
+            val promptJson = Json.encodeToJsonElement(mapOf("local_knows" to foundDefinitions))
+            return promptJson.toString()
+//            return foundDefinitions.joinToString("\n")
+        }
+
+
+        fun extractAndJoin(localKnows: LocalKnows): String {
+            return localKnows.local_knows.joinToString(separator = "\n") {
+                // 使用注释形式输出文件名和文件内容
+                "// File: ${it.file_name}\n${it.file_chunk.lines().joinToString(separator = "\n") { line -> "// $line" }}"
+            }
         }
 
 
@@ -523,8 +548,12 @@ internal class ManualTriggerInlineCompletionAction : BaseCodeInsightAction(false
             if(RaccoonSettingsState.instance.isLocalKnowledgeBaseEnabled) {
                 val pretext =
                     findFunctionCalls(psiElement.project, psiElement.containingFile.virtualFile, remainLengthValue)
-                userContent.knowledge = " \n " + pretext + " \n "
-                println("search text: ${pretext} ... ")
+//                val jsonString = Json.encodeToString(pretext)
+                val localKnows: LocalKnows = Json.decodeFromString(LocalKnows.serializer(), pretext)
+                val resultString = extractAndJoin(localKnows)
+                userContent.knowledge = " \n " + resultString + " \n "
+                userContent.knowledgeJSON = localKnows
+                println("search text: ${resultString} ... ")
             }
             userContent.text = userContent.text
             return userContent
