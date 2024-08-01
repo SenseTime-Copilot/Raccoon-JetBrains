@@ -10,6 +10,7 @@ import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ChatModelCo
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.CompletionModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.ModelConfig
 import com.sensetime.sensecode.jetbrains.raccoon.persistent.settings.RaccoonSettingsState
+import com.sensetime.sensecode.jetbrains.raccoon.resources.RaccoonBundle
 import com.sensetime.sensecode.jetbrains.raccoon.utils.plusIfNotNull
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -65,8 +66,8 @@ private fun List<LLMAgentMessage>.toNovaAgentMessage(modelConfig: ModelConfig): 
 @Serializable
 @OptIn(ExperimentalSerializationApi::class)
 internal data class NovaClientCommonParameters(
-    val model: String,
-    val temperature: Float,
+//    val model: String,
+//    val temperature: Float,
     val n: Int,
     val stream: Boolean,
     val stop: String,
@@ -75,8 +76,8 @@ internal data class NovaClientCommonParameters(
     val maxTokens: Int? = null
 ) {
     constructor(modelConfig: ModelConfig, llmRequest: LLMRequest) : this(
-        modelConfig.name,
-        modelConfig.temperature,
+//        modelConfig.name,
+//        modelConfig.temperature,
         llmRequest.n, llmRequest.isStream(),
         modelConfig.stop.first(),
         llmRequest.maxNewTokens.takeIf { it > 0 } ?: modelConfig.getMaxNewTokens()
@@ -118,7 +119,18 @@ internal class NovaClientChatRequest(
     customRequestArgs: Map<String, JsonElement>? = null
 ) : NovaClientRequest(
     buildMap {
-        put("messages", chatRequest.messages.toNovaChatMessages(modelConfig).toJsonArray())
+//        put("messages", chatRequest.messages.toNovaChatMessages(modelConfig).toJsonArray())
+        val additionalMessage = NovaChatMessage(
+            LLMSystemMessage(RaccoonBundle.message("agent.default")),
+            modelConfig
+        )
+
+        // Add the new message before the existing messages
+        val allMessages = listOf(additionalMessage) + chatRequest.messages.toNovaChatMessages(modelConfig)
+
+        put("messages", allMessages.toJsonArray())
+//
+        print(chatRequest.messages);
         chatRequest.localKnowledge?.let {
             put(
                 "local_knows",

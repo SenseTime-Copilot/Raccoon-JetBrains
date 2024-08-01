@@ -18,8 +18,8 @@ import kotlin.math.min
 
 @Serializable
 internal data class PenroseCompletionModelConfig(
-    override val name: String = "SenseChat-CodeCompletion-Lite",
-    override val temperature: Float = 0.4f,
+//    override val name: String = "SenseChat-CodeCompletion-Lite",
+//    override val temperature: Float = 0.4f,
     override val stop: List<String> = listOf("<EOT>"),
     override val maxInputTokens: Int = 12288,
     override val tokenLimit: Int = 16384,
@@ -45,8 +45,8 @@ internal data class PenroseCompletionModelConfig(
 
 @Serializable
 internal data class PenroseChatModelConfig(
-    override val name: String = "SenseChat-Code",
-    override val temperature: Float = 0.4f,
+//    override val name: String = "SenseChat-Code",
+//    override val temperature: Float = 0.4f,
     override val stop: List<String> = listOf("<|endofmessage|>"),
     override val maxInputTokens: Int = 28672,
     override val tokenLimit: Int = 32768,
@@ -180,8 +180,8 @@ internal data class PenroseChatModelConfig(
 
 @Serializable
 internal data class PenroseAgentModelConfig(
-    override val name: String = "SenseChat-Code",
-    override val temperature: Float = 0.4f,
+//    override val name: String = "SenseChat-Code",
+//    override val temperature: Float = 0.4f,
     override val stop: List<String> = listOf("<|endofmessage|>"),
     override val maxInputTokens: Int = 6144,
     override val tokenLimit: Int = 8192,
