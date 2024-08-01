@@ -14,8 +14,8 @@ import kotlin.math.min
 
 @Serializable
 internal abstract class ModelConfig {
-    abstract val name: String
-    abstract val temperature: Float
+//    abstract val name: String
+//    abstract val temperature: Float
     abstract val stop: List<String>
     abstract val maxInputTokens: Int
     abstract val tokenLimit: Int
